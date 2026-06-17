@@ -1,0 +1,273 @@
+import { useState, useEffect } from 'react'
+import { Plus, Search, Pencil, Power, Copy, CheckCircle, MapPin } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { supabaseAdmin } from '../../lib/supabaseAdmin'
+import Modal from '../../components/Modal'
+import { Field, inputClass, selectClass, gerarSenha } from '../../lib/form'
+
+export default function Conferentes() {
+  const [lista, setLista] = useState([])
+  const [unidades, setUnidades] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [busca, setBusca] = useState('')
+  const [modal, setModal] = useState(false)
+  const [editando, setEditando] = useState(null)
+  const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [unidadeId, setUnidadeId] = useState('')
+  const [senha, setSenha] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+  const [senhaCriada, setSenhaCriada] = useState('')
+  const [copiado, setCopiado] = useState(false)
+
+  const carregar = async () => {
+    setLoading(true)
+    const [{ data: conf }, { data: unids }] = await Promise.all([
+      supabase.from('profiles')
+        .select('id, nome, email, telefone, ativo, unidade:unidades(id, nome, cidade)')
+        .eq('perfil', 'conferente').order('nome'),
+      supabase.from('unidades').select('id, nome, cidade').eq('ativo', true).order('nome'),
+    ])
+    if (conf) setLista(conf)
+    if (unids) { setUnidades(unids); if (!unidadeId && unids.length) setUnidadeId(unids[0].id) }
+    setLoading(false)
+  }
+
+  useEffect(() => { carregar() }, [])
+
+  const abrirNovo = () => {
+    setEditando(null)
+    setNome(''); setEmail(''); setTelefone('')
+    setUnidadeId(unidades[0]?.id || '')
+    setSenha(gerarSenha()); setErro(''); setSenhaCriada(''); setCopiado(false)
+    setModal(true)
+  }
+
+  const abrirEditar = (c) => {
+    setEditando(c)
+    setNome(c.nome); setEmail(c.email); setTelefone(c.telefone || '')
+    setUnidadeId(c.unidade?.id || '')
+    setSenha(''); setErro(''); setSenhaCriada(''); setCopiado(false)
+    setModal(true)
+  }
+
+  const fechar = () => { setModal(false); setEditando(null); setSenhaCriada('') }
+  const copiar = (t) => { navigator.clipboard.writeText(t); setCopiado(true); setTimeout(() => setCopiado(false), 2000) }
+
+  const salvar = async (e) => {
+    e.preventDefault()
+    if (!unidadeId) { setErro('Selecione uma unidade.'); return }
+    setSalvando(true); setErro('')
+
+    if (editando) {
+      const { error } = await supabase.from('profiles')
+        .update({ nome, telefone, unidade_id: unidadeId }).eq('id', editando.id)
+      if (error) setErro(error.message)
+      else { await carregar(); fechar() }
+    } else {
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+        email, password: senha, email_confirm: true, user_metadata: { nome },
+      })
+      if (authErr) { setErro(authErr.message); setSalvando(false); return }
+
+      const { error: profileErr } = await supabase.from('profiles').insert({
+        id: authData.user.id, nome, email, telefone,
+        perfil: 'conferente', unidade_id: unidadeId,
+      })
+      if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
+
+      setSenhaCriada(senha); await carregar()
+    }
+    setSalvando(false)
+  }
+
+  const toggleAtivo = async (c) => {
+    const novoAtivo = !c.ativo
+    await supabase.from('profiles').update({ ativo: novoAtivo }).eq('id', c.id)
+    await supabaseAdmin.auth.admin.updateUserById(c.id, { ban_duration: novoAtivo ? 'none' : '876600h' })
+    setLista(prev => prev.map(r => r.id === c.id ? { ...r, ativo: novoAtivo } : r))
+  }
+
+  const redefinirSenha = async () => {
+    const nova = gerarSenha()
+    await supabaseAdmin.auth.admin.updateUserById(editando.id, { password: nova })
+    setSenhaCriada(nova); setCopiado(false)
+  }
+
+  const filtrados = lista.filter(c =>
+    c.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    c.email.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  return (
+    <div className="px-5 py-4">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-white font-semibold text-sm">{lista.length} conferente{lista.length !== 1 ? 's' : ''}</p>
+          <p className="text-slate-600 text-xs">{lista.filter(c => c.ativo).length} ativo{lista.filter(c => c.ativo).length !== 1 ? 's' : ''}</p>
+        </div>
+        <button onClick={abrirNovo}
+          className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+          <Plus size={15} /> Novo
+        </button>
+      </div>
+
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
+        <input type="text" placeholder="Buscar por nome ou email..."
+          value={busca} onChange={e => setBusca(e.target.value)}
+          className="w-full bg-[#0B1929] border border-[#1E3A5F] rounded-xl pl-9 pr-4 py-3 text-white text-sm placeholder-[#2A4A70] focus:outline-none focus:border-orange-500 transition-all" />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtrados.length === 0 ? (
+        <p className="text-center text-slate-600 text-sm py-12">Nenhum conferente encontrado</p>
+      ) : (
+        <div className="space-y-3">
+          {filtrados.map(c => (
+            <div key={c.id} className="bg-[#0F1E33] rounded-xl p-4 border border-[#1E3A5F]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">{c.nome}</p>
+                  <p className="text-slate-500 text-xs mt-0.5 truncate">{c.email}</p>
+                  {c.telefone && <p className="text-slate-600 text-xs mt-0.5">{c.telefone}</p>}
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <MapPin size={11} className="text-orange-400 shrink-0" />
+                    <p className="text-slate-500 text-xs">{c.unidade?.nome} — {c.unidade?.cidade}</p>
+                  </div>
+                  <div className="mt-1.5">
+                    <StatusBadge ativo={c.ativo} />
+                  </div>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <ActionBtn onClick={() => abrirEditar(c)}><Pencil size={14} /></ActionBtn>
+                  <ActionBtn onClick={() => toggleAtivo(c)}
+                    className={c.ativo ? 'hover:text-red-400 hover:border-red-500/40' : 'hover:text-green-400 hover:border-green-500/40'}>
+                    <Power size={14} />
+                  </ActionBtn>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {modal && (
+        <Modal title={editando ? 'Editar Conferente' : 'Novo Conferente'} onClose={fechar}>
+          {senhaCriada && !editando ? (
+            <SucessoSenha senha={senhaCriada} copiado={copiado} onCopy={() => copiar(senhaCriada)} onClose={fechar} />
+          ) : (
+            <form onSubmit={salvar} className="space-y-4">
+              <Field label="Nome completo" required>
+                <input type="text" value={nome} onChange={e => setNome(e.target.value)}
+                  required placeholder="Ex: Maria Souza" className={inputClass} />
+              </Field>
+              <Field label="Email" required>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required disabled={!!editando} placeholder="maria@email.com"
+                  className={`${inputClass} ${editando ? 'opacity-50 cursor-not-allowed' : ''}`} />
+              </Field>
+              <Field label="Telefone">
+                <input type="tel" value={telefone} onChange={e => setTelefone(e.target.value)}
+                  placeholder="(31) 99999-9999" className={inputClass} />
+              </Field>
+              <Field label="Unidade" required>
+                <select value={unidadeId} onChange={e => setUnidadeId(e.target.value)} className={selectClass}>
+                  {unidades.map(u => (
+                    <option key={u.id} value={u.id}>{u.nome} — {u.cidade}</option>
+                  ))}
+                </select>
+              </Field>
+              {!editando && <SenhaDisplay senha={senha} copiado={copiado} onCopy={() => copiar(senha)} />}
+              {editando && (
+                <div className="space-y-2">
+                  <button type="button" onClick={redefinirSenha}
+                    className="w-full bg-[#0B1929] border border-[#1E3A5F] hover:border-orange-500/40 text-slate-400 hover:text-orange-400 text-sm py-3 rounded-xl transition-colors">
+                    Redefinir senha
+                  </button>
+                  {senhaCriada && (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
+                      <p className="text-green-400 text-xs mb-1">Nova senha:</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-orange-400 font-mono font-bold text-lg flex-1">{senhaCriada}</code>
+                        <button type="button" onClick={() => copiar(senhaCriada)} className="text-slate-400 hover:text-white">
+                          {copiado ? <CheckCircle size={16} className="text-green-400" /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {erro && <p className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{erro}</p>}
+              <button type="submit" disabled={salvando}
+                className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                {salvando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar conferente'}
+              </button>
+            </form>
+          )}
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+function StatusBadge({ ativo }) {
+  return (
+    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium border ${
+      ativo ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+    }`}>{ativo ? 'Ativo' : 'Inativo'}</span>
+  )
+}
+
+function ActionBtn({ onClick, children, className = '' }) {
+  return (
+    <button onClick={onClick}
+      className={`w-8 h-8 rounded-lg bg-[#0B1929] border border-[#1E3A5F] flex items-center justify-center text-slate-500 hover:text-orange-400 hover:border-orange-500/40 transition-colors ${className}`}>
+      {children}
+    </button>
+  )
+}
+
+function SenhaDisplay({ senha, copiado, onCopy }) {
+  return (
+    <div>
+      <p className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+        Senha inicial <span className="text-orange-500">*</span>
+      </p>
+      <div className="flex items-center gap-2 bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-4 py-3">
+        <code className="text-orange-400 font-mono font-bold text-lg flex-1">{senha}</code>
+        <button type="button" onClick={onCopy} className="text-slate-400 hover:text-white transition-colors">
+          {copiado ? <CheckCircle size={17} className="text-green-400" /> : <Copy size={17} />}
+        </button>
+      </div>
+      <p className="text-slate-600 text-xs mt-1">Copie a senha antes de salvar.</p>
+    </div>
+  )
+}
+
+function SucessoSenha({ senha, copiado, onCopy, onClose }) {
+  return (
+    <div className="space-y-4">
+      <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+        <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-3">Criado com sucesso!</p>
+        <p className="text-slate-400 text-xs mb-2">Senha inicial — anote antes de fechar:</p>
+        <div className="flex items-center gap-3 bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-4 py-3">
+          <code className="text-orange-400 font-mono font-bold text-2xl flex-1 tracking-wider">{senha}</code>
+          <button onClick={onCopy} className="text-slate-400 hover:text-white transition-colors">
+            {copiado ? <CheckCircle size={20} className="text-green-400" /> : <Copy size={20} />}
+          </button>
+        </div>
+        <p className="text-slate-600 text-xs mt-2">Esta senha não será exibida novamente.</p>
+      </div>
+      <button onClick={onClose}
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+        Concluir
+      </button>
+    </div>
+  )
+}
