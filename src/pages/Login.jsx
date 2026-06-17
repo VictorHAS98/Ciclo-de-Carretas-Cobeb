@@ -22,7 +22,7 @@ function LogoCobeb({ baseUrl }) {
     <img
       src={`${baseUrl}logos/logo-cobeb-transparent.png`}
       alt="COBEB Distribuidora"
-      className="h-36 w-auto object-contain mb-3 drop-shadow-md"
+      className="h-44 w-auto object-contain mb-2 drop-shadow-lg"
       onError={() => setFailed(true)}
     />
   )
@@ -234,19 +234,10 @@ export default function Login() {
 
       <div className="relative z-10 w-full max-w-[380px]">
 
-        {/* Logotipos */}
+        {/* Logotipo */}
         <div className="flex flex-col items-center mb-8">
           <LogoCobeb baseUrl={import.meta.env.BASE_URL} />
-          {/* Fallback se logo não carregar */}
-          <div
-            style={{ display: 'none' }}
-            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cobeb-navy to-cobeb-blue flex items-center justify-center mb-4 shadow-2xl shadow-cobeb-navy/30"
-          >
-            <span className="text-white text-3xl font-black tracking-tighter select-none">CB</span>
-          </div>
-
-          <h1 className="text-cobeb-navy text-2xl font-black tracking-wide">COBEB</h1>
-          <p className="text-cobeb-blue/70 text-[11px] mt-1 tracking-[0.28em] uppercase font-semibold">
+          <p className="text-cobeb-blue/70 text-[11px] tracking-[0.28em] uppercase font-semibold">
             Ciclo de Carretas
           </p>
         </div>
