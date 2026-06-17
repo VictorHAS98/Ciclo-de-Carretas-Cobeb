@@ -22,7 +22,8 @@ function LogoCobeb({ baseUrl }) {
     <img
       src={`${baseUrl}logos/logo-cobeb-transparent.png`}
       alt="COBEB Distribuidora"
-      className="h-64 w-auto object-contain mb-2 drop-shadow-lg"
+      className="h-64 w-auto object-contain mb-1"
+      style={{ filter: 'brightness(0) invert(1)', opacity: 0.95 }}
       onError={() => setFailed(true)}
     />
   )
@@ -223,27 +224,32 @@ export default function Login() {
     }
   }
 
+  const base = import.meta.env.BASE_URL
+
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center px-5 py-10 overflow-hidden bg-[#EBF5FF]">
+    <div className="min-h-screen relative flex flex-col items-center justify-center px-5 py-10 overflow-hidden">
 
-      {/* Cena de carreta SVG */}
-      <TruckSceneBg />
+      {/* Foto real do galpão Ambev como fundo */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${base}bg-login.jpg)` }}
+      />
 
-      {/* Overlay gradient suave para legibilidade do card */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#EBF5FF]/40 via-transparent to-[#EBF5FF]/60 pointer-events-none" />
+      {/* Overlay azul COBEB para legibilidade e identidade de marca */}
+      <div className="absolute inset-0 bg-gradient-to-b from-cobeb-navy/85 via-cobeb-navy/70 to-cobeb-navy/90" />
 
       <div className="relative z-10 w-full max-w-[380px]">
 
-        {/* Logotipo */}
-        <div className="flex flex-col items-center mb-8">
-          <LogoCobeb baseUrl={import.meta.env.BASE_URL} />
-          <p className="text-cobeb-blue/70 text-[11px] tracking-[0.28em] uppercase font-semibold">
+        {/* Logotipo — sem espaço excessivo */}
+        <div className="flex flex-col items-center mb-6">
+          <LogoCobeb baseUrl={base} />
+          <p className="text-white/80 text-sm tracking-[0.3em] uppercase font-semibold -mt-1">
             Ciclo de Carretas
           </p>
         </div>
 
         {/* Card de login */}
-        <div className="bg-white rounded-2xl p-6 border border-cobeb-border shadow-xl shadow-cobeb-navy/10">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-2xl shadow-black/30">
           <p className="text-slate-500 text-sm mb-6 leading-relaxed">
             Entre com suas credenciais para acessar o sistema.
           </p>
@@ -319,13 +325,14 @@ export default function Login() {
 
         {/* Rodapé com logo Ambev */}
         <div className="flex flex-col items-center mt-6 gap-2">
-          <p className="text-cobeb-navy/30 text-[10px] font-semibold uppercase tracking-widest">
+          <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest">
             Distribuidora Oficial
           </p>
           <img
-            src={`${import.meta.env.BASE_URL}logos/logo-ambev.png`}
+            src={`${base}logos/logo-ambev.png`}
             alt="Ambev"
-            className="h-6 object-contain opacity-30"
+            className="h-6 object-contain"
+            style={{ filter: 'brightness(0) invert(1)', opacity: 0.35 }}
             onError={(e) => { e.target.style.display = 'none' }}
           />
         </div>
