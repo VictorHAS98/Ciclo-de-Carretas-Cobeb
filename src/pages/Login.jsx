@@ -19,27 +19,12 @@ function LogoCobeb({ baseUrl }) {
     )
   }
   return (
-    <div
-      className="mb-3"
-      style={{
-        width: 320,
-        height: 104,
-        backgroundImage: `url(${baseUrl}logos/logo-cobeb.png)`,
-        backgroundSize: '120%',
-        backgroundPosition: 'center 47%',
-        backgroundRepeat: 'no-repeat',
-        mixBlendMode: 'multiply',
-      }}
-      role="img"
-      aria-label="COBEB Distribuidora"
-    >
-      <img
-        src={`${baseUrl}logos/logo-cobeb.png`}
-        alt=""
-        className="hidden"
-        onError={() => setFailed(true)}
-      />
-    </div>
+    <img
+      src={`${baseUrl}logos/logo-cobeb-transparent.png`}
+      alt="COBEB Distribuidora"
+      className="h-36 w-auto object-contain mb-3 drop-shadow-md"
+      onError={() => setFailed(true)}
+    />
   )
 }
 

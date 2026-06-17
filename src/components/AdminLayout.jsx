@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+﻿import { useNavigate, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -29,7 +29,7 @@ export default function AdminLayout({ title, children }) {
       <header className="bg-cobeb-navy border-b border-blue-800 px-5 py-3.5 flex items-center justify-between shrink-0 shadow-md shadow-cobeb-navy/20">
         <div className="flex items-center gap-3">
           <img
-            src={`${import.meta.env.BASE_URL}logos/logo-cobeb.png`}
+            src={`${import.meta.env.BASE_URL}logos/logo-cobeb-transparent.png`}
             alt="COBEB"
             className="h-8 object-contain"
             onError={(e) => {
