@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+﻿import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Upload, FileSpreadsheet, ChevronDown, ChevronUp,
   AlertCircle, CheckCircle2, X, Search, RefreshCw,
@@ -237,13 +237,13 @@ export default function Pedidos() {
   const pillBase =
     'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border'
   const pillActive =
-    'bg-orange-500 border-orange-500 text-white'
+    'bg-cobeb-navy border-orange-500 text-white'
   const pillInactive =
-    'bg-transparent border-[#1E3A5F] text-slate-500 hover:border-orange-500/50 hover:text-slate-300'
+    'bg-transparent border-cobeb-border text-slate-500 hover:border-orange-500/50 hover:text-cobeb-text'
 
   const selCls =
-    'bg-[#112240] border border-[#1E3A5F] rounded-xl px-3 py-2 text-white text-xs ' +
-    'focus:outline-none focus:border-orange-500 appearance-none cursor-pointer'
+    'bg-white border border-cobeb-border rounded-xl px-3 py-2 text-cobeb-text text-xs ' +
+    'focus:outline-none focus:border-cobeb-blue appearance-none cursor-pointer'
 
   return (
     <AdminLayout title="Consulta de Pedidos">
@@ -252,40 +252,40 @@ export default function Pedidos() {
         {/* ── Import toggle (admin_total) ── */}
         {isAdminTotal && (
           <div className="px-4 pt-4">
-            <div className="bg-[#112240] rounded-2xl border border-[#1E3A5F] overflow-hidden">
+            <div className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
               <button
                 onClick={() => { setShowImport(v => !v); setImportResult(null) }}
                 className="w-full flex items-center justify-between px-5 py-3.5"
               >
                 <div className="flex items-center gap-2.5">
-                  <FileSpreadsheet size={16} className="text-orange-400" />
-                  <span className="text-white text-sm font-semibold">Importar BASE Ambev</span>
+                  <FileSpreadsheet size={16} className="text-cobeb-yellow" />
+                  <span className="text-cobeb-text text-sm font-semibold">Importar BASE Ambev</span>
                 </div>
                 {showImport ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
               </button>
 
               {showImport && (
-                <div className="border-t border-[#1E3A5F] p-4 space-y-3">
+                <div className="border-t border-cobeb-border p-4 space-y-3">
                   <input ref={fileRef} type="file" accept=".xlsx" onChange={handleFileChange} className="hidden" />
 
                   {!pendingFile ? (
                     <button
                       onClick={() => fileRef.current?.click()}
-                      className="w-full border-2 border-dashed border-[#1E3A5F] hover:border-orange-500/50 rounded-xl py-6 flex flex-col items-center gap-2 transition-colors group"
+                      className="w-full border-2 border-dashed border-cobeb-border hover:border-orange-500/50 rounded-xl py-6 flex flex-col items-center gap-2 transition-colors group"
                     >
-                      <Upload size={18} className="text-slate-600 group-hover:text-orange-400 transition-colors" />
+                      <Upload size={18} className="text-slate-500 group-hover:text-cobeb-yellow transition-colors" />
                       <span className="text-slate-500 text-sm">Selecionar arquivo BASE...</span>
                     </button>
                   ) : (
-                    <div className="bg-[#0B1929] rounded-xl p-3.5 flex items-center justify-between gap-3">
+                    <div className="bg-[#EBF5FF] rounded-xl p-3.5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <FileSpreadsheet size={16} className="text-orange-400 shrink-0" />
+                        <FileSpreadsheet size={16} className="text-cobeb-yellow shrink-0" />
                         <div>
-                          <p className="text-white text-sm font-medium">{pendingFile.name}</p>
+                          <p className="text-cobeb-text text-sm font-medium">{pendingFile.name}</p>
                           <p className="text-slate-500 text-xs">{pendingFile.count.toLocaleString('pt-BR')} registros</p>
                         </div>
                       </div>
-                      <button onClick={() => setPendingFile(null)} className="text-slate-600 hover:text-slate-400">
+                      <button onClick={() => setPendingFile(null)} className="text-slate-500 hover:text-slate-400">
                         <X size={15} />
                       </button>
                     </div>
@@ -307,7 +307,7 @@ export default function Pedidos() {
                     <button
                       onClick={handleImport}
                       disabled={importing}
-                      className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl py-3 transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-sm font-semibold rounded-xl py-3 transition-colors flex items-center justify-center gap-2"
                     >
                       {importing
                         ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Importando...</>
@@ -344,11 +344,11 @@ export default function Pedidos() {
               type="date"
               value={filtData}
               onChange={e => setFiltData(e.target.value)}
-              className="flex-1 bg-[#112240] border border-[#1E3A5F] rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-orange-500 transition-colors [color-scheme:dark]"
+              className="flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]"
             />
 
             {filtData && (
-              <button onClick={() => setFiltData('')} className="text-slate-600 hover:text-orange-400 transition-colors shrink-0">
+              <button onClick={() => setFiltData('')} className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
                 <X size={15} />
               </button>
             )}
@@ -358,17 +358,17 @@ export default function Pedidos() {
         {/* ── Search + secondary filters ── */}
         <div className="px-4 pt-3 space-y-2">
           <div className="relative">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar número do pedido..."
-              className="w-full bg-[#112240] border border-[#1E3A5F] rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full bg-white border border-cobeb-border rounded-xl pl-9 pr-4 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
               >
                 <X size={14} />
               </button>
@@ -392,9 +392,9 @@ export default function Pedidos() {
           <div className="px-4 pt-4 pb-1">
             <div className="grid items-center px-4 py-1"
               style={{ gridTemplateColumns: '1fr 1fr auto auto' }}>
-              <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest">Data · Fábrica</span>
-              <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest">Pedido · Placa</span>
-              <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest pr-6">Status</span>
+              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Data · Fábrica</span>
+              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Pedido · Placa</span>
+              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest pr-6">Status</span>
               <span />
             </div>
           </div>
@@ -407,11 +407,11 @@ export default function Pedidos() {
           </div>
         ) : agrupados.length === 0 ? (
           <div className="text-center py-20 px-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#112240] border border-[#1E3A5F] flex items-center justify-center mx-auto mb-4">
-              <FileSpreadsheet size={22} className="text-[#1E3A5F]" />
+            <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
+              <FileSpreadsheet size={22} className="text-cobeb-border" />
             </div>
             <p className="text-slate-500 text-sm font-medium">Nenhum pedido encontrado</p>
-            <p className="text-[#1E3A5F] text-xs mt-1">
+            <p className="text-cobeb-border text-xs mt-1">
               {pedidos.length === 0 ? 'Importe um arquivo BASE para começar' : 'Ajuste os filtros acima'}
             </p>
           </div>
@@ -423,7 +423,7 @@ export default function Pedidos() {
               const vinculado = !!g.viagem_id
 
               return (
-                <div key={g.key} className="bg-[#112240] rounded-2xl border border-[#1E3A5F] overflow-hidden">
+                <div key={g.key} className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
                   {/* Row */}
                   <button
                     onClick={() => toggleExpand(g.key)}
@@ -435,22 +435,22 @@ export default function Pedidos() {
                     >
                       {/* Col 1: date + factory */}
                       <div className="min-w-0">
-                        <p className="text-white text-xs font-semibold">{ptDate(g.data_puxada)}</p>
+                        <p className="text-cobeb-text text-xs font-semibold">{ptDate(g.data_puxada)}</p>
                         <p className="text-slate-500 text-[11px] truncate mt-0.5">{g.fabrica}</p>
                         {unidade && (
-                          <p className="text-slate-600 text-[10px] mt-0.5">{unidade.codigo}</p>
+                          <p className="text-slate-500 text-[10px] mt-0.5">{unidade.codigo}</p>
                         )}
                       </div>
 
                       {/* Col 2: pedido + plate */}
                       <div className="min-w-0">
-                        <p className="text-orange-400 font-mono text-xs font-semibold">
+                        <p className="text-cobeb-yellow font-mono text-xs font-semibold">
                           #{g.numero_pedido}
                         </p>
                         {g.placa && (
                           <p className="text-slate-400 font-mono text-[11px] mt-0.5">{g.placa}</p>
                         )}
-                        <p className="text-slate-600 text-[10px] mt-0.5">
+                        <p className="text-slate-500 text-[10px] mt-0.5">
                           {g.itens.length} prod · {g.total_pallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
                         </p>
                       </div>
@@ -464,14 +464,14 @@ export default function Pedidos() {
                           </>
                         ) : (
                           <>
-                            <Clock size={14} className="text-slate-600 shrink-0" />
-                            <span className="text-slate-600 text-[10px] font-semibold whitespace-nowrap">Pendente</span>
+                            <Clock size={14} className="text-slate-500 shrink-0" />
+                            <span className="text-slate-500 text-[10px] font-semibold whitespace-nowrap">Pendente</span>
                           </>
                         )}
                       </div>
 
                       {/* Col 4: chevron */}
-                      <div className="text-slate-600">
+                      <div className="text-slate-500">
                         {isOpen
                           ? <ChevronUp size={16} />
                           : <ChevronDown size={16} />}
@@ -483,12 +483,12 @@ export default function Pedidos() {
                   {isOpen && (
                     <div className="border-t border-[#0B1929]">
                       {/* Sub-header */}
-                      <div className="grid px-4 py-2 bg-[#0B1929]"
+                      <div className="grid px-4 py-2 bg-[#EBF5FF]"
                         style={{ gridTemplateColumns: '1fr auto' }}>
-                        <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest">
+                        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">
                           Produto
                         </span>
-                        <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-widest text-right">
+                        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest text-right">
                           Pallets · Caixas
                         </span>
                       </div>
@@ -499,13 +499,13 @@ export default function Pedidos() {
                           style={{ gridTemplateColumns: '1fr auto' }}
                         >
                           <div className="min-w-0">
-                            <p className="text-slate-300 text-xs font-medium truncate">{item.descricao}</p>
+                            <p className="text-cobeb-text text-xs font-medium truncate">{item.descricao}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-slate-600 text-[10px] font-mono">{item.cod_produto}</span>
-                              {item.embalagem && <span className="text-slate-600 text-[10px]">{item.embalagem}</span>}
+                              <span className="text-slate-500 text-[10px] font-mono">{item.cod_produto}</span>
+                              {item.embalagem && <span className="text-slate-500 text-[10px]">{item.embalagem}</span>}
                               {item.curva && (
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none ${
-                                  item.curva === 'A' ? 'bg-orange-500/20 text-orange-400' :
+                                  item.curva === 'A' ? 'bg-cobeb-navy/10 text-cobeb-yellow' :
                                   item.curva === 'B' ? 'bg-blue-500/20 text-blue-400' :
                                   'bg-[#1E3A5F]/50 text-slate-500'
                                 }`}>{item.curva}</span>
@@ -513,10 +513,10 @@ export default function Pedidos() {
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-white text-xs font-semibold">
+                            <p className="text-cobeb-text text-xs font-semibold">
                               {Number(item.qtde_pallets).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
                             </p>
-                            <p className="text-slate-600 text-[10px]">
+                            <p className="text-slate-500 text-[10px]">
                               {Number(item.qtde_skus).toLocaleString('pt-BR')} cx
                             </p>
                           </div>
@@ -524,16 +524,16 @@ export default function Pedidos() {
                       ))}
 
                       {/* Totais */}
-                      <div className="grid items-center gap-x-3 px-4 py-2.5 bg-[#0B1929]"
+                      <div className="grid items-center gap-x-3 px-4 py-2.5 bg-[#EBF5FF]"
                         style={{ gridTemplateColumns: '1fr auto' }}>
-                        <span className="text-slate-600 text-[10px] font-semibold uppercase tracking-widest">
+                        <span className="text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
                           Total ({g.itens.length} produtos)
                         </span>
                         <div className="text-right">
-                          <span className="text-orange-400 text-xs font-bold">
+                          <span className="text-cobeb-yellow text-xs font-bold">
                             {g.total_pallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
                           </span>
-                          <span className="text-slate-600 text-[10px] ml-2">
+                          <span className="text-slate-500 text-[10px] ml-2">
                             {g.total_skus.toLocaleString('pt-BR')} cx
                           </span>
                         </div>
@@ -549,11 +549,11 @@ export default function Pedidos() {
         {/* ── Counter + refresh ── */}
         {!loading && (
           <div className="px-4 pb-6 flex items-center justify-between">
-            <p className="text-slate-600 text-xs">
+            <p className="text-slate-500 text-xs">
               Mostrando{' '}
-              <span className="text-white font-semibold">{agrupados.length}</span>
+              <span className="text-cobeb-text font-semibold">{agrupados.length}</span>
               {' '}de{' '}
-              <span className="text-white font-semibold">
+              <span className="text-cobeb-text font-semibold">
                 {[...new Set(pedidos.filter(p => {
                   if (filtData && p.data_puxada !== filtData) return false
                   if (filtUnidade && p.unidade_id !== filtUnidade) return false
@@ -565,7 +565,7 @@ export default function Pedidos() {
             </p>
             <button
               onClick={loadData}
-              className="flex items-center gap-1.5 text-slate-600 hover:text-orange-400 text-xs transition-colors"
+              className="flex items-center gap-1.5 text-slate-500 hover:text-cobeb-yellow text-xs transition-colors"
             >
               <RefreshCw size={12} />
               Atualizar

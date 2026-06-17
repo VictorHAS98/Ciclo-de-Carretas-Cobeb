@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import {
   LogOut, ClipboardList, MapPin, ChevronLeft, CheckCircle, Clock,
   AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X,
@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext'
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const STATUS_CFG = {
-  pendente:     { label: 'Pendente',     color: 'text-slate-500',  bg: 'bg-[#0B1929]',    border: 'border-[#1E3A5F]' },
+  pendente:     { label: 'Pendente',     color: 'text-slate-500',  bg: 'bg-[#EBF5FF]',    border: 'border-cobeb-border' },
   em_andamento: { label: 'Em Andamento', color: 'text-blue-400',   bg: 'bg-blue-500/10',  border: 'border-blue-500/40' },
   concluida:    { label: 'Concluída',    color: 'text-green-400',  bg: 'bg-green-500/10', border: 'border-green-500/40' },
 }
@@ -289,25 +289,28 @@ export default function Tarefas() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B1929] flex flex-col">
-      <header className="bg-[#112240] border-b border-[#1E3A5F] px-5 py-4 flex items-center justify-between shrink-0">
+    <div className="min-h-screen bg-[#EBF5FF] flex flex-col">
+      <header className="bg-cobeb-navy border-b border-blue-800 px-5 py-3.5 flex items-center justify-between shrink-0 shadow-md shadow-cobeb-navy/20">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-            <span className="text-orange-400 text-xs font-black select-none">CB</span>
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL}logos/logo-cobeb.png`}
+            alt="COBEB"
+            className="h-7 object-contain"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
           <div>
             <p className="text-white text-sm font-semibold leading-tight">Tarefas de Conferência</p>
-            <p className="text-slate-600 text-[11px] flex items-center gap-1">
-              <MapPin size={9} className="text-orange-400" />
+            <p className="text-blue-300/60 text-[10px] font-medium flex items-center gap-1">
+              <MapPin size={9} />
               {profile?.unidade?.nome ?? 'COBEB'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={loadLista} className="text-slate-600 hover:text-orange-400 transition-colors p-1">
+          <button onClick={loadLista} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
             <RefreshCw size={16} />
           </button>
-          <button onClick={() => signOut()} className="text-slate-500 hover:text-red-400 transition-colors p-1">
+          <button onClick={() => signOut()} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
             <LogOut size={18} />
           </button>
         </div>
@@ -328,11 +331,11 @@ export default function Tarefas() {
                 <button key={value} onClick={() => setFiltroStatus(value)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
                     active
-                      ? 'bg-orange-500 border-orange-500 text-white'
-                      : 'bg-transparent border-[#1E3A5F] text-slate-500 hover:border-orange-500/40'
+                      ? 'bg-cobeb-navy border-orange-500 text-white'
+                      : 'bg-transparent border-cobeb-border text-slate-500 hover:border-cobeb-blue/40'
                   }`}>
                   {label}
-                  <span className={`text-[10px] ${active ? 'text-white/80' : 'text-slate-600'}`}>{count}</span>
+                  <span className={`text-[10px] ${active ? 'text-cobeb-navy/70' : 'text-slate-500'}`}>{count}</span>
                 </button>
               )
             })}
@@ -345,11 +348,11 @@ export default function Tarefas() {
             </div>
           ) : tarefasFiltradas.length === 0 ? (
             <div className="text-center py-16">
-              <div className="w-14 h-14 rounded-2xl bg-[#112240] border border-[#1E3A5F] flex items-center justify-center mx-auto mb-4">
-                <ClipboardList size={22} className="text-[#1E3A5F]" />
+              <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
+                <ClipboardList size={22} className="text-cobeb-border" />
               </div>
               <p className="text-slate-500 text-sm font-medium">Nenhuma tarefa encontrada</p>
-              <p className="text-[#1E3A5F] text-xs mt-1">As tarefas aparecem quando um motorista chega na revenda</p>
+              <p className="text-cobeb-border text-xs mt-1">As tarefas aparecem quando um motorista chega na revenda</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -360,18 +363,18 @@ export default function Tarefas() {
                     <div className="px-4 py-3">
                       <div className="mb-3">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-white font-semibold text-sm">NF {tarefa.numero_nf}</span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.color} ${cfg.border} bg-[#0B1929]/60`}>
+                          <span className="text-cobeb-text font-semibold text-sm">NF {tarefa.numero_nf}</span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.color} ${cfg.border} bg-[#EBF5FF]/60`}>
                             {cfg.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                           {tarefa.viagem?.motorista?.nome && (
                             <span className="flex items-center gap-1">
-                              <Truck size={10} className="text-slate-600" />
+                              <Truck size={10} className="text-slate-500" />
                               {tarefa.viagem.motorista.nome}
                               {tarefa.viagem.motorista.tipo && (
-                                <span className="text-slate-600 text-[10px]">({tarefa.viagem.motorista.tipo})</span>
+                                <span className="text-slate-500 text-[10px]">({tarefa.viagem.motorista.tipo})</span>
                               )}
                             </span>
                           )}
@@ -384,7 +387,7 @@ export default function Tarefas() {
                             </>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-600 flex-wrap">
+                        <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Clock size={10} />
                             Chegada: {formatTs(tarefa.viagem?.dt_chegada_revenda) ?? formatTs(tarefa.created_at)}
@@ -405,13 +408,13 @@ export default function Tarefas() {
                       )}
                       {tarefa.status === 'em_andamento' && (
                         <button onClick={() => openConferencia(tarefa)}
-                          className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                          className="w-full bg-cobeb-navy hover:bg-cobeb-blue text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
                           <Package size={13} />Continuar Conferência
                         </button>
                       )}
                       {tarefa.status === 'concluida' && (
                         <button onClick={() => openConferencia(tarefa)}
-                          className="w-full bg-[#0B1929] border border-green-500/30 hover:border-green-500/60 text-green-400 text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                          className="w-full bg-[#EBF5FF] border border-green-500/30 hover:border-green-500/60 text-green-400 text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
                           <CheckCircle size={13} />Ver Conferência
                         </button>
                       )}
@@ -437,26 +440,26 @@ function ConferenciaView({
   const concluida = tarefa.status === 'concluida'
 
   return (
-    <div className="min-h-screen bg-[#0B1929] flex flex-col">
+    <div className="min-h-screen bg-[#EBF5FF] flex flex-col">
       {/* Header */}
-      <header className="bg-[#112240] border-b border-[#1E3A5F] px-4 py-3 shrink-0">
+      <header className="bg-cobeb-navy border-b border-blue-800 px-4 py-3 shrink-0 shadow-md shadow-cobeb-navy/20">
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors p-1 -ml-1">
+          <button onClick={onBack} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10 -ml-1">
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold truncate">Conferência — NF {tarefa.numero_nf}</p>
-            <p className="text-slate-600 text-[11px] truncate">
+            <p className="text-blue-300/60 text-[11px] truncate">
               {tarefa.viagem?.motorista?.nome ?? 'Motorista'}
               {tarefa.viagem?.carreta?.placa && ` · ${tarefa.viagem.carreta.placa}`}
               {tarefa.viagem?.cavalo?.placa  && ` / ${tarefa.viagem.cavalo.placa}`}
             </p>
           </div>
-          <button onClick={() => signOut()} className="text-slate-600 hover:text-red-400 transition-colors p-1">
+          <button onClick={() => signOut()} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
             <LogOut size={16} />
           </button>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-slate-600 flex-wrap">
+        <div className="flex items-center gap-3 text-[10px] text-blue-300/60 flex-wrap">
           <span className="flex items-center gap-1">
             <Clock size={9} />
             Chegada: {formatTs(tarefa.viagem?.dt_chegada_revenda) ?? formatTs(tarefa.created_at)}
@@ -480,13 +483,13 @@ function ConferenciaView({
           <div className="max-w-lg mx-auto px-4 pt-5 pb-32 space-y-6">
 
             {/* Summary strip */}
-            <div className="bg-[#112240] rounded-2xl border border-[#1E3A5F] px-4 py-3 flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-cobeb-border px-4 py-3 flex items-center justify-between">
               <span className="text-xs text-slate-500 flex items-center gap-2">
-                <Package size={13} className="text-orange-400" />
-                <span className="text-white font-semibold">{pedidos.length}</span> produto(s)
+                <Package size={13} className="text-cobeb-yellow" />
+                <span className="text-cobeb-text font-semibold">{pedidos.length}</span> produto(s)
               </span>
               {divergencias.length > 0 && (
-                <span className="text-[11px] text-orange-400 flex items-center gap-1.5">
+                <span className="text-[11px] text-cobeb-yellow flex items-center gap-1.5">
                   <AlertTriangle size={12} />{divergencias.length} divergência(s)
                 </span>
               )}
@@ -494,7 +497,7 @@ function ConferenciaView({
 
             {/* Products */}
             <section>
-              <p className="text-[11px] text-slate-600 font-semibold uppercase tracking-widest mb-3 px-1">
+              <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest mb-3 px-1">
                 Produtos a Conferir
               </p>
               <div className="space-y-3">
@@ -507,20 +510,20 @@ function ConferenciaView({
 
                   return (
                     <div key={pedido.id}
-                      className={`rounded-2xl border overflow-hidden bg-[#112240] ${hasDiverg ? 'border-orange-500/50' : 'border-[#1E3A5F]'}`}>
+                      className={`rounded-2xl border overflow-hidden bg-white ${hasDiverg ? 'border-orange-500/50' : 'border-cobeb-border'}`}>
                       {/* Product header */}
-                      <div className="px-4 pt-3 pb-2.5 border-b border-[#1E3A5F]/60">
+                      <div className="px-4 pt-3 pb-2.5 border-b border-cobeb-border/60">
                         <div className="flex items-start gap-2">
                           {pedido.curva && (
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none shrink-0 mt-0.5 ${
-                              pedido.curva === 'A' ? 'bg-orange-500/20 text-orange-400' :
+                              pedido.curva === 'A' ? 'bg-cobeb-navy/10 text-cobeb-yellow' :
                               pedido.curva === 'B' ? 'bg-blue-500/20 text-blue-400' :
                               'bg-[#1E3A5F]/50 text-slate-500'
                             }`}>{pedido.curva}</span>
                           )}
                           <div className="min-w-0">
-                            <p className="text-white text-xs font-medium leading-snug">{pedido.descricao}</p>
-                            <p className="text-slate-600 text-[10px] font-mono mt-0.5">
+                            <p className="text-cobeb-text text-xs font-medium leading-snug">{pedido.descricao}</p>
+                            <p className="text-slate-500 text-[10px] font-mono mt-0.5">
                               {pedido.cod_produto}{pedido.embalagem ? ` · ${pedido.embalagem}` : ''}
                             </p>
                           </div>
@@ -531,9 +534,9 @@ function ConferenciaView({
                       <div className="px-4 py-3 space-y-2.5">
                         {/* Esperado */}
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-600 text-[11px]">Esperado</span>
+                          <span className="text-slate-500 text-[11px]">Esperado</span>
                           <span className="text-xs">
-                            <span className="text-white font-semibold">
+                            <span className="text-cobeb-text font-semibold">
                               {Number(pedido.qtde_pallets).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
                             </span>
                             <span className="text-slate-500"> plt · </span>
@@ -545,7 +548,7 @@ function ConferenciaView({
 
                         {/* Recebido */}
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-600 text-[11px] shrink-0">Recebido</span>
+                          <span className="text-slate-500 text-[11px] shrink-0">Recebido</span>
                           <div className="flex items-center gap-2">
                             <input
                               type="number"
@@ -556,11 +559,11 @@ function ConferenciaView({
                               value={rec ?? ''}
                               onChange={e => onSetField(pedido.id, 'qtde_recebida', e.target.value)}
                               onBlur={() => onSalvarItem(pedido.id)}
-                              className={`w-20 text-right bg-[#0B1929] border rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500 transition-colors ${
-                                hasDiverg ? 'border-orange-500/60' : 'border-[#1E3A5F]'
+                              className={`w-20 text-right bg-[#EBF5FF] border rounded-xl px-2.5 py-1.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors ${
+                                hasDiverg ? 'border-orange-500/60' : 'border-cobeb-border'
                               } disabled:opacity-50 disabled:cursor-default`}
                             />
-                            <span className="text-slate-600 text-[11px] shrink-0">plt</span>
+                            <span className="text-slate-500 text-[11px] shrink-0">plt</span>
                             {cxRec !== null && (
                               <span className="text-slate-500 text-[10px] whitespace-nowrap">
                                 = {cxRec.toLocaleString('pt-BR')} cx
@@ -571,28 +574,28 @@ function ConferenciaView({
 
                         {/* Validade */}
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-slate-600 text-[11px] shrink-0">Validade</span>
+                          <span className="text-slate-500 text-[11px] shrink-0">Validade</span>
                           <input
                             type="date"
                             disabled={concluida}
                             value={it.data_validade ?? ''}
                             onChange={e => onSetField(pedido.id, 'data_validade', e.target.value)}
                             onBlur={() => onSalvarItem(pedido.id)}
-                            className="bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500 transition-colors disabled:opacity-50 disabled:cursor-default"
+                            className="bg-[#EBF5FF] border border-cobeb-border rounded-xl px-2.5 py-1.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors disabled:opacity-50 disabled:cursor-default"
                           />
                         </div>
 
                         {/* Divergence alert */}
                         {hasDiverg && (
-                          <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-xl px-3 py-2">
-                            <AlertTriangle size={11} className="text-orange-400 shrink-0" />
-                            <p className="text-orange-400 text-[10px] flex-1">
+                          <div className="flex items-center gap-2 bg-cobeb-navy/10 border border-orange-500/30 rounded-xl px-3 py-2">
+                            <AlertTriangle size={11} className="text-cobeb-yellow shrink-0" />
+                            <p className="text-cobeb-yellow text-[10px] flex-1">
                               Esperado {Number(pedido.qtde_pallets).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} plt,
                               recebido {Number(rec).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} plt
                             </p>
                             {!concluida && (
                               <button onClick={onAbrirAnomalia}
-                                className="text-[10px] text-orange-400 font-semibold underline whitespace-nowrap shrink-0">
+                                className="text-[10px] text-cobeb-yellow font-semibold underline whitespace-nowrap shrink-0">
                                 Registrar
                               </button>
                             )}
@@ -608,39 +611,39 @@ function ConferenciaView({
             {/* Anomalias */}
             <section>
               <div className="flex items-center justify-between mb-3 px-1">
-                <p className="text-[11px] text-slate-600 font-semibold uppercase tracking-widest">
+                <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest">
                   Anomalias{anomalias.length > 0 ? ` (${anomalias.length})` : ''}
                 </p>
                 {!concluida && (
                   <button onClick={onAbrirAnomalia}
-                    className="flex items-center gap-1 text-[11px] text-orange-400 hover:text-orange-300 font-semibold transition-colors">
+                    className="flex items-center gap-1 text-[11px] text-cobeb-yellow hover:text-orange-300 font-semibold transition-colors">
                     <Plus size={12} />Nova Anomalia
                   </button>
                 )}
               </div>
 
               {anomalias.length === 0 ? (
-                <div className="bg-[#112240] rounded-2xl border border-[#1E3A5F] px-4 py-5 text-center">
-                  <p className="text-slate-600 text-xs">Nenhuma anomalia registrada</p>
+                <div className="bg-white rounded-2xl border border-cobeb-border px-4 py-5 text-center">
+                  <p className="text-slate-500 text-xs">Nenhuma anomalia registrada</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {anomalias.map(ano => (
-                    <div key={ano.id} className="bg-[#112240] rounded-2xl border border-orange-500/20 overflow-hidden">
+                    <div key={ano.id} className="bg-white rounded-2xl border border-orange-500/20 overflow-hidden">
                       <div className="px-4 py-3">
                         {ano.pedido && (
                           <p className="text-slate-500 text-[10px] mb-1 font-mono">
                             {ano.pedido.cod_produto} — {ano.pedido.descricao}
                           </p>
                         )}
-                        <p className="text-white text-xs">{ano.descricao}</p>
-                        <p className="text-slate-600 text-[10px] mt-1">{formatTs(ano.created_at)}</p>
+                        <p className="text-cobeb-text text-xs">{ano.descricao}</p>
+                        <p className="text-slate-500 text-[10px] mt-1">{formatTs(ano.created_at)}</p>
                       </div>
                       {ano.fotos?.length > 0 && (
                         <div className="flex gap-2 px-4 pb-3">
                           {ano.fotos.map((url, i) => (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                              className="w-16 h-16 rounded-xl overflow-hidden border border-[#1E3A5F] shrink-0 hover:border-orange-500/40 transition-colors">
+                              className="w-16 h-16 rounded-xl overflow-hidden border border-cobeb-border shrink-0 hover:border-cobeb-blue/40 transition-colors">
                               <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
                             </a>
                           ))}
@@ -657,10 +660,10 @@ function ConferenciaView({
 
       {/* Footer */}
       {!concluida && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#112240] border-t border-[#1E3A5F] px-4 py-3 z-30">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cobeb-border px-4 py-3 z-30">
           <div className="max-w-lg mx-auto">
             {!todosConferidos && (
-              <p className="text-slate-600 text-[10px] text-center mb-2">
+              <p className="text-slate-500 text-[10px] text-center mb-2">
                 Preencha a quantidade recebida de todos os produtos para concluir
               </p>
             )}
@@ -688,12 +691,12 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-[#112240] rounded-t-3xl border-t border-[#1E3A5F] px-5 pt-4 pb-8 max-h-[92vh] overflow-y-auto">
+      <div className="relative bg-white rounded-t-3xl border-t border-cobeb-border px-5 pt-4 pb-8 max-h-[92vh] overflow-y-auto">
         <div className="w-10 h-1 bg-[#1E3A5F] rounded-full mx-auto mb-4" />
 
         <div className="flex items-center justify-between mb-5">
-          <p className="text-white font-semibold text-sm">Nova Anomalia</p>
-          <button onClick={onClose} className="text-slate-600 hover:text-white p-1 transition-colors">
+          <p className="text-cobeb-text font-semibold text-sm">Nova Anomalia</p>
+          <button onClick={onClose} className="text-slate-500 hover:text-white p-1 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -701,11 +704,11 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
         <div className="space-y-5">
           {/* Product selector */}
           <div>
-            <label className="text-slate-600 text-[11px] font-semibold uppercase tracking-widest block mb-2">Produto</label>
+            <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Produto</label>
             <select
               value={form.pedido_id}
               onChange={e => onChange(f => ({ ...f, pedido_id: e.target.value }))}
-              className="w-full bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors"
             >
               <option value="">— Selecione (opcional) —</option>
               {pedidos.map(p => (
@@ -716,22 +719,22 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
 
           {/* Description */}
           <div>
-            <label className="text-slate-600 text-[11px] font-semibold uppercase tracking-widest block mb-2">
-              Problema <span className="text-orange-400">*</span>
+            <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">
+              Problema <span className="text-cobeb-yellow">*</span>
             </label>
             <textarea
               rows={3}
               placeholder="Descreva o problema encontrado..."
               value={form.descricao}
               onChange={e => onChange(f => ({ ...f, descricao: e.target.value }))}
-              className="w-full bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-orange-500 transition-colors resize-none"
+              className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors resize-none"
             />
           </div>
 
           {/* Photos */}
           <div>
-            <label className="text-slate-600 text-[11px] font-semibold uppercase tracking-widest block mb-2">
-              Fotos <span className="text-orange-400">*</span>
+            <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">
+              Fotos <span className="text-cobeb-yellow">*</span>
               <span className="text-slate-700 ml-1.5 normal-case tracking-normal font-normal">frente · lateral · fundo</span>
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -757,8 +760,8 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
                         uploaded
                           ? 'border-green-500/50'
                           : preview
-                          ? 'border-orange-500/40'
-                          : 'border-[#1E3A5F] hover:border-orange-500/40'
+                          ? 'border-cobeb-blue/40'
+                          : 'border-cobeb-border hover:border-cobeb-blue/40'
                       }`}
                     >
                       {preview ? (
@@ -777,8 +780,8 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
                         </>
                       ) : (
                         <div className="flex flex-col items-center gap-1.5 py-4">
-                          <Camera size={20} className="text-slate-600" />
-                          <span className="text-[10px] text-slate-600">{label}</span>
+                          <Camera size={20} className="text-slate-500" />
+                          <span className="text-[10px] text-slate-500">{label}</span>
                         </div>
                       )}
                     </button>
@@ -787,7 +790,7 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
               })}
             </div>
             {!form.fotosUrls.every(u => u !== null) && (
-              <p className="text-slate-600 text-[10px] mt-2 text-center">
+              <p className="text-slate-500 text-[10px] mt-2 text-center">
                 {form.fotosUrls.filter(u => u !== null).length} de 3 fotos enviadas
               </p>
             )}
@@ -796,11 +799,11 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
           {/* Actions */}
           <div className="flex gap-3 pt-1">
             <button onClick={onClose}
-              className="flex-1 bg-[#0B1929] border border-[#1E3A5F] text-slate-400 text-sm font-semibold py-3 rounded-2xl transition-colors">
+              className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-400 text-sm font-semibold py-3 rounded-2xl transition-colors">
               Cancelar
             </button>
             <button onClick={onSave} disabled={!canSave}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2">
+              className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2">
               {salvando
                 ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 : 'Salvar Anomalia'}

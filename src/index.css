@@ -6,7 +6,23 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  background-color: #0B1929;
-  color: #F1F5F9;
+:root {
+  --cobeb-navy:   #003DA5;
+  --cobeb-blue:   #1D6AD4;
+  --cobeb-sky:    #EBF5FF;
+  --cobeb-card:   #FFFFFF;
+  --cobeb-border: #BFDBFE;
+  --cobeb-yellow: #FFB81C;
+  --cobeb-text:   #1E3A6E;
 }
+
+body {
+  background-color: #EBF5FF;
+  color: #1E3A6E;
+}
+
+/* Scrollbar sutil para o tema claro */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #BFDBFE; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #93C5FD; }

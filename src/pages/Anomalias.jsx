@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { AlertTriangle, RefreshCw, MapPin, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import AdminLayout from '../components/AdminLayout'
@@ -51,7 +51,7 @@ export default function Anomalias() {
           <p className="text-slate-500 text-xs">
             {anomaliasFiltradas.length} anomalia(s)
           </p>
-          <button onClick={load} className="text-slate-600 hover:text-orange-400 transition-colors">
+          <button onClick={load} className="text-slate-500 hover:text-cobeb-yellow transition-colors">
             <RefreshCw size={15} />
           </button>
         </div>
@@ -66,8 +66,8 @@ export default function Anomalias() {
                 onClick={() => setFiltroUnidade(u.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
                   active
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-transparent border-[#1E3A5F] text-slate-500 hover:border-orange-500/40'
+                    ? 'bg-cobeb-navy border-orange-500 text-white'
+                    : 'bg-transparent border-cobeb-border text-slate-500 hover:border-cobeb-blue/40'
                 }`}
               >
                 {u.id ? (
@@ -85,25 +85,25 @@ export default function Anomalias() {
           </div>
         ) : anomaliasFiltradas.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-14 h-14 rounded-2xl bg-[#112240] border border-[#1E3A5F] flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle size={22} className="text-[#1E3A5F]" />
+            <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={22} className="text-cobeb-border" />
             </div>
             <p className="text-slate-500 text-sm font-medium">Nenhuma anomalia registrada</p>
-            <p className="text-[#1E3A5F] text-xs mt-1">As anomalias aparecem durante a conferência de chegada</p>
+            <p className="text-cobeb-border text-xs mt-1">As anomalias aparecem durante a conferência de chegada</p>
           </div>
         ) : (
           <div className="space-y-4">
             {anomaliasFiltradas.map(ano => (
-              <div key={ano.id} className="bg-[#112240] rounded-2xl border border-orange-500/20 overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#1E3A5F]/50">
+              <div key={ano.id} className="bg-white rounded-2xl border border-orange-500/20 overflow-hidden">
+                <div className="px-4 py-3 border-b border-cobeb-border/50">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         {ano.tarefa?.numero_nf && (
-                          <span className="text-orange-400 font-semibold text-sm">NF {ano.tarefa.numero_nf}</span>
+                          <span className="text-cobeb-yellow font-semibold text-sm">NF {ano.tarefa.numero_nf}</span>
                         )}
                         {ano.unidade && (
-                          <span className="text-slate-600 text-[10px] flex items-center gap-1">
+                          <span className="text-slate-500 text-[10px] flex items-center gap-1">
                             <MapPin size={9} />{ano.unidade.nome}{ano.unidade.cidade ? ` — ${ano.unidade.cidade}` : ''}
                           </span>
                         )}
@@ -113,12 +113,12 @@ export default function Anomalias() {
                           {ano.pedido.cod_produto} — {ano.pedido.descricao}
                         </p>
                       )}
-                      <p className="text-white text-xs leading-relaxed">{ano.descricao}</p>
+                      <p className="text-cobeb-text text-xs leading-relaxed">{ano.descricao}</p>
                       {ano.conferente?.nome && (
-                        <p className="text-slate-600 text-[10px] mt-1.5">Conferente: {ano.conferente.nome}</p>
+                        <p className="text-slate-500 text-[10px] mt-1.5">Conferente: {ano.conferente.nome}</p>
                       )}
                     </div>
-                    <span className="text-slate-600 text-[10px] shrink-0 whitespace-nowrap">{formatTs(ano.created_at)}</span>
+                    <span className="text-slate-500 text-[10px] shrink-0 whitespace-nowrap">{formatTs(ano.created_at)}</span>
                   </div>
                 </div>
 
@@ -129,7 +129,7 @@ export default function Anomalias() {
                       <button
                         key={i}
                         onClick={() => setFotoAmpliada(url)}
-                        className="w-20 h-20 rounded-xl overflow-hidden border border-[#1E3A5F] shrink-0 hover:border-orange-500/40 transition-colors"
+                        className="w-20 h-20 rounded-xl overflow-hidden border border-cobeb-border shrink-0 hover:border-cobeb-blue/40 transition-colors"
                       >
                         <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
                       </button>

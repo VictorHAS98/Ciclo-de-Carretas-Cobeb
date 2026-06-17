@@ -22,54 +22,72 @@ export default function AdminLayout({ title, children }) {
     ...(isAdminTotal ? [{ path: '/cadastros', icon: Users, label: 'Cadastros' }] : []),
   ]
 
-  const showNav = true
-
   return (
-    <div className="min-h-screen bg-[#0B1929] flex flex-col">
-      <header className="bg-[#112240] border-b border-[#1E3A5F] px-5 py-4 flex items-center justify-between shrink-0">
+    <div className="min-h-screen bg-[#EBF5FF] flex flex-col">
+
+      {/* Header azul COBEB */}
+      <header className="bg-cobeb-navy border-b border-blue-800 px-5 py-3.5 flex items-center justify-between shrink-0 shadow-md shadow-cobeb-navy/20">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-            <span className="text-orange-400 text-xs font-black select-none">CB</span>
+          <img
+            src={`${import.meta.env.BASE_URL}logos/logo-cobeb.png`}
+            alt="COBEB"
+            className="h-8 object-contain"
+            onError={(e) => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'flex'
+            }}
+          />
+          {/* Fallback */}
+          <div
+            style={{ display: 'none' }}
+            className="w-8 h-8 rounded-lg bg-white/20 items-center justify-center"
+          >
+            <span className="text-white text-xs font-black select-none">CB</span>
           </div>
+
           <div>
             <p className="text-white text-sm font-semibold leading-tight">{title}</p>
-            <p className="text-slate-600 text-[11px]">COBEB</p>
+            <p className="text-blue-300/60 text-[10px] font-medium tracking-wide uppercase">
+              Ciclo de Carretas
+            </p>
           </div>
         </div>
+
         <button
           onClick={handleLogout}
-          className="text-slate-500 hover:text-red-400 transition-colors p-1"
+          className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
           title="Sair"
         >
           <LogOut size={18} />
         </button>
       </header>
 
-      <main className={`flex-1 overflow-y-auto ${showNav ? 'pb-20' : 'pb-6'}`}>
+      <main className="flex-1 overflow-y-auto pb-20">
         {children}
       </main>
 
-      {showNav && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-[#112240] border-t border-[#1E3A5F] flex z-40 max-w-2xl mx-auto">
-          {navItems.map(({ path, icon: Icon, label }) => {
-            const active =
-              location.pathname === path ||
-              (path !== '/dashboard' && location.pathname.startsWith(path))
-            return (
-              <button
-                key={path}
-                onClick={() => navigate(path)}
-                className={`flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
-                  active ? 'text-orange-400' : 'text-slate-600 hover:text-slate-400'
-                }`}
-              >
-                <Icon size={20} />
-                <span className="text-[10px] font-medium">{label}</span>
-              </button>
-            )
-          })}
-        </nav>
-      )}
+      {/* Bottom nav azul com ativo amarelo */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-cobeb-navy border-t border-blue-800 flex z-40 max-w-2xl mx-auto shadow-lg shadow-cobeb-navy/30">
+        {navItems.map(({ path, icon: Icon, label }) => {
+          const active =
+            location.pathname === path ||
+            (path !== '/dashboard' && location.pathname.startsWith(path))
+          return (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className={`flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
+                active
+                  ? 'text-cobeb-yellow'
+                  : 'text-blue-300/60 hover:text-blue-200'
+              }`}
+            >
+              <Icon size={20} />
+              <span className="text-[10px] font-semibold">{label}</span>
+            </button>
+          )
+        })}
+      </nav>
     </div>
   )
 }

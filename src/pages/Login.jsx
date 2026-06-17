@@ -9,12 +9,176 @@ const PERFIL_ROTA = {
   conferente: '/tarefas',
 }
 
+function TruckSceneBg() {
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full"
+      viewBox="0 0 1440 900"
+      preserveAspectRatio="xMidYMid slice"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {/* Gradient background */}
+      <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#C7DEFF" />
+          <stop offset="50%" stopColor="#EBF5FF" />
+          <stop offset="100%" stopColor="#D9ECFF" />
+        </linearGradient>
+        <linearGradient id="roadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#C9D8EF" stopOpacity="0" />
+          <stop offset="20%" stopColor="#B8CCE8" stopOpacity="1" />
+          <stop offset="80%" stopColor="#B8CCE8" stopOpacity="1" />
+          <stop offset="100%" stopColor="#C9D8EF" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="truckGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#003DA5" stopOpacity="0.13" />
+          <stop offset="100%" stopColor="#003DA5" stopOpacity="0.07" />
+        </linearGradient>
+        <linearGradient id="cabGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#003DA5" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#003DA5" stopOpacity="0.10" />
+        </linearGradient>
+        <filter id="blur1">
+          <feGaussianBlur stdDeviation="2" />
+        </filter>
+      </defs>
+
+      <rect width="1440" height="900" fill="url(#bgGrad)" />
+
+      {/* Diagonal speed lines (top left corner accent) */}
+      {[0,1,2,3,4].map(i => (
+        <line key={i}
+          x1={-40 + i * 60} y1="0"
+          x2={200 + i * 60} y2="300"
+          stroke="#003DA5" strokeOpacity="0.04" strokeWidth="60"
+        />
+      ))}
+
+      {/* === ROAD BAND === */}
+      <rect x="0" y="490" width="1440" height="130" fill="url(#roadGrad)" rx="2" />
+
+      {/* Road center dashes */}
+      {Array.from({ length: 20 }).map((_, i) => (
+        <rect key={i}
+          x={i * 80} y="552" width="50" height="8"
+          fill="#003DA5" fillOpacity="0.12" rx="4"
+        />
+      ))}
+
+      {/* Road top edge line */}
+      <line x1="0" y1="492" x2="1440" y2="492" stroke="#003DA5" strokeOpacity="0.10" strokeWidth="2" />
+      {/* Road bottom edge line */}
+      <line x1="0" y1="618" x2="1440" y2="618" stroke="#003DA5" strokeOpacity="0.10" strokeWidth="2" />
+
+      {/* === TRUCK 1 — carreta de puxada grande (posição central-direita) === */}
+      {/* Trailer body */}
+      <rect x="680" y="496" width="480" height="90" fill="url(#truckGrad)" rx="6" />
+      {/* Trailer ribbing lines */}
+      {[0,1,2,3,4,5,6,7,8].map(i => (
+        <line key={i}
+          x1={690 + i * 52} y1="500"
+          x2={690 + i * 52} y2="582"
+          stroke="#003DA5" strokeOpacity="0.07" strokeWidth="1.5"
+        />
+      ))}
+      {/* Trailer top stripe yellow */}
+      <rect x="680" y="496" width="480" height="10" fill="#FFB81C" fillOpacity="0.20" rx="4" />
+      {/* Trailer bottom reflector stripe */}
+      <rect x="680" y="576" width="480" height="6" fill="#FFB81C" fillOpacity="0.15" rx="2" />
+      {/* Trailer rear door lines */}
+      <line x1="1156" y1="500" x2="1156" y2="582" stroke="#003DA5" strokeOpacity="0.15" strokeWidth="3" />
+      {/* Trailer hitch */}
+      <rect x="665" y="546" width="20" height="10" fill="#003DA5" fillOpacity="0.15" rx="3" />
+
+      {/* Cab body */}
+      <rect x="560" y="502" width="118" height="84" fill="url(#cabGrad)" rx="8" />
+      {/* Cab roof aero */}
+      <path d="M560 502 Q560 488 574 484 L658 480 Q672 479 678 490 L678 502 Z"
+        fill="#003DA5" fillOpacity="0.12" />
+      {/* Cab windshield */}
+      <rect x="568" y="506" width="68" height="38" fill="#003DA5" fillOpacity="0.08" rx="4" />
+      {/* Cab windshield divider */}
+      <line x1="602" y1="506" x2="602" y2="544" stroke="#003DA5" strokeOpacity="0.10" strokeWidth="1.5" />
+      {/* Cab exhaust stack */}
+      <rect x="640" y="470" width="7" height="30" fill="#003DA5" fillOpacity="0.10" rx="3" />
+      {/* Truck wheels */}
+      {[590, 630, 730, 820, 930, 1060, 1110].map((cx, i) => (
+        <g key={i}>
+          <circle cx={cx} cy="590" r="18" fill="#003DA5" fillOpacity="0.12" />
+          <circle cx={cx} cy="590" r="10" fill="#EBF5FF" fillOpacity="0.6" />
+          <circle cx={cx} cy="590" r="4" fill="#003DA5" fillOpacity="0.12" />
+        </g>
+      ))}
+
+      {/* === TRUCK 2 — carreta menor ao fundo (posição esquerda) === */}
+      <rect x="-60" y="508" width="320" height="68" fill="#003DA5" fillOpacity="0.06" rx="5" />
+      <rect x="-60" y="508" width="320" height="8" fill="#FFB81C" fillOpacity="0.12" rx="3" />
+      <rect x="258" y="514" width="75" height="62" fill="#003DA5" fillOpacity="0.08" rx="6" />
+      {[0, 60, 150, 240].map((cx, i) => (
+        <circle key={i} cx={cx} cy="580" r="14" fill="#003DA5" fillOpacity="0.08" />
+      ))}
+
+      {/* === WAREHOUSE / FABRICA — right side === */}
+      <g opacity="0.08">
+        {/* Building main */}
+        <rect x="1280" y="370" width="180" height="130" fill="#003DA5" rx="4" />
+        {/* Roof triangle */}
+        <polygon points="1270,370 1370,320 1470,370" fill="#003DA5" />
+        {/* Door */}
+        <rect x="1340" y="448" width="60" height="52" fill="#EBF5FF" rx="3" />
+        {/* Windows */}
+        {[0,1,2].map(i => (
+          <rect key={i} x={1296 + i * 50} y="390" width="32" height="24" fill="#EBF5FF" rx="2" />
+        ))}
+        {/* Chimney */}
+        <rect x="1400" y="330" width="16" height="42" fill="#003DA5" rx="3" />
+        <circle cx="1408" cy="326" r="8" fill="#003DA5" />
+      </g>
+
+      {/* === FLOW ARROWS === */}
+      {[200, 420, 640, 860].map((x, i) => (
+        <g key={i} opacity="0.12">
+          <line x1={x} y1="460" x2={x + 80} y2="460" stroke="#003DA5" strokeWidth="2" />
+          <polygon points={`${x+80},455 ${x+96},460 ${x+80},465`} fill="#003DA5" />
+        </g>
+      ))}
+
+      {/* === DISTANCE MARKERS === */}
+      {[140, 380, 620, 860, 1100].map((x, i) => (
+        <g key={i} opacity="0.08">
+          <rect x={x} y="630" width="2" height="16" fill="#003DA5" />
+          <rect x={x - 6} y="630" width="14" height="2" fill="#003DA5" />
+        </g>
+      ))}
+
+      {/* Decorative dots / nodes */}
+      {[
+        [140, 460], [380, 460], [620, 460], [860, 460], [1100, 460],
+      ].map(([cx, cy], i) => (
+        <g key={i}>
+          <circle cx={cx} cy={cy} r="6" fill="#003DA5" fillOpacity="0.15" />
+          <circle cx={cx} cy={cy} r="3" fill="#FFB81C" fillOpacity="0.25" />
+        </g>
+      ))}
+
+      {/* Top-right corner decorative rings */}
+      <circle cx="1340" cy="120" r="90" stroke="#003DA5" strokeOpacity="0.05" strokeWidth="24" fill="none" />
+      <circle cx="1340" cy="120" r="140" stroke="#003DA5" strokeOpacity="0.03" strokeWidth="16" fill="none" />
+
+      {/* Bottom-left corner decorative rings */}
+      <circle cx="100" cy="800" r="80" stroke="#003DA5" strokeOpacity="0.05" strokeWidth="20" fill="none" />
+      <circle cx="100" cy="800" r="130" stroke="#003DA5" strokeOpacity="0.03" strokeWidth="12" fill="none" />
+    </svg>
+  )
+}
+
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [erro, setErro] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [erro, setErro]         = useState('')
 
   const { signIn, profile } = useAuth()
   const navigate = useNavigate()
@@ -33,34 +197,52 @@ export default function Login() {
     }
     setLoading(true)
     setErro('')
-
     const { error } = await signIn(email.trim(), password)
-
     if (error) {
       setErro('Email ou senha inválidos. Verifique e tente novamente.')
       setLoading(false)
     }
-    // Se sucesso, o useEffect acima aguarda o profile carregar e redireciona
   }
 
   return (
-    <div className="min-h-screen bg-[#0B1929] flex flex-col items-center justify-center px-5 py-10">
-      <div className="w-full max-w-[380px]">
+    <div className="min-h-screen relative flex flex-col items-center justify-center px-5 py-10 overflow-hidden bg-[#EBF5FF]">
 
-        {/* Logotipo */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mb-5 shadow-2xl shadow-orange-500/30">
+      {/* Cena de carreta SVG */}
+      <TruckSceneBg />
+
+      {/* Overlay gradient suave para legibilidade do card */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#EBF5FF]/40 via-transparent to-[#EBF5FF]/60 pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-[380px]">
+
+        {/* Logotipos */}
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src={`${import.meta.env.BASE_URL}logos/logo-cobeb.png`}
+            alt="COBEB"
+            className="h-20 object-contain mb-4 drop-shadow-md"
+            onError={(e) => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'flex'
+            }}
+          />
+          {/* Fallback se logo não carregar */}
+          <div
+            style={{ display: 'none' }}
+            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cobeb-navy to-cobeb-blue flex items-center justify-center mb-4 shadow-2xl shadow-cobeb-navy/30"
+          >
             <span className="text-white text-3xl font-black tracking-tighter select-none">CB</span>
           </div>
-          <h1 className="text-white text-2xl font-bold tracking-wide">COBEB</h1>
-          <p className="text-slate-500 text-[11px] mt-1.5 tracking-[0.25em] uppercase font-medium">
+
+          <h1 className="text-cobeb-navy text-2xl font-black tracking-wide">COBEB</h1>
+          <p className="text-cobeb-blue/70 text-[11px] mt-1 tracking-[0.28em] uppercase font-semibold">
             Ciclo de Carretas
           </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-[#112240] rounded-2xl p-6 border border-[#1E3A5F] shadow-2xl">
-          <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+        {/* Card de login */}
+        <div className="bg-white rounded-2xl p-6 border border-cobeb-border shadow-xl shadow-cobeb-navy/10">
+          <p className="text-slate-500 text-sm mb-6 leading-relaxed">
             Entre com suas credenciais para acessar o sistema.
           </p>
 
@@ -68,7 +250,7 @@ export default function Login() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest">
+              <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">
                 Email
               </label>
               <input
@@ -78,13 +260,13 @@ export default function Login() {
                 placeholder="seu@email.com.br"
                 autoComplete="email"
                 autoCapitalize="none"
-                className="w-full bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-4 py-3.5 text-white text-sm placeholder-[#2A4A70] focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/40 transition-all"
+                className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all"
               />
             </div>
 
             {/* Senha */}
             <div className="space-y-1.5">
-              <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest">
+              <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">
                 Senha
               </label>
               <div className="relative">
@@ -94,13 +276,13 @@ export default function Login() {
                   onChange={(e) => { setPassword(e.target.value); setErro('') }}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-4 py-3.5 pr-12 text-white text-sm placeholder-[#2A4A70] focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/40 transition-all"
+                  className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 pr-12 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
                   tabIndex={-1}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cobeb-navy transition-colors"
                 >
                   {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
@@ -109,9 +291,9 @@ export default function Login() {
 
             {/* Erro */}
             {erro && (
-              <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-                <AlertCircle size={15} className="text-red-400 mt-0.5 shrink-0" />
-                <p className="text-red-400 text-sm">{erro}</p>
+              <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
+                <p className="text-red-600 text-sm">{erro}</p>
               </div>
             )}
 
@@ -119,7 +301,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-orange-500/20 mt-1"
+              className="w-full bg-cobeb-navy hover:bg-cobeb-blue active:bg-cobeb-blue/90 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-cobeb-navy/25 mt-1"
             >
               {loading ? (
                 <>
@@ -130,14 +312,21 @@ export default function Login() {
                 'Entrar'
               )}
             </button>
-
           </form>
         </div>
 
-        {/* Rodapé */}
-        <p className="text-[#1E3A5F] text-xs text-center mt-6 font-medium">
-          COBEB — Distribuidora Ambev
-        </p>
+        {/* Rodapé com logo Ambev */}
+        <div className="flex flex-col items-center mt-6 gap-2">
+          <p className="text-cobeb-navy/30 text-[10px] font-semibold uppercase tracking-widest">
+            Distribuidora Oficial
+          </p>
+          <img
+            src={`${import.meta.env.BASE_URL}logos/logo-ambev.png`}
+            alt="Ambev"
+            className="h-6 object-contain opacity-30"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
+        </div>
 
       </div>
     </div>

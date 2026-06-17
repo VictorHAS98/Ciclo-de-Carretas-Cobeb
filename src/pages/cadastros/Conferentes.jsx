@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Plus, Search, Pencil, Power, Copy, CheckCircle, MapPin } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { supabaseAdmin } from '../../lib/supabaseAdmin'
@@ -105,20 +105,20 @@ export default function Conferentes() {
     <div className="px-5 py-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-white font-semibold text-sm">{lista.length} conferente{lista.length !== 1 ? 's' : ''}</p>
-          <p className="text-slate-600 text-xs">{lista.filter(c => c.ativo).length} ativo{lista.filter(c => c.ativo).length !== 1 ? 's' : ''}</p>
+          <p className="text-cobeb-text font-semibold text-sm">{lista.length} conferente{lista.length !== 1 ? 's' : ''}</p>
+          <p className="text-slate-500 text-xs">{lista.filter(c => c.ativo).length} ativo{lista.filter(c => c.ativo).length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={abrirNovo}
-          className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+          className="flex items-center gap-1.5 bg-cobeb-navy hover:bg-cobeb-blue text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
           <Plus size={15} /> Novo
         </button>
       </div>
 
       <div className="relative mb-4">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <input type="text" placeholder="Buscar por nome ou email..."
           value={busca} onChange={e => setBusca(e.target.value)}
-          className="w-full bg-[#0B1929] border border-[#1E3A5F] rounded-xl pl-9 pr-4 py-3 text-white text-sm placeholder-[#2A4A70] focus:outline-none focus:border-orange-500 transition-all" />
+          className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl pl-9 pr-4 py-3 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue transition-all" />
       </div>
 
       {loading ? (
@@ -126,18 +126,18 @@ export default function Conferentes() {
           <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtrados.length === 0 ? (
-        <p className="text-center text-slate-600 text-sm py-12">Nenhum conferente encontrado</p>
+        <p className="text-center text-slate-500 text-sm py-12">Nenhum conferente encontrado</p>
       ) : (
         <div className="space-y-3">
           {filtrados.map(c => (
-            <div key={c.id} className="bg-[#0F1E33] rounded-xl p-4 border border-[#1E3A5F]">
+            <div key={c.id} className="bg-[#0F1E33] rounded-xl p-4 border border-cobeb-border">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-white font-semibold text-sm truncate">{c.nome}</p>
+                  <p className="text-cobeb-text font-semibold text-sm truncate">{c.nome}</p>
                   <p className="text-slate-500 text-xs mt-0.5 truncate">{c.email}</p>
-                  {c.telefone && <p className="text-slate-600 text-xs mt-0.5">{c.telefone}</p>}
+                  {c.telefone && <p className="text-slate-500 text-xs mt-0.5">{c.telefone}</p>}
                   <div className="flex items-center gap-1 mt-1.5">
-                    <MapPin size={11} className="text-orange-400 shrink-0" />
+                    <MapPin size={11} className="text-cobeb-yellow shrink-0" />
                     <p className="text-slate-500 text-xs">{c.unidade?.nome} — {c.unidade?.cidade}</p>
                   </div>
                   <div className="mt-1.5">
@@ -187,14 +187,14 @@ export default function Conferentes() {
               {editando && (
                 <div className="space-y-2">
                   <button type="button" onClick={redefinirSenha}
-                    className="w-full bg-[#0B1929] border border-[#1E3A5F] hover:border-orange-500/40 text-slate-400 hover:text-orange-400 text-sm py-3 rounded-xl transition-colors">
+                    className="w-full bg-[#EBF5FF] border border-cobeb-border hover:border-cobeb-blue/40 text-slate-400 hover:text-cobeb-yellow text-sm py-3 rounded-xl transition-colors">
                     Redefinir senha
                   </button>
                   {senhaCriada && (
                     <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
                       <p className="text-green-400 text-xs mb-1">Nova senha:</p>
                       <div className="flex items-center gap-2">
-                        <code className="text-orange-400 font-mono font-bold text-lg flex-1">{senhaCriada}</code>
+                        <code className="text-cobeb-yellow font-mono font-bold text-lg flex-1">{senhaCriada}</code>
                         <button type="button" onClick={() => copiar(senhaCriada)} className="text-slate-400 hover:text-white">
                           {copiado ? <CheckCircle size={16} className="text-green-400" /> : <Copy size={16} />}
                         </button>
@@ -205,7 +205,7 @@ export default function Conferentes() {
               )}
               {erro && <p className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">{erro}</p>}
               <button type="submit" disabled={salvando}
-                className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
                 {salvando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Criar conferente'}
               </button>
             </form>
@@ -227,7 +227,7 @@ function StatusBadge({ ativo }) {
 function ActionBtn({ onClick, children, className = '' }) {
   return (
     <button onClick={onClick}
-      className={`w-8 h-8 rounded-lg bg-[#0B1929] border border-[#1E3A5F] flex items-center justify-center text-slate-500 hover:text-orange-400 hover:border-orange-500/40 transition-colors ${className}`}>
+      className={`w-8 h-8 rounded-lg bg-[#EBF5FF] border border-cobeb-border flex items-center justify-center text-slate-500 hover:text-cobeb-yellow hover:border-cobeb-blue/40 transition-colors ${className}`}>
       {children}
     </button>
   )
@@ -237,15 +237,15 @@ function SenhaDisplay({ senha, copiado, onCopy }) {
   return (
     <div>
       <p className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
-        Senha inicial <span className="text-orange-500">*</span>
+        Senha inicial <span className="text-cobeb-navy">*</span>
       </p>
-      <div className="flex items-center gap-2 bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-4 py-3">
-        <code className="text-orange-400 font-mono font-bold text-lg flex-1">{senha}</code>
+      <div className="flex items-center gap-2 bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-3">
+        <code className="text-cobeb-yellow font-mono font-bold text-lg flex-1">{senha}</code>
         <button type="button" onClick={onCopy} className="text-slate-400 hover:text-white transition-colors">
           {copiado ? <CheckCircle size={17} className="text-green-400" /> : <Copy size={17} />}
         </button>
       </div>
-      <p className="text-slate-600 text-xs mt-1">Copie a senha antes de salvar.</p>
+      <p className="text-slate-500 text-xs mt-1">Copie a senha antes de salvar.</p>
     </div>
   )
 }
@@ -256,16 +256,16 @@ function SucessoSenha({ senha, copiado, onCopy, onClose }) {
       <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
         <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-3">Criado com sucesso!</p>
         <p className="text-slate-400 text-xs mb-2">Senha inicial — anote antes de fechar:</p>
-        <div className="flex items-center gap-3 bg-[#0B1929] border border-[#1E3A5F] rounded-xl px-4 py-3">
-          <code className="text-orange-400 font-mono font-bold text-2xl flex-1 tracking-wider">{senha}</code>
+        <div className="flex items-center gap-3 bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-3">
+          <code className="text-cobeb-yellow font-mono font-bold text-2xl flex-1 tracking-wider">{senha}</code>
           <button onClick={onCopy} className="text-slate-400 hover:text-white transition-colors">
             {copiado ? <CheckCircle size={20} className="text-green-400" /> : <Copy size={20} />}
           </button>
         </div>
-        <p className="text-slate-600 text-xs mt-2">Esta senha não será exibida novamente.</p>
+        <p className="text-slate-500 text-xs mt-2">Esta senha não será exibida novamente.</p>
       </div>
       <button onClick={onClose}
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+        className="w-full bg-cobeb-navy hover:bg-cobeb-blue text-white font-semibold py-3 rounded-xl transition-colors text-sm">
         Concluir
       </button>
     </div>

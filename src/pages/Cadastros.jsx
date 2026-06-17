@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Truck, Users, ClipboardList, Tractor, Shield } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import Motoristas from './cadastros/Motoristas'
@@ -22,7 +22,7 @@ export default function Cadastros() {
   return (
     <AdminLayout title="Cadastros">
       {/* Tab bar */}
-      <div className="bg-[#112240] border-b border-[#1E3A5F] overflow-x-auto">
+      <div className="bg-white border-b border-cobeb-border overflow-x-auto">
         <div className="flex min-w-max px-2">
           {TABS.map(({ id, label, icon: Icon }) => {
             const ativa = id === abaAtiva
@@ -32,8 +32,8 @@ export default function Cadastros() {
                 onClick={() => setAbaAtiva(id)}
                 className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${
                   ativa
-                    ? 'text-orange-400 border-orange-500'
-                    : 'text-slate-600 border-transparent hover:text-slate-400'
+                    ? 'text-cobeb-yellow border-orange-500'
+                    : 'text-slate-500 border-transparent hover:text-slate-400'
                 }`}
               >
                 <Icon size={14} />

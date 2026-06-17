@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+﻿import { X } from 'lucide-react'
 import { useEffect } from 'react'
 
 export default function Modal({ title, onClose, children }) {
@@ -10,13 +10,13 @@ export default function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-[#112240] rounded-t-2xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-white rounded-t-2xl max-h-[92vh] flex flex-col">
         <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 bg-[#1E3A5F] rounded-full" />
+          <div className="w-10 h-1 bg-cobeb-border rounded-full" />
         </div>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#1E3A5F] shrink-0">
-          <h3 className="text-white font-semibold text-sm">{title}</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-white p-1 -mr-1 transition-colors">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-cobeb-border shrink-0">
+          <h3 className="text-cobeb-text font-semibold text-sm">{title}</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-cobeb-navy p-1 -mr-1 transition-colors">
             <X size={20} />
           </button>
         </div>

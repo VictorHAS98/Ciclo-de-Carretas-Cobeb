@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
@@ -130,7 +130,7 @@ export default function Historico() {
             <span className={`text-sm ${feedback.tipo === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
               {feedback.msg}
             </span>
-            <button onClick={() => setFeedback(null)} className="ml-auto text-slate-600 hover:text-slate-400 text-xs">✕</button>
+            <button onClick={() => setFeedback(null)} className="ml-auto text-slate-500 hover:text-slate-400 text-xs">✕</button>
           </div>
         )}
 
@@ -139,7 +139,7 @@ export default function Historico() {
           <button
             onClick={() => setFiltroUnid('todas')}
             className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
-              filtroUnid === 'todas' ? 'bg-orange-500 text-white' : 'bg-[#112240] text-slate-500 border border-[#1E3A5F]'
+              filtroUnid === 'todas' ? 'bg-cobeb-navy text-white' : 'bg-white text-slate-500 border border-cobeb-border'
             }`}>
             Todas
           </button>
@@ -147,7 +147,7 @@ export default function Historico() {
             <button key={u.id}
               onClick={() => setFiltroUnid(u.id)}
               className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                filtroUnid === u.id ? 'bg-orange-500 text-white' : 'bg-[#112240] text-slate-500 border border-[#1E3A5F]'
+                filtroUnid === u.id ? 'bg-cobeb-navy text-white' : 'bg-white text-slate-500 border border-cobeb-border'
               }`}>
               {u.cidade}
             </button>
@@ -156,14 +156,14 @@ export default function Historico() {
 
         {/* Barra de seleção */}
         {!loading && viagensFiltradas.length > 0 && (
-          <div className="flex items-center justify-between bg-[#112240] rounded-2xl border border-[#1E3A5F] px-4 py-3">
+          <div className="flex items-center justify-between bg-white rounded-2xl border border-cobeb-border px-4 py-3">
             <button onClick={toggleTodas} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
               {todasSelecionadas
-                ? <CheckSquare size={18} className="text-orange-400" />
-                : <Square size={18} className="text-slate-600" />}
+                ? <CheckSquare size={18} className="text-cobeb-yellow" />
+                : <Square size={18} className="text-slate-500" />}
               {todasSelecionadas ? 'Desmarcar todas' : 'Selecionar todas'}
             </button>
-            <span className="text-slate-600 text-xs">{viagensFiltradas.length} viagem(ns)</span>
+            <span className="text-slate-500 text-xs">{viagensFiltradas.length} viagem(ns)</span>
           </div>
         )}
 
@@ -175,7 +175,7 @@ export default function Historico() {
         ) : viagensFiltradas.length === 0 ? (
           <div className="text-center py-16">
             <Clock size={32} className="text-slate-700 mx-auto mb-3" />
-            <p className="text-slate-600 text-sm">Nenhuma viagem concluída ou em conferência</p>
+            <p className="text-slate-500 text-sm">Nenhuma viagem concluída ou em conferência</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -189,10 +189,10 @@ export default function Historico() {
                 <div key={v.id}
                   className={`rounded-2xl border transition-all ${
                     sel
-                      ? 'bg-orange-500/10 border-orange-500'
+                      ? 'bg-cobeb-navy/10 border-orange-500'
                       : travada
-                        ? 'bg-[#112240] border-blue-500/30'
-                        : 'bg-[#112240] border-[#1E3A5F]'
+                        ? 'bg-white border-blue-500/30'
+                        : 'bg-white border-cobeb-border'
                   }`}>
 
                   {/* Área clicável para seleção */}
@@ -200,14 +200,14 @@ export default function Historico() {
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 shrink-0">
                         {sel
-                          ? <CheckSquare size={18} className="text-orange-400" />
-                          : <Square size={18} className="text-slate-600" />}
+                          ? <CheckSquare size={18} className="text-cobeb-yellow" />
+                          : <Square size={18} className="text-slate-500" />}
                       </div>
                       <div className="flex-1 min-w-0 space-y-2">
                         {/* Unidade + badge + data */}
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2 min-w-0">
-                            <p className={`font-semibold text-sm truncate ${sel ? 'text-orange-400' : 'text-white'}`}>
+                            <p className={`font-semibold text-sm truncate ${sel ? 'text-cobeb-yellow' : 'text-cobeb-text'}`}>
                               {v.unidade?.nome ?? '—'}
                             </p>
                             {travada ? (
@@ -220,7 +220,7 @@ export default function Historico() {
                               </span>
                             )}
                           </div>
-                          <span className="text-slate-600 text-xs shrink-0">
+                          <span className="text-slate-500 text-xs shrink-0">
                             {travada ? formatTs(v.dt_chegada_revenda) : formatTs(v.dt_saida_entrega)}
                           </span>
                         </div>
@@ -229,12 +229,12 @@ export default function Historico() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-slate-400 text-xs">{v.motorista?.nome ?? '—'}</span>
                           {v.motorista?.tipo && (
-                            <span className="text-[10px] bg-[#0B1929] border border-[#1E3A5F] text-slate-500 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-[#EBF5FF] border border-cobeb-border text-slate-500 px-2 py-0.5 rounded-full">
                               {v.motorista.tipo}
                             </span>
                           )}
                           <span className="text-slate-700 text-xs">·</span>
-                          <Truck size={12} className="text-slate-600 shrink-0" />
+                          <Truck size={12} className="text-slate-500 shrink-0" />
                           <span className="text-slate-500 text-xs font-mono">{v.carreta?.placa ?? '—'}</span>
                           <span className="text-slate-700 text-xs">/</span>
                           <span className="text-slate-500 text-xs font-mono">{v.cavalo?.placa ?? '—'}</span>
@@ -243,7 +243,7 @@ export default function Historico() {
                         {/* NF + TMV */}
                         <div className="flex items-center gap-3 flex-wrap">
                           {v.numero_nf && <span className="text-slate-500 text-xs">NF {v.numero_nf}</span>}
-                          {tmvTotal && <span className="text-slate-600 text-xs font-mono">⏱ {tmvTotal}</span>}
+                          {tmvTotal && <span className="text-slate-500 text-xs font-mono">⏱ {tmvTotal}</span>}
                         </div>
                       </div>
                     </div>
@@ -273,8 +273,8 @@ export default function Historico() {
       {/* Barra de ação — excluir selecionadas */}
       {algumaSelecionada && (
         <div className="fixed bottom-20 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-          <div className="w-full max-w-2xl bg-[#1E3A5F] border border-orange-500/40 rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl pointer-events-auto">
-            <span className="text-white text-sm font-semibold">
+          <div className="w-full max-w-2xl bg-[#1E3A5F] border border-cobeb-blue/40 rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl pointer-events-auto">
+            <span className="text-cobeb-text text-sm font-semibold">
               {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
             </span>
             <button
@@ -293,14 +293,14 @@ export default function Historico() {
       {/* Modal: confirmar exclusão */}
       {modalExcluir && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
-          <div className="w-full max-w-lg mx-auto bg-[#112240] rounded-t-3xl p-6 space-y-5">
+          <div className="w-full max-w-lg mx-auto bg-white rounded-t-3xl p-6 space-y-5">
             <div className="w-10 h-1 bg-[#1E3A5F] rounded-full mx-auto" />
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
                 <AlertTriangle size={20} className="text-red-400" />
               </div>
               <div>
-                <p className="text-white font-semibold text-base">Confirmar exclusão</p>
+                <p className="text-cobeb-text font-semibold text-base">Confirmar exclusão</p>
                 <p className="text-slate-500 text-sm mt-1">
                   {selecionadas.size} viagem(ns) serão excluídas permanentemente, incluindo tarefas, conferências e anomalias.
                 </p>
@@ -309,7 +309,7 @@ export default function Historico() {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setModalExcluir(false)}
-                className="flex-1 bg-[#0B1929] border border-[#1E3A5F] text-slate-400 font-semibold py-4 rounded-2xl text-sm">
+                className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-400 font-semibold py-4 rounded-2xl text-sm">
                 Cancelar
               </button>
               <button onClick={confirmarExclusao}
@@ -324,16 +324,16 @@ export default function Historico() {
       {/* Modal: confirmar liberação */}
       {modalLiberar && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
-          <div className="w-full max-w-lg mx-auto bg-[#112240] rounded-t-3xl p-6 space-y-5">
+          <div className="w-full max-w-lg mx-auto bg-white rounded-t-3xl p-6 space-y-5">
             <div className="w-10 h-1 bg-[#1E3A5F] rounded-full mx-auto" />
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
                 <Unlock size={20} className="text-blue-400" />
               </div>
               <div>
-                <p className="text-white font-semibold text-base">Liberar motorista</p>
+                <p className="text-cobeb-text font-semibold text-base">Liberar motorista</p>
                 <p className="text-slate-400 text-sm mt-1">
-                  <span className="text-white font-medium">{modalLiberar.motorista?.nome ?? 'Motorista'}</span>
+                  <span className="text-cobeb-text font-medium">{modalLiberar.motorista?.nome ?? 'Motorista'}</span>
                   {' — '}{modalLiberar.unidade?.nome}
                 </p>
                 <p className="text-slate-500 text-sm mt-2">
@@ -343,7 +343,7 @@ export default function Historico() {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setModalLiberar(null)}
-                className="flex-1 bg-[#0B1929] border border-[#1E3A5F] text-slate-400 font-semibold py-4 rounded-2xl text-sm">
+                className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-400 font-semibold py-4 rounded-2xl text-sm">
                 Cancelar
               </button>
               <button onClick={confirmarLiberar}
