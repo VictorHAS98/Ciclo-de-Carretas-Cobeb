@@ -22,7 +22,7 @@ function LogoCobeb({ baseUrl }) {
     <img
       src={`${baseUrl}logos/logo-cobeb-transparent.png`}
       alt="COBEB Distribuidora"
-      className="h-44 w-auto object-contain mb-2 drop-shadow-lg"
+      className="h-64 w-auto object-contain mb-2 drop-shadow-lg"
       onError={() => setFailed(true)}
     />
   )

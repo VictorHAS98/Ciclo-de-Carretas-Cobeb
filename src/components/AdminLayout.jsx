@@ -31,7 +31,7 @@ export default function AdminLayout({ title, children }) {
           <img
             src={`${import.meta.env.BASE_URL}logos/logo-cobeb-transparent.png`}
             alt="COBEB"
-            className="h-10 w-auto object-contain"
+            className="h-16 w-auto object-contain"
             style={{ filter: 'brightness(0) invert(1)', opacity: 0.92 }}
             onError={(e) => {
               e.target.style.display = 'none'
