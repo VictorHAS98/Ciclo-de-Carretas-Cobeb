@@ -76,23 +76,23 @@ export default function Cavalos() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-cobeb-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtrados.length === 0 ? (
         <p className="text-center text-slate-500 text-sm py-12">Nenhum cavalo encontrado</p>
       ) : (
         <div className="space-y-3">
           {filtrados.map(c => (
-            <div key={c.id} className="bg-[#0F1E33] rounded-xl p-4 border border-cobeb-border">
+            <div key={c.id} className="bg-gray-50 rounded-xl p-4 border border-cobeb-border">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#EBF5FF] border border-cobeb-border flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
                     <Tractor size={16} className="text-slate-500" />
                   </div>
                   <div>
                     <p className="text-cobeb-text font-bold text-base tracking-wider font-mono">{c.placa}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] bg-[#EBF5FF] border border-cobeb-border text-slate-400 px-2 py-0.5 rounded-full font-medium">{c.tipo}</span>
+                      <span className="text-[11px] bg-white border border-gray-200 text-slate-500 px-2 py-0.5 rounded-full font-medium">{c.tipo}</span>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium border ${
                         c.ativo ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
                       }`}>{c.ativo ? 'Ativo' : 'Inativo'}</span>

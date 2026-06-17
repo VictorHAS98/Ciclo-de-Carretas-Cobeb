@@ -124,7 +124,7 @@ export default function Motoristas() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-cobeb-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtrados.length === 0 ? (
         <p className="text-center text-slate-500 text-sm py-12">Nenhum motorista encontrado</p>
@@ -194,14 +194,14 @@ export default function Motoristas() {
 
 function Card({ r, onEdit, onToggle }) {
   return (
-    <div className="bg-[#0F1E33] rounded-xl p-4 border border-cobeb-border">
+    <div className="bg-gray-50 rounded-xl p-4 border border-cobeb-border">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-cobeb-text font-semibold text-sm truncate">{r.nome}</p>
           <p className="text-slate-500 text-xs mt-0.5 truncate">{r.email}</p>
           {r.telefone && <p className="text-slate-500 text-xs mt-0.5">{r.telefone}</p>}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="text-[11px] bg-[#EBF5FF] border border-cobeb-border text-slate-400 px-2 py-0.5 rounded-full font-medium">{r.tipo}</span>
+            <span className="text-[11px] bg-white border border-gray-200 text-slate-500 px-2 py-0.5 rounded-full font-medium">{r.tipo}</span>
             <StatusBadge ativo={r.ativo} />
           </div>
         </div>

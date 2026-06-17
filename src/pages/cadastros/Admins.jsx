@@ -133,14 +133,14 @@ export default function Admins() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-cobeb-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtrados.length === 0 ? (
         <p className="text-center text-slate-500 text-sm py-12">Nenhum admin encontrado</p>
       ) : (
         <div className="space-y-3">
           {filtrados.map(a => (
-            <div key={a.id} className={`bg-[#0F1E33] rounded-xl p-4 border ${a.id === meProfile?.id ? 'border-orange-500/30' : 'border-cobeb-border'}`}>
+            <div key={a.id} className={`bg-gray-50 rounded-xl p-4 border ${a.id === meProfile?.id ? 'border-cobeb-yellow/40' : 'border-cobeb-border'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -150,11 +150,11 @@ export default function Admins() {
                   <p className="text-slate-500 text-xs mt-0.5 truncate">{a.email}</p>
                   <div className="flex items-center gap-1 mt-1.5">
                     {a.acesso_total ? (
-                      <span className="flex items-center gap-1 text-[11px] bg-cobeb-navy/10 border border-orange-500/20 text-cobeb-yellow px-2 py-0.5 rounded-full font-medium">
+                      <span className="flex items-center gap-1 text-[11px] bg-cobeb-navy/10 border border-cobeb-yellow/40 text-cobeb-yellow px-2 py-0.5 rounded-full font-medium">
                         <Shield size={10} /> Acesso Total
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-[11px] bg-[#EBF5FF] border border-cobeb-border text-slate-400 px-2 py-0.5 rounded-full">
+                      <span className="flex items-center gap-1 text-[11px] bg-white border border-gray-200 text-slate-500 px-2 py-0.5 rounded-full">
                         <MapPin size={10} /> {a.unidade?.nome || 'Sem unidade'}
                       </span>
                     )}
@@ -200,13 +200,13 @@ export default function Admins() {
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => setAcessoTotal(false)}
                     className={`py-3 px-4 rounded-xl text-sm font-medium border transition-colors ${
-                      !acessoTotal ? 'bg-[#EBF5FF] border-orange-500 text-cobeb-yellow' : 'bg-[#EBF5FF] border-cobeb-border text-slate-500'
+                      !acessoTotal ? 'bg-[#EBF5FF] border-cobeb-navy text-cobeb-navy' : 'bg-[#EBF5FF] border-cobeb-border text-slate-500'
                     }`}>
                     Leitura
                   </button>
                   <button type="button" onClick={() => setAcessoTotal(true)}
                     className={`py-3 px-4 rounded-xl text-sm font-medium border transition-colors ${
-                      acessoTotal ? 'bg-cobeb-navy/10 border-orange-500 text-cobeb-yellow' : 'bg-[#EBF5FF] border-cobeb-border text-slate-500'
+                      acessoTotal ? 'bg-cobeb-navy/10 border-cobeb-navy text-cobeb-navy' : 'bg-[#EBF5FF] border-cobeb-border text-slate-500'
                     }`}>
                     Acesso Total
                   </button>

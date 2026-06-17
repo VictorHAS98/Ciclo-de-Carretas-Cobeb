@@ -32,7 +32,7 @@ export default function Cadastros() {
                 onClick={() => setAbaAtiva(id)}
                 className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${
                   ativa
-                    ? 'text-cobeb-yellow border-orange-500'
+                    ? 'text-cobeb-navy border-cobeb-navy'
                     : 'text-slate-500 border-transparent hover:text-slate-400'
                 }`}
               >

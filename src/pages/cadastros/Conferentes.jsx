@@ -123,14 +123,14 @@ export default function Conferentes() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-cobeb-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtrados.length === 0 ? (
         <p className="text-center text-slate-500 text-sm py-12">Nenhum conferente encontrado</p>
       ) : (
         <div className="space-y-3">
           {filtrados.map(c => (
-            <div key={c.id} className="bg-[#0F1E33] rounded-xl p-4 border border-cobeb-border">
+            <div key={c.id} className="bg-gray-50 rounded-xl p-4 border border-cobeb-border">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-cobeb-text font-semibold text-sm truncate">{c.nome}</p>
