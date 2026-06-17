@@ -9,6 +9,40 @@ const PERFIL_ROTA = {
   conferente: '/tarefas',
 }
 
+function LogoCobeb({ baseUrl }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return (
+      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cobeb-navy to-cobeb-blue flex items-center justify-center mb-4 shadow-2xl shadow-cobeb-navy/30">
+        <span className="text-white text-3xl font-black tracking-tighter select-none">CB</span>
+      </div>
+    )
+  }
+  return (
+    <div
+      className="mb-3"
+      style={{
+        width: 320,
+        height: 104,
+        backgroundImage: `url(${baseUrl}logos/logo-cobeb.png)`,
+        backgroundSize: '120%',
+        backgroundPosition: 'center 47%',
+        backgroundRepeat: 'no-repeat',
+        mixBlendMode: 'multiply',
+      }}
+      role="img"
+      aria-label="COBEB Distribuidora"
+    >
+      <img
+        src={`${baseUrl}logos/logo-cobeb.png`}
+        alt=""
+        className="hidden"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  )
+}
+
 function TruckSceneBg() {
   return (
     <svg
@@ -217,15 +251,7 @@ export default function Login() {
 
         {/* Logotipos */}
         <div className="flex flex-col items-center mb-8">
-          <img
-            src={`${import.meta.env.BASE_URL}logos/logo-cobeb.png`}
-            alt="COBEB"
-            className="h-20 object-contain mb-4 drop-shadow-md"
-            onError={(e) => {
-              e.target.style.display = 'none'
-              e.target.nextSibling.style.display = 'flex'
-            }}
-          />
+          <LogoCobeb baseUrl={import.meta.env.BASE_URL} />
           {/* Fallback se logo não carregar */}
           <div
             style={{ display: 'none' }}
