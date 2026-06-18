@@ -90,14 +90,37 @@ export default function Pedidos() {
 
   async function loadData() {
     setLoading(true)
+
     const [{ data: unis }, { data: peds }] = await Promise.all([
       supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
-      supabase.from('pedidos').select('*, viagem:viagens(id, cavalo:cavalos(placa))')
+      supabase.from('pedidos').select('*')
         .order('data_puxada', { ascending: false })
         .order('numero_pedido'),
     ])
+
+    const pedidosList = peds ?? []
+
+    // Busca placas dos cavalos para viagens vinculadas
+    const viagemIds = [...new Set(pedidosList.map(p => p.viagem_id).filter(Boolean))]
+    let cavaloMap = {}
+    if (viagemIds.length > 0) {
+      const { data: viagens } = await supabase
+        .from('viagens')
+        .select('id, cavalo:cavalos(placa)')
+        .in('id', viagemIds)
+      ;(viagens ?? []).forEach(v => {
+        if (v.cavalo?.placa) cavaloMap[v.id] = v.cavalo.placa
+      })
+    }
+
+    // Anexa placa do cavalo em cada pedido
+    const pedsComCavalo = pedidosList.map(p => ({
+      ...p,
+      placa_cavalo: p.viagem_id ? (cavaloMap[p.viagem_id] ?? null) : null,
+    }))
+
     setUnidades(unis ?? [])
-    setPedidos(peds ?? [])
+    setPedidos(pedsComCavalo)
     setLoading(false)
   }
 
@@ -207,7 +230,7 @@ export default function Pedidos() {
           key,
           numero_pedido:  p.numero_pedido,
           placa_excel:    p.placa,
-          placa_cavalo:   p.viagem?.cavalo?.placa ?? null,
+          placa_cavalo:   p.placa_cavalo ?? null,
           data_puxada:    p.data_puxada,
           unidade_id:     p.unidade_id,
           fabrica:        p.fabrica,
