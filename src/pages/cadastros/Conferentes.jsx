@@ -201,7 +201,7 @@ export default function Conferentes() {
                   <input
                     type="text"
                     value={emailUser}
-                    onChange={e => setEmailUser(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                    onChange={e => setEmailUser(e.target.value.toLowerCase().replace(/@.*$/, '').replace(/\s/g, ''))}
                     required
                     disabled={!!editando}
                     placeholder="nome.sobrenome"
