@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Truck, Users, ClipboardList, Tractor, Shield } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
+import ErrorBoundary from '../components/ErrorBoundary'
 import Motoristas from './cadastros/Motoristas'
 import Conferentes from './cadastros/Conferentes'
 import Carretas from './cadastros/Carretas'
@@ -43,12 +44,14 @@ export default function Cadastros() {
         </div>
       </div>
 
-      {/* Conteúdo da aba — renderização condicional explícita */}
-      {abaAtiva === 'motoristas'  && <Motoristas />}
-      {abaAtiva === 'conferentes' && <Conferentes />}
-      {abaAtiva === 'carretas'    && <Carretas />}
-      {abaAtiva === 'cavalos'     && <Cavalos />}
-      {abaAtiva === 'admins'      && <Admins />}
+      {/* Conteúdo da aba — ErrorBoundary para capturar erros de render */}
+      <ErrorBoundary>
+        {abaAtiva === 'motoristas'  && <Motoristas />}
+        {abaAtiva === 'conferentes' && <Conferentes />}
+        {abaAtiva === 'carretas'    && <Carretas />}
+        {abaAtiva === 'cavalos'     && <Cavalos />}
+        {abaAtiva === 'admins'      && <Admins />}
+      </ErrorBoundary>
     </AdminLayout>
   )
 }
