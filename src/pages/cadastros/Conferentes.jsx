@@ -103,7 +103,7 @@ export default function Conferentes() {
 
   const excluir = async (item) => {
     setExcluindo(true)
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(item.id)
+    const { error } = await supabase.rpc('excluir_usuario', { p_user_id: item.id })
     if (error) {
       alert('Erro ao excluir: ' + error.message)
       setExcluindo(false)
