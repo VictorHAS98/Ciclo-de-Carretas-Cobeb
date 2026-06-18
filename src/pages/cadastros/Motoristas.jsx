@@ -128,16 +128,22 @@ export default function Motoristas() {
 
   const excluir = async (item) => {
     setExcluindo(true)
-    try {
-      await supabaseAdmin.from('profiles').delete().eq('id', item.id)
-      await supabaseAdmin.auth.admin.deleteUser(item.id)
-      setConfirmar(null)
-      await carregar()
-    } catch (err) {
-      alert('Erro ao excluir: ' + (err.message ?? 'tente novamente'))
-    } finally {
+    const { error: profileErr } = await supabaseAdmin
+      .from('profiles').delete().eq('id', item.id)
+    if (profileErr) {
+      alert('Erro ao excluir perfil: ' + profileErr.message)
       setExcluindo(false)
+      return
     }
+    const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(item.id)
+    if (authErr) {
+      alert('Erro ao excluir acesso: ' + authErr.message)
+      setExcluindo(false)
+      return
+    }
+    setConfirmar(null)
+    setExcluindo(false)
+    await carregar()
   }
 
   const filtrados = lista.filter(m =>
