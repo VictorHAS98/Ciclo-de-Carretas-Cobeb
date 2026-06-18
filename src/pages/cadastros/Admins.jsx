@@ -106,16 +106,9 @@ export default function Admins() {
   const excluir = async (item) => {
     if (item.id === meProfile?.id) return
     setExcluindo(true)
-    const { error: profileErr } = await supabase
-      .from('profiles').delete().eq('id', item.id)
-    if (profileErr) {
-      alert('Erro ao excluir perfil: ' + profileErr.message)
-      setExcluindo(false)
-      return
-    }
-    const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(item.id)
-    if (authErr) {
-      alert('Erro ao excluir acesso: ' + authErr.message)
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(item.id)
+    if (error) {
+      alert('Erro ao excluir: ' + error.message)
       setExcluindo(false)
       return
     }
