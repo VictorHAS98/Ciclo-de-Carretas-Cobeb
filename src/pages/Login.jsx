@@ -212,14 +212,19 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!email.trim() || !password) {
-      setErro('Preencha email e senha.')
+      setErro('Preencha o acesso e a senha.')
       return
     }
     setLoading(true)
     setErro('')
-    const { error } = await signIn(email.trim(), password)
+    // Se o campo não tem @ e tem 11 dígitos numéricos → é CPF de motorista
+    const digits = email.trim().replace(/\D/g, '')
+    const emailLogin = (!email.trim().includes('@') && digits.length === 11)
+      ? `${digits}@motorista.cobeb.com.br`
+      : email.trim()
+    const { error } = await signIn(emailLogin, password)
     if (error) {
-      setErro('Email ou senha inválidos. Verifique e tente novamente.')
+      setErro('Acesso ou senha inválidos. Verifique e tente novamente.')
       setLoading(false)
     }
   }
@@ -256,18 +261,19 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
-            {/* Email */}
+            {/* Email ou CPF */}
             <div className="space-y-1.5">
               <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">
-                Email
+                Email / CPF
               </label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErro('') }}
-                placeholder="seu@email.com.br"
-                autoComplete="email"
+                placeholder="Email ou CPF do motorista"
+                autoComplete="username"
                 autoCapitalize="none"
+                inputMode="email"
                 className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all"
               />
             </div>
