@@ -3,7 +3,7 @@ import {
   Truck, ChevronLeft, ChevronRight, Plus, Trash2,
   CheckCircle, Clock, MapPin, Factory, Home, Search,
   AlertCircle, WifiOff, RefreshCw, LogOut, Package,
-  Lock, AlertTriangle,
+  Lock, AlertTriangle, User,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -46,21 +46,23 @@ export default function Viagem() {
   const [viagemAtiva, setViagemAtiva] = useState(null)
   const [pedidosDaViagem, setPedidosDaViagem] = useState([])
 
-  const [carretas, setCarretas] = useState([])
-  const [cavalos,  setCavalos]  = useState([])
-  const [unidades, setUnidades] = useState([])
+  const [carretas, setCarretas]   = useState([])
+  const [cavalos,  setCavalos]    = useState([])
+  const [unidades, setUnidades]   = useState([])
+  const [motoristas, setMotoristas] = useState([])
 
   // wizard
-  const [step, setStep]                       = useState(1)
-  const [carreta, setCarreta]                 = useState(null)
-  const [cavalo, setCavalo]                   = useState(null)
-  const [pedidosAdicionados, setPedidos]      = useState([])
-  const [unidadeDescarga, setUnidadeDescarga] = useState(null)
-  const [horarioAgendado, setHorario]         = useState('')
-  const [searchNum, setSearchNum]             = useState('')
-  const [searching, setSearching]             = useState(false)
-  const [searchResult, setSearchResult]       = useState(null)
-  const [iniciando, setIniciando]             = useState(false)
+  const [step, setStep]                           = useState(1)
+  const [carreta, setCarreta]                     = useState(null)
+  const [cavalo, setCavalo]                       = useState(null)
+  const [pedidosAdicionados, setPedidos]          = useState([])
+  const [unidadeDescarga, setUnidadeDescarga]     = useState(null)
+  const [horarioAgendado, setHorario]             = useState('')
+  const [motoristaSelecionada, setMotoristaSelecionada] = useState(null)
+  const [searchNum, setSearchNum]                 = useState('')
+  const [searching, setSearching]                 = useState(false)
+  const [searchResult, setSearchResult]           = useState(null)
+  const [iniciando, setIniciando]                 = useState(false)
 
   // stages
   const [registrando, setRegistrando] = useState(false)
@@ -102,7 +104,7 @@ export default function Viagem() {
   }, [view, viagemAtiva?.id, viagemAtiva?.status])
 
   async function init() {
-    const [{ data: c }, { data: ca }, { data: u }, { data: v }] = await Promise.all([
+    const [{ data: c }, { data: ca }, { data: u }, { data: v }, { data: m }] = await Promise.all([
       supabase.from('carretas').select('*').eq('ativo', true).order('placa'),
       supabase.from('cavalos').select('*').eq('ativo', true).order('placa'),
       supabase.from('unidades').select('*').order('nome'),
@@ -111,10 +113,12 @@ export default function Viagem() {
         .eq('motorista_id', profile.id)
         .neq('status', 'concluida')
         .maybeSingle(),
+      supabase.from('profiles').select('id, nome, tipo, cpf').eq('perfil', 'motorista').eq('ativo', true).order('nome'),
     ])
     setCarretas(c ?? [])
     setCavalos(ca ?? [])
     setUnidades(u ?? [])
+    setMotoristas(m ?? [])
 
     if (v) {
       setViagemAtiva(v); cacheViagem(v)
@@ -180,13 +184,13 @@ export default function Viagem() {
   // ── iniciar viagem ────────────────────────────────────────────────────────
 
   async function iniciarViagem() {
-    if (!carreta || !cavalo || !pedidosAdicionados.length || !unidadeDescarga) return
+    if (!carreta || !cavalo || !pedidosAdicionados.length || !unidadeDescarga || !motoristaSelecionada) return
     setIniciando(true)
 
     const { data: viagem, error } = await supabase
       .from('viagens')
       .insert({
-        motorista_id:        profile.id,
+        motorista_id:        motoristaSelecionada.id,
         carreta_id:          carreta.id,
         cavalo_id:           cavalo.id,
         unidade_descarga_id: unidadeDescarga.id,
@@ -268,6 +272,7 @@ export default function Viagem() {
   function resetWizard() {
     setStep(1); setCarreta(null); setCavalo(null)
     setPedidos([]); setUnidadeDescarga(null); setHorario('')
+    setMotoristaSelecionada(null)
     setSearchNum(''); setSearchResult(null)
   }
 
@@ -360,6 +365,8 @@ export default function Viagem() {
               unidadesNaViagem={unidadesNaViagem}
               unidadeDescarga={unidadeDescarga} setUnidadeDescarga={setUnidadeDescarga}
               horarioAgendado={horarioAgendado} setHorario={setHorario}
+              motoristas={motoristas}
+              motoristaSelecionada={motoristaSelecionada} setMotoristaSelecionada={setMotoristaSelecionada}
               searchNum={searchNum} setSearchNum={setSearchNum}
               searching={searching} searchResult={searchResult}
               buscarPedido={buscarPedido} adicionarPedido={adicionarPedido}
@@ -388,11 +395,12 @@ export default function Viagem() {
 
 function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo, setCavalo,
   pedidosAdicionados, unidadesNaViagem, unidadeDescarga, setUnidadeDescarga,
-  horarioAgendado, setHorario, searchNum, setSearchNum, searching, searchResult,
+  horarioAgendado, setHorario, motoristas, motoristaSelecionada, setMotoristaSelecionada,
+  searchNum, setSearchNum, searching, searchResult,
   buscarPedido, adicionarPedido, removerPedido, iniciando, iniciarViagem }) {
 
-  const labels = ['Carreta', 'Cavalo', 'Pedidos', 'Confirmar']
-  const canNext = [!!carreta, !!cavalo, pedidosAdicionados.length > 0 && !!unidadeDescarga, false]
+  const labels = ['Carreta', 'Cavalo', 'Pedidos', 'Motorista', 'Confirmar']
+  const canNext = [!!carreta, !!cavalo, pedidosAdicionados.length > 0 && !!unidadeDescarga, !!motoristaSelecionada, false]
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-5">
@@ -403,14 +411,14 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
           return (
             <div key={n} className="flex items-center">
               <div className="flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
                   done ? 'bg-cobeb-navy text-white' : active ? 'bg-cobeb-navy/10 text-cobeb-yellow ring-2 ring-cobeb-yellow' : 'bg-white text-slate-500'
                 }`}>
-                  {done ? <CheckCircle size={14} /> : n}
+                  {done ? <CheckCircle size={13} /> : n}
                 </div>
-                <span className={`text-[10px] font-medium ${active ? 'text-cobeb-yellow' : done ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+                <span className={`text-[9px] font-medium ${active ? 'text-cobeb-yellow' : done ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
               </div>
-              {i < 3 && <div className={`w-7 h-px mb-5 mx-1 ${n < step ? 'bg-cobeb-navy' : 'bg-cobeb-border'}`} />}
+              {i < 4 && <div className={`w-5 h-px mb-5 mx-0.5 ${n < step ? 'bg-cobeb-navy' : 'bg-cobeb-border'}`} />}
             </div>
           )
         })}
@@ -427,10 +435,14 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
         searchNum={searchNum} setSearchNum={setSearchNum} searching={searching} searchResult={searchResult}
         buscarPedido={buscarPedido} adicionarPedido={adicionarPedido} removerPedido={removerPedido}
         onVoltar={() => setStep(2)} onProximo={() => setStep(4)} podeProximo={canNext[2]} />}
-      {step === 4 && <StepConfirmar
+      {step === 4 && <StepMotorista
+        motoristas={motoristas} motoristaSelecionada={motoristaSelecionada} setMotoristaSelecionada={setMotoristaSelecionada}
+        onVoltar={() => setStep(3)} onProximo={() => setStep(5)} podeProximo={canNext[3]} />}
+      {step === 5 && <StepConfirmar
         carreta={carreta} cavalo={cavalo} pedidosAdicionados={pedidosAdicionados}
         unidadeDescarga={unidadeDescarga} horarioAgendado={horarioAgendado}
-        onVoltar={() => setStep(3)} onConfirmar={iniciarViagem} iniciando={iniciando} />}
+        motoristaSelecionada={motoristaSelecionada}
+        onVoltar={() => setStep(4)} onConfirmar={iniciarViagem} iniciando={iniciando} />}
     </div>
   )
 }
@@ -575,7 +587,37 @@ function StepPedidos({ pedidosAdicionados, unidadesNaViagem, unidadeDescarga, se
   )
 }
 
-function StepConfirmar({ carreta, cavalo, pedidosAdicionados, unidadeDescarga, horarioAgendado, onVoltar, onConfirmar, iniciando }) {
+function StepMotorista({ motoristas, motoristaSelecionada, setMotoristaSelecionada, onVoltar, onProximo, podeProximo }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-cobeb-text font-semibold text-base">Selecionar Motorista</h2>
+      <div className="space-y-2">
+        {motoristas.map(m => {
+          const selected = motoristaSelecionada?.id === m.id
+          return (
+            <button key={m.id} onClick={() => setMotoristaSelecionada(m)}
+              className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border transition-all ${
+                selected ? 'bg-cobeb-navy/10 border-cobeb-blue' : 'bg-white border-cobeb-border hover:border-cobeb-blue/40'
+              }`}>
+              <div className="flex items-center gap-3">
+                <User size={18} className={selected ? 'text-cobeb-yellow' : 'text-slate-500'} />
+                <div className="text-left">
+                  <p className={`font-semibold text-sm ${selected ? 'text-cobeb-navy' : 'text-cobeb-text'}`}>{m.nome}</p>
+                  <p className="text-slate-500 text-xs mt-0.5">{m.tipo === 'FF' ? 'Frota Fixa' : 'Freteiro (SPOT)'}</p>
+                </div>
+              </div>
+              {selected && <CheckCircle size={18} className="text-cobeb-yellow" />}
+            </button>
+          )
+        })}
+        {!motoristas.length && <p className="text-slate-500 text-sm text-center py-8">Nenhum motorista cadastrado no sistema</p>}
+      </div>
+      <BotoesPasso onVoltar={onVoltar} onProximo={onProximo} podeProximo={podeProximo} />
+    </div>
+  )
+}
+
+function StepConfirmar({ carreta, cavalo, pedidosAdicionados, unidadeDescarga, horarioAgendado, motoristaSelecionada, onVoltar, onConfirmar, iniciando }) {
   const totalPallets = pedidosAdicionados.reduce((s, p) => s + p.total_pallets, 0)
   const totalSkus    = pedidosAdicionados.reduce((s, p) => s + p.total_skus,    0)
   const allItens     = pedidosAdicionados.flatMap(p => p.itens)
@@ -585,11 +627,12 @@ function StepConfirmar({ carreta, cavalo, pedidosAdicionados, unidadeDescarga, h
       <h2 className="text-cobeb-text font-semibold text-base">Confirmar Viagem</h2>
 
       <div className="bg-white rounded-2xl border border-cobeb-border divide-y divide-cobeb-border">
-        <SRow label="Destino"  value={`${unidadeDescarga?.nome} — ${unidadeDescarga?.cidade}`} highlight />
-        <SRow label="Carreta"  value={`${carreta?.placa} · ${carreta?.tipo}`} />
-        <SRow label="Cavalo"   value={`${cavalo?.placa} · ${cavalo?.tipo}`} />
-        <SRow label="Pedidos"  value={pedidosAdicionados.map(p => `#${p.numero_pedido}`).join(' · ')} />
-        <SRow label="Total"    value={`${totalPallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pallets · ${totalSkus.toLocaleString('pt-BR')} caixas`} />
+        <SRow label="Destino"   value={`${unidadeDescarga?.nome} — ${unidadeDescarga?.cidade}`} highlight />
+        <SRow label="Motorista" value={`${motoristaSelecionada?.nome} · ${motoristaSelecionada?.tipo === 'FF' ? 'Frota Fixa' : 'Freteiro'}`} />
+        <SRow label="Carreta"   value={`${carreta?.placa} · ${carreta?.tipo}`} />
+        <SRow label="Cavalo"    value={`${cavalo?.placa} · ${cavalo?.tipo}`} />
+        <SRow label="Pedidos"   value={pedidosAdicionados.map(p => `#${p.numero_pedido}`).join(' · ')} />
+        <SRow label="Total"     value={`${totalPallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pallets · ${totalSkus.toLocaleString('pt-BR')} caixas`} />
         {horarioAgendado && <SRow label="Hor. Carregamento" value={horarioAgendado} />}
       </div>
 
