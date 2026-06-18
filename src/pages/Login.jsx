@@ -224,7 +224,7 @@ export default function Login() {
       : email.trim()
     const { error } = await signIn(emailLogin, password)
     if (error) {
-      setErro(error.message)
+      setErro('Acesso ou senha inválidos. Verifique e tente novamente.')
       setLoading(false)
     }
   }
