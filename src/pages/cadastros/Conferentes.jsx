@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import { Plus, Search, Pencil, Power, Copy, CheckCircle, MapPin, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { supabaseAdmin } from '../../lib/supabaseAdmin'
+
 import { useAuth } from '../../contexts/AuthContext'
 import Modal from '../../components/Modal'
 import { Field, inputClass, selectClass, gerarSenha } from '../../lib/form'
@@ -72,13 +72,13 @@ export default function Conferentes() {
       if (error) setErro(error.message)
       else { await carregar(); fechar() }
     } else {
-      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-        email, password: senha, email_confirm: true, user_metadata: { nome },
+      const { data: userId, error: authErr } = await supabase.rpc('criar_usuario_auth', {
+        p_email: email, p_senha: senha, p_nome: nome,
       })
       if (authErr) { setErro(authErr.message); setSalvando(false); return }
 
       const { error: profileErr } = await supabase.from('profiles').insert({
-        id: authData.user.id, nome, email, telefone,
+        id: userId, nome, email, telefone,
         perfil: 'conferente', unidade_id: unidadeId,
       })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
@@ -91,13 +91,13 @@ export default function Conferentes() {
   const toggleAtivo = async (c) => {
     const novoAtivo = !c.ativo
     await supabase.from('profiles').update({ ativo: novoAtivo }).eq('id', c.id)
-    await supabaseAdmin.auth.admin.updateUserById(c.id, { ban_duration: novoAtivo ? 'none' : '876600h' })
+    await supabase.rpc('ativar_usuario', { p_user_id: c.id, p_ativo: novoAtivo })
     setLista(prev => prev.map(r => r.id === c.id ? { ...r, ativo: novoAtivo } : r))
   }
 
   const redefinirSenha = async () => {
     const nova = gerarSenha()
-    await supabaseAdmin.auth.admin.updateUserById(editando.id, { password: nova })
+    await supabase.rpc('redefinir_senha_usuario', { p_user_id: editando.id, p_nova_senha: nova })
     setSenhaCriada(nova); setCopiado(false)
   }
 

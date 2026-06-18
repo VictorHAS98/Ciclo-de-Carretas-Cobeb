@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react'
 import { Plus, Search, Pencil, Power, Copy, CheckCircle, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { supabaseAdmin } from '../../lib/supabaseAdmin'
+
 import { useAuth } from '../../contexts/AuthContext'
 import Modal from '../../components/Modal'
 import { Field, inputClass, selectClass, gerarSenha } from '../../lib/form'
@@ -94,15 +94,14 @@ export default function Motoristas() {
 
       const emailGerado = cpfToEmail(cpf)
 
-      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-        email: emailGerado, password: senha,
-        email_confirm: true, user_metadata: { nome },
+      const { data: userId, error: authErr } = await supabase.rpc('criar_usuario_auth', {
+        p_email: emailGerado, p_senha: senha, p_nome: nome,
       })
       if (authErr) { setErro(authErr.message); setSalvando(false); return }
 
       const { error: profileErr } = await supabase
         .from('profiles')
-        .insert({ id: authData.user.id, nome, email: emailGerado, cpf, telefone, perfil: 'motorista', tipo })
+        .insert({ id: userId, nome, email: emailGerado, cpf, telefone, perfil: 'motorista', tipo })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
 
       setSenhaCriada(senha)
@@ -114,15 +113,13 @@ export default function Motoristas() {
   const toggleAtivo = async (m) => {
     const novoAtivo = !m.ativo
     await supabase.from('profiles').update({ ativo: novoAtivo }).eq('id', m.id)
-    await supabaseAdmin.auth.admin.updateUserById(m.id, {
-      ban_duration: novoAtivo ? 'none' : '876600h',
-    })
+    await supabase.rpc('ativar_usuario', { p_user_id: m.id, p_ativo: novoAtivo })
     setLista(prev => prev.map(r => r.id === m.id ? { ...r, ativo: novoAtivo } : r))
   }
 
   const redefinirSenha = async () => {
     const nova = gerarSenha()
-    await supabaseAdmin.auth.admin.updateUserById(editando.id, { password: nova })
+    await supabase.rpc('redefinir_senha_usuario', { p_user_id: editando.id, p_nova_senha: nova })
     setSenhaCriada(nova); setCopiado(false)
   }
 
