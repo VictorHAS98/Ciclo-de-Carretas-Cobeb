@@ -90,38 +90,39 @@ export default function Pedidos() {
 
   async function loadData() {
     setLoading(true)
+    try {
+      const [{ data: unis }, { data: peds }] = await Promise.all([
+        supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
+        supabase.from('pedidos').select('*')
+          .order('data_puxada', { ascending: false })
+          .order('numero_pedido'),
+      ])
 
-    const [{ data: unis }, { data: peds }] = await Promise.all([
-      supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
-      supabase.from('pedidos').select('*')
-        .order('data_puxada', { ascending: false })
-        .order('numero_pedido'),
-    ])
+      const pedidosList = peds ?? []
 
-    const pedidosList = peds ?? []
+      // Busca placas dos cavalos para viagens vinculadas (sem travar se falhar)
+      let cavaloMap = {}
+      try {
+        const viagemIds = [...new Set(pedidosList.map(p => p.viagem_id).filter(Boolean))]
+        if (viagemIds.length > 0) {
+          const { data: viagens } = await supabase
+            .from('viagens')
+            .select('id, cavalo_id, cavalo:cavalos(placa)')
+            .in('id', viagemIds)
+          ;(viagens ?? []).forEach(v => {
+            if (v.cavalo?.placa) cavaloMap[v.id] = v.cavalo.placa
+          })
+        }
+      } catch (_) { /* ignora erro de RLS, exibe pedidos sem placa do cavalo */ }
 
-    // Busca placas dos cavalos para viagens vinculadas
-    const viagemIds = [...new Set(pedidosList.map(p => p.viagem_id).filter(Boolean))]
-    let cavaloMap = {}
-    if (viagemIds.length > 0) {
-      const { data: viagens } = await supabase
-        .from('viagens')
-        .select('id, cavalo:cavalos(placa)')
-        .in('id', viagemIds)
-      ;(viagens ?? []).forEach(v => {
-        if (v.cavalo?.placa) cavaloMap[v.id] = v.cavalo.placa
-      })
+      setUnidades(unis ?? [])
+      setPedidos(pedidosList.map(p => ({
+        ...p,
+        placa_cavalo: cavaloMap[p.viagem_id] ?? null,
+      })))
+    } finally {
+      setLoading(false)
     }
-
-    // Anexa placa do cavalo em cada pedido
-    const pedsComCavalo = pedidosList.map(p => ({
-      ...p,
-      placa_cavalo: p.viagem_id ? (cavaloMap[p.viagem_id] ?? null) : null,
-    }))
-
-    setUnidades(unis ?? [])
-    setPedidos(pedsComCavalo)
-    setLoading(false)
   }
 
   // derived: unique dates sorted desc
