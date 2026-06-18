@@ -128,7 +128,7 @@ export default function Motoristas() {
 
   const excluir = async (item) => {
     setExcluindo(true)
-    const { error: profileErr } = await supabaseAdmin
+    const { error: profileErr } = await supabase
       .from('profiles').delete().eq('id', item.id)
     if (profileErr) {
       alert('Erro ao excluir perfil: ' + profileErr.message)
