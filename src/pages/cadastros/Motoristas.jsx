@@ -246,7 +246,7 @@ export default function Motoristas() {
   )
 }
 
-function Card({ r, onEdit, onToggle }) {
+function Card({ r, onEdit, onToggle, onDelete }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 border border-cobeb-border">
       <div className="flex items-start justify-between gap-3">
