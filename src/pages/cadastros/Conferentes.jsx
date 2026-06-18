@@ -18,7 +18,7 @@ export default function Conferentes() {
   const [modal, setModal] = useState(false)
   const [editando, setEditando] = useState(null)
   const [nome, setNome] = useState('')
-  const [email, setEmail] = useState('')
+  const [emailUser, setEmailUser] = useState('')
   const [telefone, setTelefone] = useState('')
   const [unidadeId, setUnidadeId] = useState('')
   const [senha, setSenha] = useState('')
@@ -44,7 +44,7 @@ export default function Conferentes() {
 
   const abrirNovo = () => {
     setEditando(null)
-    setNome(''); setEmail(''); setTelefone('')
+    setNome(''); setEmailUser(''); setTelefone('')
     setUnidadeId(unidades[0]?.id || '')
     setSenha(gerarSenha()); setErro(''); setSenhaCriada(''); setCopiado(false)
     setModal(true)
@@ -52,7 +52,7 @@ export default function Conferentes() {
 
   const abrirEditar = (c) => {
     setEditando(c)
-    setNome(c.nome); setEmail(c.email); setTelefone(c.telefone || '')
+    setNome(c.nome); setEmailUser(c.email?.split('@')[0] || ''); setTelefone(c.telefone || '')
     setUnidadeId(c.unidade?.id || '')
     setSenha(''); setErro(''); setSenhaCriada(''); setCopiado(false)
     setModal(true)
@@ -64,6 +64,7 @@ export default function Conferentes() {
   const salvar = async (e) => {
     e.preventDefault()
     if (!unidadeId) { setErro('Selecione uma unidade.'); return }
+    const emailCompleto = `${emailUser.toLowerCase().trim()}@cobeb.com.br`
     setSalvando(true); setErro('')
 
     if (editando) {
@@ -72,13 +73,14 @@ export default function Conferentes() {
       if (error) setErro(error.message)
       else { await carregar(); fechar() }
     } else {
+      if (!emailUser.trim()) { setErro('Informe o nome de acesso.'); setSalvando(false); return }
       const { data: userId, error: authErr } = await supabase.rpc('criar_usuario_auth', {
-        p_email: email, p_senha: senha, p_nome: nome,
+        p_email: emailCompleto, p_senha: senha, p_nome: nome,
       })
       if (authErr) { setErro(authErr.message); setSalvando(false); return }
 
       const { error: profileErr } = await supabase.from('profiles').insert({
-        id: userId, nome, email, telefone,
+        id: userId, nome, email: emailCompleto, telefone,
         perfil: 'conferente', unidade_id: unidadeId,
       })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
@@ -97,7 +99,8 @@ export default function Conferentes() {
 
   const redefinirSenha = async () => {
     const nova = gerarSenha()
-    await supabase.rpc('redefinir_senha_usuario', { p_user_id: editando.id, p_nova_senha: nova })
+    const { error } = await supabase.rpc('redefinir_senha_usuario', { p_user_id: editando.id, p_nova_senha: nova })
+    if (error) { setErro('Erro ao redefinir senha: ' + error.message); return }
     setSenhaCriada(nova); setCopiado(false)
   }
 
@@ -186,17 +189,26 @@ export default function Conferentes() {
       {modal && (
         <Modal title={editando ? 'Editar Conferente' : 'Novo Conferente'} onClose={fechar}>
           {senhaCriada && !editando ? (
-            <SucessoSenha senha={senhaCriada} copiado={copiado} onCopy={() => copiar(senhaCriada)} onClose={fechar} />
+            <SucessoSenha email={`${emailUser.toLowerCase().trim()}@cobeb.com.br`} senha={senhaCriada} copiado={copiado} onCopy={() => copiar(senhaCriada)} onClose={fechar} />
           ) : (
             <form onSubmit={salvar} className="space-y-4">
               <Field label="Nome completo" required>
                 <input type="text" value={nome} onChange={e => setNome(e.target.value)}
                   required placeholder="Ex: Maria Souza" className={inputClass} />
               </Field>
-              <Field label="Email" required>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  required disabled={!!editando} placeholder="maria@email.com"
-                  className={`${inputClass} ${editando ? 'opacity-50 cursor-not-allowed' : ''}`} />
+              <Field label="Acesso (email @cobeb.com.br)" required>
+                <div className={`flex items-center bg-[#F5F9FF] border border-cobeb-border rounded-xl overflow-hidden focus-within:border-cobeb-blue focus-within:ring-1 focus-within:ring-cobeb-blue/20 transition-all ${editando ? 'opacity-50' : ''}`}>
+                  <input
+                    type="text"
+                    value={emailUser}
+                    onChange={e => setEmailUser(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                    required
+                    disabled={!!editando}
+                    placeholder="nome.sobrenome"
+                    className="flex-1 bg-transparent px-4 py-3 text-cobeb-text text-sm placeholder-blue-200 outline-none disabled:cursor-not-allowed"
+                  />
+                  <span className="pr-4 text-slate-400 text-sm select-none whitespace-nowrap">@cobeb.com.br</span>
+                </div>
               </Field>
               <Field label="Telefone">
                 <input type="tel" value={telefone} onChange={e => setTelefone(e.target.value)}
@@ -276,11 +288,13 @@ function SenhaDisplay({ senha, copiado, onCopy }) {
   )
 }
 
-function SucessoSenha({ senha, copiado, onCopy, onClose }) {
+function SucessoSenha({ email, senha, copiado, onCopy, onClose }) {
   return (
     <div className="space-y-4">
       <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
         <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-3">Criado com sucesso!</p>
+        <p className="text-slate-500 text-xs mb-1">Login do conferente:</p>
+        <p className="text-cobeb-text font-mono font-semibold text-sm mb-3 break-all">{email}</p>
         <p className="text-slate-400 text-xs mb-2">Senha inicial — anote antes de fechar:</p>
         <div className="flex items-center gap-3 bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-3">
           <code className="text-cobeb-yellow font-mono font-bold text-2xl flex-1 tracking-wider">{senha}</code>

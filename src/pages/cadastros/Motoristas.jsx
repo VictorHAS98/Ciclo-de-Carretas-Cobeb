@@ -119,7 +119,8 @@ export default function Motoristas() {
 
   const redefinirSenha = async () => {
     const nova = gerarSenha()
-    await supabase.rpc('redefinir_senha_usuario', { p_user_id: editando.id, p_nova_senha: nova })
+    const { error } = await supabase.rpc('redefinir_senha_usuario', { p_user_id: editando.id, p_nova_senha: nova })
+    if (error) { setErro('Erro ao redefinir senha: ' + error.message); return }
     setSenhaCriada(nova); setCopiado(false)
   }
 
