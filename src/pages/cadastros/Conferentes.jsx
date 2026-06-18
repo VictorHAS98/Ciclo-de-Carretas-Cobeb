@@ -1,12 +1,17 @@
 ﻿import { useState, useEffect } from 'react'
-import { Plus, Search, Pencil, Power, Copy, CheckCircle, MapPin } from 'lucide-react'
+import { Plus, Search, Pencil, Power, Copy, CheckCircle, MapPin, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { supabaseAdmin } from '../../lib/supabaseAdmin'
+import { useAuth } from '../../contexts/AuthContext'
 import Modal from '../../components/Modal'
 import { Field, inputClass, selectClass, gerarSenha } from '../../lib/form'
 
 export default function Conferentes() {
+  const { profile: meProfile } = useAuth()
+  const isAdminTotal = meProfile?.acesso_total === true
   const [lista, setLista] = useState([])
+  const [confirmar, setConfirmar] = useState(null)
+  const [excluindo, setExcluindo] = useState(false)
   const [unidades, setUnidades] = useState([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -96,6 +101,15 @@ export default function Conferentes() {
     setSenhaCriada(nova); setCopiado(false)
   }
 
+  const excluir = async (item) => {
+    setExcluindo(true)
+    await supabase.from('profiles').delete().eq('id', item.id)
+    await supabaseAdmin.auth.admin.deleteUser(item.id)
+    setConfirmar(null)
+    setExcluindo(false)
+    await carregar()
+  }
+
   const filtrados = lista.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) ||
     c.email.toLowerCase().includes(busca.toLowerCase())
@@ -150,12 +164,20 @@ export default function Conferentes() {
                     className={c.ativo ? 'hover:text-red-400 hover:border-red-500/40' : 'hover:text-green-400 hover:border-green-500/40'}>
                     <Power size={14} />
                   </ActionBtn>
+                  {isAdminTotal && (
+                    <ActionBtn onClick={() => setConfirmar(c)} className="hover:text-red-400 hover:border-red-500/40">
+                      <Trash2 size={14} />
+                    </ActionBtn>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ModalConfirmar confirmar={confirmar} excluindo={excluindo}
+        onConfirm={excluir} onCancelar={() => setConfirmar(null)} />
 
       {modal && (
         <Modal title={editando ? 'Editar Conferente' : 'Novo Conferente'} onClose={fechar}>
@@ -268,6 +290,33 @@ function SucessoSenha({ senha, copiado, onCopy, onClose }) {
         className="w-full bg-cobeb-navy hover:bg-cobeb-blue text-white font-semibold py-3 rounded-xl transition-colors text-sm">
         Concluir
       </button>
+    </div>
+  )
+}
+
+function ModalConfirmar({ confirmar, excluindo, onConfirm, onCancelar }) {
+  if (!confirmar) return null
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end">
+      <div className="w-full max-w-lg mx-auto bg-white rounded-t-2xl p-5 space-y-4">
+        <div className="w-10 h-1 bg-cobeb-border rounded-full mx-auto" />
+        <div>
+          <p className="text-cobeb-text font-semibold text-base">Confirmar exclusão</p>
+          <p className="text-slate-500 text-sm mt-1">
+            Excluir <span className="font-semibold text-cobeb-text">{confirmar.nome}</span>? Esta ação não pode ser desfeita.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onCancelar}
+            className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-500 font-semibold py-3 rounded-xl text-sm">
+            Cancelar
+          </button>
+          <button onClick={() => onConfirm(confirmar)} disabled={excluindo}
+            className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            {excluindo ? 'Excluindo...' : 'Excluir'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

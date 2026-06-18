@@ -1,11 +1,16 @@
 ﻿import { useState, useEffect } from 'react'
-import { Plus, Search, Pencil, Power, Tractor } from 'lucide-react'
+import { Plus, Search, Pencil, Power, Tractor, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 import Modal from '../../components/Modal'
 import { Field, inputClass, selectClass } from '../../lib/form'
 
 export default function Cavalos() {
+  const { profile: meProfile } = useAuth()
+  const isAdminTotal = meProfile?.acesso_total === true
   const [lista, setLista] = useState([])
+  const [confirmar, setConfirmar] = useState(null)
+  const [excluindo, setExcluindo] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
   const [modal, setModal] = useState(false)
@@ -50,6 +55,15 @@ export default function Cavalos() {
     const novoAtivo = !c.ativo
     await supabase.from('cavalos').update({ ativo: novoAtivo }).eq('id', c.id)
     setLista(prev => prev.map(r => r.id === c.id ? { ...r, ativo: novoAtivo } : r))
+  }
+
+  const excluir = async (item) => {
+    setExcluindo(true)
+    const { error } = await supabase.from('cavalos').delete().eq('id', item.id)
+    if (error) { alert('Não foi possível excluir: ' + (error.message.includes('foreign key') ? 'cavalo vinculado a viagens.' : error.message)) }
+    setConfirmar(null)
+    setExcluindo(false)
+    await carregar()
   }
 
   const filtrados = lista.filter(c => c.placa.toLowerCase().includes(busca.toLowerCase()))
@@ -105,12 +119,20 @@ export default function Cavalos() {
                     className={c.ativo ? 'hover:text-red-400 hover:border-red-500/40' : 'hover:text-green-400 hover:border-green-500/40'}>
                     <Power size={14} />
                   </ActionBtn>
+                  {isAdminTotal && (
+                    <ActionBtn onClick={() => setConfirmar({ ...c, nome: c.placa })} className="hover:text-red-400 hover:border-red-500/40">
+                      <Trash2 size={14} />
+                    </ActionBtn>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <ModalConfirmar confirmar={confirmar} excluindo={excluindo}
+        onConfirm={excluir} onCancelar={() => setConfirmar(null)} />
 
       {modal && (
         <Modal title={editando ? 'Editar Cavalo' : 'Novo Cavalo'} onClose={fechar}>
@@ -146,5 +168,32 @@ function ActionBtn({ onClick, children, className = '' }) {
       className={`w-8 h-8 rounded-lg bg-[#EBF5FF] border border-cobeb-border flex items-center justify-center text-slate-500 hover:text-cobeb-yellow hover:border-cobeb-blue/40 transition-colors ${className}`}>
       {children}
     </button>
+  )
+}
+
+function ModalConfirmar({ confirmar, excluindo, onConfirm, onCancelar }) {
+  if (!confirmar) return null
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end">
+      <div className="w-full max-w-lg mx-auto bg-white rounded-t-2xl p-5 space-y-4">
+        <div className="w-10 h-1 bg-cobeb-border rounded-full mx-auto" />
+        <div>
+          <p className="text-cobeb-text font-semibold text-base">Confirmar exclusão</p>
+          <p className="text-slate-500 text-sm mt-1">
+            Excluir <span className="font-semibold text-cobeb-text">{confirmar.nome}</span>? Esta ação não pode ser desfeita.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onCancelar}
+            className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-500 font-semibold py-3 rounded-xl text-sm">
+            Cancelar
+          </button>
+          <button onClick={() => onConfirm(confirmar)} disabled={excluindo}
+            className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            {excluindo ? 'Excluindo...' : 'Excluir'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
