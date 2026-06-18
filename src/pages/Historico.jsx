@@ -45,15 +45,33 @@ export default function Historico() {
           unidade:unidades(id, nome, cidade),
           carreta:carretas(placa, tipo),
           cavalo:cavalos(placa, tipo),
-          motorista:profiles(nome, tipo),
-          pedidos(numero_pedido)
+          motorista:profiles(nome, tipo)
         `)
         .in('status', ['concluida', 'aguardando_conferencia'])
         .order('dt_chegada_revenda', { ascending: false }),
       supabase.from('unidades').select('id, nome, cidade').order('nome'),
     ])
 
-    setViagens(v ?? [])
+    const viagens = v ?? []
+
+    // Busca pedidos separadamente para evitar conflito de RLS no join aninhado
+    let viagensComPedidos = viagens
+    if (viagens.length) {
+      const { data: peds } = await supabase
+        .from('pedidos')
+        .select('viagem_id, numero_pedido')
+        .in('viagem_id', viagens.map(x => x.id))
+      if (peds?.length) {
+        const porViagem = {}
+        peds.forEach(p => {
+          if (!porViagem[p.viagem_id]) porViagem[p.viagem_id] = []
+          porViagem[p.viagem_id].push(p.numero_pedido)
+        })
+        viagensComPedidos = viagens.map(vi => ({ ...vi, numeros_pedido: porViagem[vi.id] ?? [] }))
+      }
+    }
+
+    setViagens(viagensComPedidos)
     setUnidades(u ?? [])
     setLoading(false)
   }
@@ -243,9 +261,9 @@ export default function Historico() {
 
                         {/* Pedidos + NF + TMV */}
                         <div className="flex items-center gap-3 flex-wrap">
-                          {v.pedidos?.length > 0 && (
+                          {v.numeros_pedido?.length > 0 && (
                             <span className="text-slate-500 text-xs">
-                              Ped. {v.pedidos.map(p => `#${p.numero_pedido}`).join(' · ')}
+                              Ped. {v.numeros_pedido.map(n => `#${n}`).join(' · ')}
                             </span>
                           )}
                           {v.numero_nf && <span className="text-slate-500 text-xs">NF {v.numero_nf}</span>}
