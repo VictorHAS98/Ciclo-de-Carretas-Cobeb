@@ -90,14 +90,46 @@ export default function Pedidos() {
 
   async function loadData() {
     setLoading(true)
+
     const [{ data: unis }, { data: peds }] = await Promise.all([
       supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
       supabase.from('pedidos').select('*')
         .order('data_puxada', { ascending: false })
         .order('numero_pedido'),
     ])
+
+    const pedidosList = peds ?? []
+
+    // Monta mapa viagem_id → placa do cavalo (duas queries simples, sem join)
+    let placaCavaloMap = {}
+    const viagemIds = [...new Set(pedidosList.map(p => p.viagem_id).filter(Boolean))]
+    if (viagemIds.length > 0) {
+      const { data: viagens } = await supabase
+        .from('viagens')
+        .select('id, cavalo_id')
+        .in('id', viagemIds)
+
+      const cavaloIds = [...new Set((viagens ?? []).map(v => v.cavalo_id).filter(Boolean))]
+      if (cavaloIds.length > 0) {
+        const { data: cavalos } = await supabase
+          .from('cavalos')
+          .select('id, placa')
+          .in('id', cavaloIds)
+
+        const cavaloPlacaMap = Object.fromEntries((cavalos ?? []).map(c => [c.id, c.placa]))
+        ;(viagens ?? []).forEach(v => {
+          if (v.cavalo_id && cavaloPlacaMap[v.cavalo_id]) {
+            placaCavaloMap[v.id] = cavaloPlacaMap[v.cavalo_id]
+          }
+        })
+      }
+    }
+
     setUnidades(unis ?? [])
-    setPedidos(peds ?? [])
+    setPedidos(pedidosList.map(p => ({
+      ...p,
+      placa_cavalo: placaCavaloMap[p.viagem_id] ?? null,
+    })))
     setLoading(false)
   }
 
@@ -206,7 +238,7 @@ export default function Pedidos() {
         map.set(key, {
           key,
           numero_pedido: p.numero_pedido,
-          placa:         p.placa,
+          placa:         p.placa_cavalo ?? p.placa,
           data_puxada:   p.data_puxada,
           unidade_id:    p.unidade_id,
           fabrica:       p.fabrica,
