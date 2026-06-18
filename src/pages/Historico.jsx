@@ -67,7 +67,7 @@ export default function Historico() {
           if (!porViagem[p.viagem_id]) porViagem[p.viagem_id] = []
           porViagem[p.viagem_id].push(p.numero_pedido)
         })
-        viagensComPedidos = viagens.map(vi => ({ ...vi, numeros_pedido: porViagem[vi.id] ?? [] }))
+        viagensComPedidos = viagens.map(vi => ({ ...vi, numeros_pedido: [...new Set(porViagem[vi.id] ?? [])] }))
       }
     }
 
