@@ -45,7 +45,8 @@ export default function Historico() {
           unidade:unidades(id, nome, cidade),
           carreta:carretas(placa, tipo),
           cavalo:cavalos(placa, tipo),
-          motorista:profiles(nome, tipo)
+          motorista:profiles(nome, tipo),
+          pedidos(numero_pedido)
         `)
         .in('status', ['concluida', 'aguardando_conferencia'])
         .order('dt_chegada_revenda', { ascending: false }),
@@ -240,8 +241,13 @@ export default function Historico() {
                           <span className="text-slate-500 text-xs font-mono">{v.cavalo?.placa ?? '—'}</span>
                         </div>
 
-                        {/* NF + TMV */}
+                        {/* Pedidos + NF + TMV */}
                         <div className="flex items-center gap-3 flex-wrap">
+                          {v.pedidos?.length > 0 && (
+                            <span className="text-slate-500 text-xs">
+                              Ped. {v.pedidos.map(p => `#${p.numero_pedido}`).join(' · ')}
+                            </span>
+                          )}
                           {v.numero_nf && <span className="text-slate-500 text-xs">NF {v.numero_nf}</span>}
                           {tmvTotal && <span className="text-slate-500 text-xs font-mono">⏱ {tmvTotal}</span>}
                         </div>
