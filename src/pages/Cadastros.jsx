@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Truck, Users, ClipboardList, Tractor, Shield } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import Motoristas from './cadastros/Motoristas'
@@ -8,16 +8,15 @@ import Cavalos from './cadastros/Cavalos'
 import Admins from './cadastros/Admins'
 
 const TABS = [
-  { id: 'motoristas',  label: 'Motoristas',  icon: Users,          component: Motoristas  },
-  { id: 'conferentes', label: 'Conferentes', icon: ClipboardList,  component: Conferentes },
-  { id: 'carretas',    label: 'Carretas',    icon: Truck,          component: Carretas    },
-  { id: 'cavalos',     label: 'Cavalos',     icon: Tractor,        component: Cavalos     },
-  { id: 'admins',      label: 'Admins',      icon: Shield,         component: Admins      },
+  { id: 'motoristas',  label: 'Motoristas',  icon: Users         },
+  { id: 'conferentes', label: 'Conferentes', icon: ClipboardList },
+  { id: 'carretas',    label: 'Carretas',    icon: Truck         },
+  { id: 'cavalos',     label: 'Cavalos',     icon: Tractor       },
+  { id: 'admins',      label: 'Admins',      icon: Shield        },
 ]
 
 export default function Cadastros() {
   const [abaAtiva, setAbaAtiva] = useState('motoristas')
-  const TabAtual = TABS.find(t => t.id === abaAtiva)?.component ?? Motoristas
 
   return (
     <AdminLayout title="Cadastros">
@@ -44,8 +43,12 @@ export default function Cadastros() {
         </div>
       </div>
 
-      {/* Conteúdo da aba */}
-      <TabAtual />
+      {/* Conteúdo da aba — renderização condicional explícita */}
+      {abaAtiva === 'motoristas'  && <Motoristas />}
+      {abaAtiva === 'conferentes' && <Conferentes />}
+      {abaAtiva === 'carretas'    && <Carretas />}
+      {abaAtiva === 'cavalos'     && <Cavalos />}
+      {abaAtiva === 'admins'      && <Admins />}
     </AdminLayout>
   )
 }
