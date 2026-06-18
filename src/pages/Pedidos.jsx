@@ -90,39 +90,15 @@ export default function Pedidos() {
 
   async function loadData() {
     setLoading(true)
-    try {
-      const [{ data: unis }, { data: peds }] = await Promise.all([
-        supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
-        supabase.from('pedidos').select('*')
-          .order('data_puxada', { ascending: false })
-          .order('numero_pedido'),
-      ])
-
-      const pedidosList = peds ?? []
-
-      // Busca placas dos cavalos para viagens vinculadas (sem travar se falhar)
-      let cavaloMap = {}
-      try {
-        const viagemIds = [...new Set(pedidosList.map(p => p.viagem_id).filter(Boolean))]
-        if (viagemIds.length > 0) {
-          const { data: viagens } = await supabase
-            .from('viagens')
-            .select('id, cavalo_id, cavalo:cavalos(placa)')
-            .in('id', viagemIds)
-          ;(viagens ?? []).forEach(v => {
-            if (v.cavalo?.placa) cavaloMap[v.id] = v.cavalo.placa
-          })
-        }
-      } catch (_) { /* ignora erro de RLS, exibe pedidos sem placa do cavalo */ }
-
-      setUnidades(unis ?? [])
-      setPedidos(pedidosList.map(p => ({
-        ...p,
-        placa_cavalo: cavaloMap[p.viagem_id] ?? null,
-      })))
-    } finally {
-      setLoading(false)
-    }
+    const [{ data: unis }, { data: peds }] = await Promise.all([
+      supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
+      supabase.from('pedidos').select('*')
+        .order('data_puxada', { ascending: false })
+        .order('numero_pedido'),
+    ])
+    setUnidades(unis ?? [])
+    setPedidos(peds ?? [])
+    setLoading(false)
   }
 
   // derived: unique dates sorted desc
@@ -229,16 +205,15 @@ export default function Pedidos() {
       if (!map.has(key)) {
         map.set(key, {
           key,
-          numero_pedido:  p.numero_pedido,
-          placa_excel:    p.placa,
-          placa_cavalo:   p.placa_cavalo ?? null,
-          data_puxada:    p.data_puxada,
-          unidade_id:     p.unidade_id,
-          fabrica:        p.fabrica,
-          viagem_id:      p.viagem_id,
-          itens:          [],
-          total_pallets:  0,
-          total_skus:     0,
+          numero_pedido: p.numero_pedido,
+          placa:         p.placa,
+          data_puxada:   p.data_puxada,
+          unidade_id:    p.unidade_id,
+          fabrica:       p.fabrica,
+          viagem_id:     p.viagem_id,
+          itens:         [],
+          total_pallets: 0,
+          total_skus:    0,
         })
       }
       const g = map.get(key)
@@ -472,10 +447,8 @@ export default function Pedidos() {
                         <p className="text-cobeb-yellow font-mono text-xs font-semibold">
                           #{g.numero_pedido}
                         </p>
-                        {(g.placa_cavalo ?? g.placa_excel) && (
-                          <p className="text-slate-400 font-mono text-[11px] mt-0.5">
-                            {g.placa_cavalo ?? g.placa_excel}
-                          </p>
+                        {g.placa && (
+                          <p className="text-slate-400 font-mono text-[11px] mt-0.5">{g.placa}</p>
                         )}
                         <p className="text-slate-500 text-[10px] mt-0.5">
                           {g.itens.length} prod · {g.total_pallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
