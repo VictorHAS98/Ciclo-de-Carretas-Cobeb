@@ -92,7 +92,7 @@ export default function Pedidos() {
     setLoading(true)
     const [{ data: unis }, { data: peds }] = await Promise.all([
       supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
-      supabase.from('pedidos').select('*')
+      supabase.from('pedidos').select('*, viagem:viagens(id, cavalo:cavalos(placa))')
         .order('data_puxada', { ascending: false })
         .order('numero_pedido'),
     ])
@@ -205,15 +205,16 @@ export default function Pedidos() {
       if (!map.has(key)) {
         map.set(key, {
           key,
-          numero_pedido: p.numero_pedido,
-          placa:         p.placa,
-          data_puxada:   p.data_puxada,
-          unidade_id:    p.unidade_id,
-          fabrica:       p.fabrica,
-          viagem_id:     p.viagem_id,
-          itens:         [],
-          total_pallets: 0,
-          total_skus:    0,
+          numero_pedido:  p.numero_pedido,
+          placa_excel:    p.placa,
+          placa_cavalo:   p.viagem?.cavalo?.placa ?? null,
+          data_puxada:    p.data_puxada,
+          unidade_id:     p.unidade_id,
+          fabrica:        p.fabrica,
+          viagem_id:      p.viagem_id,
+          itens:          [],
+          total_pallets:  0,
+          total_skus:     0,
         })
       }
       const g = map.get(key)
@@ -447,8 +448,10 @@ export default function Pedidos() {
                         <p className="text-cobeb-yellow font-mono text-xs font-semibold">
                           #{g.numero_pedido}
                         </p>
-                        {g.placa && (
-                          <p className="text-slate-400 font-mono text-[11px] mt-0.5">{g.placa}</p>
+                        {(g.placa_cavalo ?? g.placa_excel) && (
+                          <p className="text-slate-400 font-mono text-[11px] mt-0.5">
+                            {g.placa_cavalo ?? g.placa_excel}
+                          </p>
                         )}
                         <p className="text-slate-500 text-[10px] mt-0.5">
                           {g.itens.length} prod · {g.total_pallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
