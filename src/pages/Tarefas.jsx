@@ -176,6 +176,7 @@ export default function Tarefas() {
       fotos:     [null, null, null],
       fotosUrls: [null, null, null],
       uploading: [false, false, false],
+      erros:     [null, null, null],
     })
     setShowModal(true)
   }
@@ -187,10 +188,10 @@ export default function Tarefas() {
       if (!f) return f
       const fotos     = [...f.fotos];     fotos[idx]     = previewUrl
       const uploading = [...f.uploading]; uploading[idx] = true
-      return { ...f, fotos, uploading }
+      const erros     = [...f.erros];     erros[idx]     = null
+      return { ...f, fotos, uploading, erros }
     })
 
-    // capture folderKey before async gap
     const folderKey = anomForm?.folderKey
     if (!folderKey) return
 
@@ -207,7 +208,8 @@ export default function Tarefas() {
         if (!f) return f
         const fotos     = [...f.fotos];     fotos[idx]     = null
         const uploading = [...f.uploading]; uploading[idx] = false
-        return { ...f, fotos, uploading }
+        const erros     = [...f.erros];     erros[idx]     = 'Falha no envio. Toque para tentar novamente.'
+        return { ...f, fotos, uploading, erros }
       })
       return
     }
@@ -223,15 +225,15 @@ export default function Tarefas() {
 
   async function salvarAnomalia() {
     if (!anomForm || !anomForm.descricao.trim()) return
-    if (!anomForm.fotosUrls.every(u => u !== null)) return
     setSalvandoAno(true)
+    const fotosEnviadas = anomForm.fotosUrls.filter(Boolean)
     const { data, error } = await supabase.from('anomalias').insert({
       tarefa_id:     tarefaSel.id,
       pedido_id:     anomForm.pedido_id || null,
       unidade_id:    tarefaSel.unidade_id,
       conferente_id: profile.id,
       descricao:     anomForm.descricao.trim(),
-      fotos:         anomForm.fotosUrls,
+      fotos:         fotosEnviadas,
     }).select('*, pedido:pedidos(descricao, cod_produto)').single()
     setSalvandoAno(false)
     if (!error && data) {
@@ -686,7 +688,8 @@ function ConferenciaView({
 // ── AnomaliaModal ─────────────────────────────────────────────────────────────
 
 function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onFotoSelect, onChange }) {
-  const canSave = form.descricao.trim() && form.fotosUrls.every(u => u !== null) && !salvando
+  const uploading = form.uploading.some(Boolean)
+  const canSave   = form.descricao.trim() && !uploading && !salvando
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -741,10 +744,11 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
               {['Frente', 'Lateral', 'Fundo'].map((label, idx) => {
                 const preview  = form.fotos[idx]
                 const uploaded = form.fotosUrls[idx]
-                const loading  = form.uploading[idx]
+                const isLoading = form.uploading[idx]
+                const erro     = form.erros?.[idx]
 
                 return (
-                  <div key={idx}>
+                  <div key={idx} className="flex flex-col gap-1">
                     <input
                       type="file"
                       accept="image/*"
@@ -757,7 +761,9 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
                       type="button"
                       onClick={() => fotoRefs[idx].current?.click()}
                       className={`w-full aspect-square rounded-2xl border-2 flex flex-col items-center justify-center overflow-hidden relative transition-colors ${
-                        uploaded
+                        erro
+                          ? 'border-red-500/60 bg-red-500/5'
+                          : uploaded
                           ? 'border-green-500/50'
                           : preview
                           ? 'border-cobeb-blue/40'
@@ -767,12 +773,12 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
                       {preview ? (
                         <>
                           <img src={preview} alt={label} className="w-full h-full object-cover" />
-                          {loading && (
+                          {isLoading && (
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                               <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                             </div>
                           )}
-                          {uploaded && !loading && (
+                          {uploaded && !isLoading && (
                             <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                               <CheckCircle size={11} className="text-white" />
                             </div>
@@ -780,20 +786,24 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
                         </>
                       ) : (
                         <div className="flex flex-col items-center gap-1.5 py-4">
-                          <Camera size={20} className="text-slate-500" />
-                          <span className="text-[10px] text-slate-500">{label}</span>
+                          {erro
+                            ? <AlertCircle size={20} className="text-red-400" />
+                            : <Camera size={20} className="text-slate-500" />}
+                          <span className={`text-[10px] ${erro ? 'text-red-400' : 'text-slate-500'}`}>{label}</span>
                         </div>
                       )}
                     </button>
+                    {erro && (
+                      <p className="text-[9px] text-red-400 text-center leading-tight">{erro}</p>
+                    )}
                   </div>
                 )
               })}
             </div>
-            {!form.fotosUrls.every(u => u !== null) && (
-              <p className="text-slate-500 text-[10px] mt-2 text-center">
-                {form.fotosUrls.filter(u => u !== null).length} de 3 fotos enviadas
-              </p>
-            )}
+            <p className="text-slate-500 text-[10px] mt-1 text-center">
+              {form.fotosUrls.filter(Boolean).length} de 3 fotos enviadas
+              {form.fotosUrls.filter(Boolean).length === 0 && ' — fotos são opcionais'}
+            </p>
           </div>
 
           {/* Actions */}
