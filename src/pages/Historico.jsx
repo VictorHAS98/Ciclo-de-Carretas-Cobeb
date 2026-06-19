@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock } from 'lucide-react'
+import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, Search, X } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
 
@@ -20,8 +20,7 @@ function diffHHMM(start, end) {
 
 export default function Historico() {
   const [viagens,      setViagens]      = useState([])
-  const [unidades,     setUnidades]     = useState([])
-  const [filtroUnid,   setFiltroUnid]   = useState('todas')
+  const [busca,        setBusca]        = useState('')
   const [selecionadas, setSelecionadas] = useState(new Set())
   const [loading,      setLoading]      = useState(true)
   const [excluindo,    setExcluindo]    = useState(false)
@@ -36,21 +35,18 @@ export default function Historico() {
     setLoading(true)
     setSelecionadas(new Set())
 
-    const [{ data: v }, { data: u }] = await Promise.all([
-      supabase
-        .from('viagens')
-        .select(`
-          id, status, numero_nf, dt_saida_revenda, dt_chegada_fabrica,
-          dt_saida_fabrica, dt_chegada_revenda, dt_saida_entrega,
-          unidade:unidades(id, nome, cidade),
-          carreta:carretas(placa, tipo),
-          cavalo:cavalos(placa, tipo),
-          motorista:profiles(nome, tipo)
-        `)
-        .in('status', ['concluida', 'aguardando_conferencia'])
-        .order('dt_chegada_revenda', { ascending: false }),
-      supabase.from('unidades').select('id, nome, cidade').order('nome'),
-    ])
+    const { data: v } = await supabase
+      .from('viagens')
+      .select(`
+        id, status, numero_nf, dt_saida_revenda, dt_chegada_fabrica,
+        dt_saida_fabrica, dt_chegada_revenda, dt_saida_entrega,
+        unidade:unidades(id, nome, cidade),
+        carreta:carretas(placa, tipo),
+        cavalo:cavalos(placa, tipo),
+        motorista:profiles(nome, tipo)
+      `)
+      .in('status', ['concluida', 'aguardando_conferencia'])
+      .order('dt_chegada_revenda', { ascending: false })
 
     const viagens = v ?? []
 
@@ -72,13 +68,21 @@ export default function Historico() {
     }
 
     setViagens(viagensComPedidos)
-    setUnidades(u ?? [])
     setLoading(false)
   }
 
-  const viagensFiltradas = filtroUnid === 'todas'
-    ? viagens
-    : viagens.filter(v => v.unidade?.id === filtroUnid)
+  const viagensFiltradas = (() => {
+    const q = busca.trim().toLowerCase()
+    if (!q) return viagens
+    return viagens.filter(v => {
+      if (v.unidade?.nome?.toLowerCase().includes(q)) return true
+      if (v.unidade?.cidade?.toLowerCase().includes(q)) return true
+      if (v.carreta?.placa?.toLowerCase().includes(q)) return true
+      if (v.cavalo?.placa?.toLowerCase().includes(q)) return true
+      if (v.numeros_pedido?.some(n => String(n).includes(q))) return true
+      return false
+    })
+  })()
 
   function toggleSelecionada(id) {
     setSelecionadas(prev => {
@@ -153,24 +157,22 @@ export default function Historico() {
           </div>
         )}
 
-        {/* Filtro unidade */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setFiltroUnid('todas')}
-            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
-              filtroUnid === 'todas' ? 'bg-cobeb-navy text-white' : 'bg-white text-slate-500 border border-cobeb-border'
-            }`}>
-            Todas
-          </button>
-          {unidades.map(u => (
-            <button key={u.id}
-              onClick={() => setFiltroUnid(u.id)}
-              className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                filtroUnid === u.id ? 'bg-cobeb-navy text-white' : 'bg-white text-slate-500 border border-cobeb-border'
-              }`}>
-              {u.cidade}
+        {/* Filtro — busca por unidade, placa ou pedido */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <input
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setSelecionadas(new Set()) }}
+            placeholder="Buscar por unidade, placa ou nº pedido..."
+            className="w-full bg-white border border-cobeb-border rounded-xl pl-9 pr-9 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors"
+          />
+          {busca && (
+            <button
+              onClick={() => { setBusca(''); setSelecionadas(new Set()) }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400">
+              <X size={14} />
             </button>
-          ))}
+          )}
         </div>
 
         {/* Barra de seleção */}
@@ -194,7 +196,11 @@ export default function Historico() {
         ) : viagensFiltradas.length === 0 ? (
           <div className="text-center py-16">
             <Clock size={32} className="text-slate-700 mx-auto mb-3" />
-            <p className="text-slate-500 text-sm">Nenhuma viagem concluída ou em conferência</p>
+            <p className="text-slate-500 text-sm">
+              {busca.trim()
+                ? 'Nenhuma viagem encontrada para essa busca'
+                : 'Nenhuma viagem concluída ou em conferência'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
