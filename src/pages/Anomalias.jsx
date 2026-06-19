@@ -228,6 +228,11 @@ export default function Anomalias() {
                           {ano.pedido.cod_produto} — {ano.pedido.descricao}
                         </p>
                       )}
+                      {ano.lote && (
+                        <p className="text-slate-500 text-[10px] mb-1.5">
+                          Lote: <span className="font-mono text-cobeb-text">{ano.lote}</span>
+                        </p>
+                      )}
                       <p className="text-cobeb-text text-xs leading-relaxed">{ano.descricao}</p>
                       {ano.conferente?.nome && (
                         <p className="text-slate-500 text-[10px] mt-1.5">Conferente: {ano.conferente.nome}</p>

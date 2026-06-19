@@ -53,7 +53,7 @@ export default function Tarefas() {
   const [showModal, setShowModal]         = useState(false)
   const [anomForm, setAnomaliaForm]       = useState(null)
   const [salvandoAno, setSalvandoAno]     = useState(false)
-  const fotoRefs                          = [useRef(), useRef(), useRef()]
+  const fotoRefs                          = [useRef(), useRef(), useRef(), useRef()]
 
   useEffect(() => { loadLista() }, [])
 
@@ -172,11 +172,12 @@ export default function Tarefas() {
     setAnomaliaForm({
       pedido_id: '',
       descricao: '',
+      lote:      '',
       folderKey: crypto.randomUUID(),
-      fotos:     [null, null, null],
-      fotosUrls: [null, null, null],
-      uploading: [false, false, false],
-      erros:     [null, null, null],
+      fotos:     [null, null, null, null],
+      fotosUrls: [null, null, null, null],
+      uploading: [false, false, false, false],
+      erros:     [null, null, null, null],
     })
     setShowModal(true)
   }
@@ -196,7 +197,7 @@ export default function Tarefas() {
     if (!folderKey) return
 
     const ext  = (file.name.split('.').pop() || 'jpg').toLowerCase()
-    const slot = ['frente', 'lateral', 'fundo'][idx]
+    const slot = ['frente', 'lateral', 'fundo', 'lote'][idx]
     const path = `${tarefaSel.id}/${folderKey}/${slot}.${ext}`
 
     const { error } = await supabase.storage
@@ -233,6 +234,7 @@ export default function Tarefas() {
       unidade_id:    tarefaSel.unidade_id,
       conferente_id: profile.id,
       descricao:     anomForm.descricao.trim(),
+      lote:          anomForm.lote.trim() || null,
       fotos:         fotosEnviadas,
     }).select('*, pedido:pedidos(descricao, cod_produto)').single()
     setSalvandoAno(false)
@@ -734,14 +736,28 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
             />
           </div>
 
+          {/* Lote */}
+          <div>
+            <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">
+              Lote do produto
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: L240610"
+              value={form.lote}
+              onChange={e => onChange(f => ({ ...f, lote: e.target.value }))}
+              className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors"
+            />
+          </div>
+
           {/* Photos */}
           <div>
             <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">
               Fotos <span className="text-cobeb-yellow">*</span>
-              <span className="text-slate-700 ml-1.5 normal-case tracking-normal font-normal">frente · lateral · fundo</span>
+              <span className="text-slate-700 ml-1.5 normal-case tracking-normal font-normal">frente · lateral · fundo · lote</span>
             </label>
-            <div className="grid grid-cols-3 gap-3">
-              {['Frente', 'Lateral', 'Fundo'].map((label, idx) => {
+            <div className="grid grid-cols-2 gap-3">
+              {['Frente', 'Lateral', 'Fundo', 'Lote'].map((label, idx) => {
                 const preview  = form.fotos[idx]
                 const uploaded = form.fotosUrls[idx]
                 const isLoading = form.uploading[idx]
@@ -801,7 +817,7 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
               })}
             </div>
             <p className="text-slate-500 text-[10px] mt-1 text-center">
-              {form.fotosUrls.filter(Boolean).length} de 3 fotos enviadas
+              {form.fotosUrls.filter(Boolean).length} de 4 fotos enviadas
               {form.fotosUrls.filter(Boolean).length === 0 && ' — fotos são opcionais'}
             </p>
           </div>
