@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { AlertTriangle, RefreshCw, MapPin, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import AdminLayout from '../components/AdminLayout'
@@ -9,42 +9,87 @@ function formatTs(iso) {
   return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+const selCls  = 'bg-white border border-cobeb-border rounded-xl px-3 py-2 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue appearance-none cursor-pointer'
+const dateCls = 'flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]'
+
 export default function Anomalias() {
-  const [anomalias, setAnomalias]           = useState([])
-  const [unidades, setUnidades]             = useState([])
-  const [loading, setLoading]               = useState(true)
-  const [filtroUnidade, setFiltroUnidade]   = useState('')
-  const [fotoAmpliada, setFotoAmpliada]     = useState(null)
+  const [anomalias,     setAnomalias]     = useState([])
+  const [unidades,      setUnidades]      = useState([])
+  const [todasPlacas,   setTodasPlacas]   = useState([])
+  const [filtroUnidade, setFiltroUnidade] = useState('')
+  const [filtroPlaca,   setFiltroPlaca]   = useState('')
+  const [filtroDataDe,  setFiltroDataDe]  = useState('')
+  const [filtroDataAte, setFiltroDataAte] = useState('')
+  const [loading,       setLoading]       = useState(true)
+  const [fotoAmpliada,  setFotoAmpliada]  = useState(null)
 
   useEffect(() => { load() }, [])
 
   async function load() {
     setLoading(true)
-    const [{ data: anos }, { data: uns }] = await Promise.all([
+
+    const [{ data: anos }, { data: uns }, { data: cavalos }] = await Promise.all([
       supabase
         .from('anomalias')
         .select(`
           *,
-          tarefa:tarefas(numero_nf),
+          tarefa:tarefas(numero_nf, viagem_id),
           pedido:pedidos(descricao, cod_produto),
           conferente:profiles(nome),
           unidade:unidades(id, nome, cidade)
         `)
         .order('created_at', { ascending: false }),
-      supabase.from('unidades').select('*').eq('ativo', true).order('nome'),
+      supabase.from('unidades').select('id, nome, cidade').eq('ativo', true).order('nome'),
+      supabase.from('cavalos').select('placa').order('placa'),
     ])
-    setAnomalias(anos ?? [])
+
+    const lista = anos ?? []
+
+    // Resolve placa do cavalo: anomalia → tarefa.viagem_id → viagem.cavalo
+    const viagemIds = [...new Set(lista.map(a => a.tarefa?.viagem_id).filter(Boolean))]
+    let placacMap = {}
+    if (viagemIds.length) {
+      const { data: viagens } = await supabase
+        .from('viagens')
+        .select('id, cavalo:cavalos(placa)')
+        .in('id', viagemIds)
+      ;(viagens ?? []).forEach(v => {
+        if (v.cavalo?.placa) placacMap[v.id] = v.cavalo.placa
+      })
+    }
+
+    setAnomalias(lista.map(a => ({
+      ...a,
+      placa_cavalo: placacMap[a.tarefa?.viagem_id] ?? null,
+    })))
     setUnidades(uns ?? [])
+    setTodasPlacas((cavalos ?? []).map(c => c.placa).filter(Boolean))
     setLoading(false)
   }
 
-  const anomaliasFiltradas = filtroUnidade
-    ? anomalias.filter(a => a.unidade_id === filtroUnidade)
-    : anomalias
+  const anomaliasFiltradas = useMemo(() => {
+    return anomalias.filter(a => {
+      if (filtroUnidade && a.unidade_id !== filtroUnidade) return false
+      if (filtroPlaca   && a.placa_cavalo !== filtroPlaca) return false
+      const ref = (a.created_at ?? '').slice(0, 10)
+      if (filtroDataDe  && ref < filtroDataDe)  return false
+      if (filtroDataAte && ref > filtroDataAte) return false
+      return true
+    })
+  }, [anomalias, filtroUnidade, filtroPlaca, filtroDataDe, filtroDataAte])
+
+  const temFiltroAtivo = filtroUnidade || filtroPlaca || filtroDataDe || filtroDataAte
+
+  function resetFiltros() {
+    setFiltroUnidade('')
+    setFiltroPlaca('')
+    setFiltroDataDe('')
+    setFiltroDataAte('')
+  }
 
   return (
     <AdminLayout title="Anomalias">
-      <div className="max-w-2xl mx-auto px-4 pt-5 pb-8 space-y-5">
+      <div className="max-w-2xl mx-auto px-4 pt-5 pb-8 space-y-4">
 
         {/* Header strip */}
         <div className="flex items-center justify-between">
@@ -56,27 +101,62 @@ export default function Anomalias() {
           </button>
         </div>
 
-        {/* Unidade filter pills */}
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {[{ id: '', nome: 'Todas', cidade: '' }, ...unidades].map(u => {
-            const active = filtroUnidade === u.id
-            return (
-              <button
-                key={u.id}
-                onClick={() => setFiltroUnidade(u.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
-                  active
-                    ? 'bg-cobeb-navy border-orange-500 text-white'
-                    : 'bg-transparent border-cobeb-border text-slate-500 hover:border-cobeb-blue/40'
-                }`}
-              >
-                {u.id ? (
-                  <><MapPin size={9} />{u.nome}{u.cidade ? ` — ${u.cidade}` : ''}</>
-                ) : 'Todas'}
-              </button>
-            )
-          })}
+        {/* Filtros — Unidade + Placa */}
+        <div className="flex gap-2">
+          <select
+            value={filtroUnidade}
+            onChange={e => setFiltroUnidade(e.target.value)}
+            className={`flex-1 ${selCls}`}>
+            <option value="">Todas as unidades</option>
+            {unidades.map(u => (
+              <option key={u.id} value={u.id}>{u.nome} — {u.cidade}</option>
+            ))}
+          </select>
+          <select
+            value={filtroPlaca}
+            onChange={e => setFiltroPlaca(e.target.value)}
+            className={`flex-1 ${selCls}`}>
+            <option value="">Todas as placas</option>
+            {todasPlacas.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
         </div>
+
+        {/* Filtro Período */}
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={filtroDataDe}
+            max={filtroDataAte || undefined}
+            onChange={e => setFiltroDataDe(e.target.value)}
+            className={dateCls}
+          />
+          <span className="text-slate-400 text-xs shrink-0">até</span>
+          <input
+            type="date"
+            value={filtroDataAte}
+            min={filtroDataDe || undefined}
+            onChange={e => setFiltroDataAte(e.target.value)}
+            className={dateCls}
+          />
+          {(filtroDataDe || filtroDataAte) && (
+            <button
+              onClick={() => { setFiltroDataDe(''); setFiltroDataAte('') }}
+              className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {/* Limpar todos os filtros */}
+        {temFiltroAtivo && (
+          <div className="-mt-1">
+            <button onClick={resetFiltros} className="text-xs text-slate-500 hover:text-cobeb-yellow transition-colors">
+              Limpar filtros
+            </button>
+          </div>
+        )}
 
         {/* List */}
         {loading ? (
@@ -88,8 +168,12 @@ export default function Anomalias() {
             <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={22} className="text-cobeb-border" />
             </div>
-            <p className="text-slate-500 text-sm font-medium">Nenhuma anomalia registrada</p>
-            <p className="text-cobeb-border text-xs mt-1">As anomalias aparecem durante a conferência de chegada</p>
+            <p className="text-slate-500 text-sm font-medium">
+              {temFiltroAtivo ? 'Nenhuma anomalia encontrada com esses filtros' : 'Nenhuma anomalia registrada'}
+            </p>
+            {!temFiltroAtivo && (
+              <p className="text-cobeb-border text-xs mt-1">As anomalias aparecem durante a conferência de chegada</p>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -106,6 +190,9 @@ export default function Anomalias() {
                           <span className="text-slate-500 text-[10px] flex items-center gap-1">
                             <MapPin size={9} />{ano.unidade.nome}{ano.unidade.cidade ? ` — ${ano.unidade.cidade}` : ''}
                           </span>
+                        )}
+                        {ano.placa_cavalo && (
+                          <span className="text-slate-500 text-[10px] font-mono">{ano.placa_cavalo}</span>
                         )}
                       </div>
                       {ano.pedido && (
