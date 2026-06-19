@@ -18,8 +18,8 @@ function diffHHMM(start, end) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-const selCls = 'bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue transition-colors appearance-none cursor-pointer'
-const dateCls = 'flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-2 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]'
+const selCls  = 'bg-white border border-cobeb-border rounded-xl px-3 py-2 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue appearance-none cursor-pointer'
+const dateCls = 'flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]'
 
 export default function Historico() {
   const [viagens,      setViagens]      = useState([])
@@ -180,82 +180,62 @@ export default function Historico() {
           </div>
         )}
 
-        {/* Filtros */}
-        <div className="bg-white border border-cobeb-border rounded-2xl p-4 space-y-3">
-          {/* Filtro Unidade */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Unidade</label>
-            <select
-              value={filtroUnid}
-              onChange={e => { setFiltroUnid(e.target.value); setSelecionadas(new Set()) }}
-              className={`w-full ${selCls}`}>
-              <option value="">Todas as unidades</option>
-              {unidades.map(u => (
-                <option key={u.id} value={u.id}>{u.nome} — {u.cidade}</option>
-              ))}
-            </select>
-          </div>
+        {/* Filtros — Unidade + Placa */}
+        <div className="flex gap-2">
+          <select
+            value={filtroUnid}
+            onChange={e => { setFiltroUnid(e.target.value); setSelecionadas(new Set()) }}
+            className={`flex-1 ${selCls}`}>
+            <option value="">Todas as unidades</option>
+            {unidades.map(u => (
+              <option key={u.id} value={u.id}>{u.nome}</option>
+            ))}
+          </select>
+          <select
+            value={filtroPlaca}
+            onChange={e => { setFiltroPlaca(e.target.value); setSelecionadas(new Set()) }}
+            className={`flex-1 ${selCls}`}>
+            <option value="">Todas as placas</option>
+            {todasPlacas.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
 
-          {/* Filtro Placa */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Placa do cavalo</label>
-            <select
-              value={filtroPlaca}
-              onChange={e => { setFiltroPlaca(e.target.value); setSelecionadas(new Set()) }}
-              className={`w-full ${selCls}`}>
-              <option value="">Todas as placas</option>
-              {todasPlacas.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtro Período */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Período</label>
-              {(filtroDataDe || filtroDataAte) && (
-                <button
-                  onClick={() => { setFiltroDataDe(''); setFiltroDataAte(''); setSelecionadas(new Set()) }}
-                  className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-cobeb-yellow transition-colors">
-                  <X size={11} /> Limpar datas
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex flex-col gap-0.5">
-                <span className="text-[10px] text-slate-400">De</span>
-                <input
-                  type="date"
-                  value={filtroDataDe}
-                  max={filtroDataAte || undefined}
-                  onChange={e => { setFiltroDataDe(e.target.value); setSelecionadas(new Set()) }}
-                  className={dateCls}
-                />
-              </div>
-              <span className="text-slate-400 text-sm mt-4">—</span>
-              <div className="flex-1 flex flex-col gap-0.5">
-                <span className="text-[10px] text-slate-400">Até</span>
-                <input
-                  type="date"
-                  value={filtroDataAte}
-                  min={filtroDataDe || undefined}
-                  onChange={e => { setFiltroDataAte(e.target.value); setSelecionadas(new Set()) }}
-                  className={dateCls}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Limpar filtros */}
-          {temFiltroAtivo && (
+        {/* Filtro Período */}
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={filtroDataDe}
+            max={filtroDataAte || undefined}
+            onChange={e => { setFiltroDataDe(e.target.value); setSelecionadas(new Set()) }}
+            className={dateCls}
+          />
+          <span className="text-slate-400 text-xs shrink-0">até</span>
+          <input
+            type="date"
+            value={filtroDataAte}
+            min={filtroDataDe || undefined}
+            onChange={e => { setFiltroDataAte(e.target.value); setSelecionadas(new Set()) }}
+            className={dateCls}
+          />
+          {(filtroDataDe || filtroDataAte) && (
             <button
-              onClick={resetFiltros}
-              className="text-xs text-cobeb-blue hover:underline font-medium">
-              Limpar filtros
+              onClick={() => { setFiltroDataDe(''); setFiltroDataAte(''); setSelecionadas(new Set()) }}
+              className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
+              <X size={15} />
             </button>
           )}
         </div>
+
+        {/* Limpar todos os filtros */}
+        {temFiltroAtivo && (
+          <div className="-mt-1">
+            <button onClick={resetFiltros} className="text-xs text-slate-500 hover:text-cobeb-yellow transition-colors">
+              Limpar filtros
+            </button>
+          </div>
+        )}
 
         {/* Barra de seleção */}
         {!loading && viagensFiltradas.length > 0 && (
