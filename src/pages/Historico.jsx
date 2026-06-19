@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock } from 'lucide-react'
+import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, X } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
 
@@ -18,13 +18,20 @@ function diffHHMM(start, end) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-function isoToPtDate(iso) {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
+function isoToday() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function addDays(isoDate, n) {
+  const d = new Date(isoDate + 'T12:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().split('T')[0]
 }
 
 const selCls = 'bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue transition-colors appearance-none cursor-pointer'
+const pillBase = 'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border'
+const pillActive = 'bg-cobeb-navy border-orange-500 text-white'
+const pillInactive = 'bg-transparent border-cobeb-border text-slate-500 hover:border-orange-500/50 hover:text-cobeb-text'
 
 export default function Historico() {
   const [viagens,      setViagens]      = useState([])
@@ -230,15 +237,34 @@ export default function Historico() {
             </div>
             <div className="flex-1 flex flex-col gap-1">
               <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Data</label>
-              <select
-                value={filtroData}
-                onChange={e => { setFiltroData(e.target.value); setSelecionadas(new Set()) }}
-                className={`w-full ${selCls}`}>
-                <option value="">Todas as datas</option>
-                {datasDisponiveis.map(d => (
-                  <option key={d} value={d}>{isoToPtDate(d)}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1.5">
+                {[{ label: 'D-1', diff: -1 }, { label: 'D0', diff: 0 }, { label: 'D1', diff: 1 }].map(({ label, diff }) => {
+                  const iso    = addDays(isoToday(), diff)
+                  const active = filtroData === iso
+                  const hasData = datasDisponiveis.includes(iso)
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => { setFiltroData(active ? '' : iso); setSelecionadas(new Set()) }}
+                      className={`${pillBase} ${active ? pillActive : pillInactive} ${!hasData ? 'opacity-40' : ''}`}>
+                      {label}
+                    </button>
+                  )
+                })}
+                <input
+                  type="date"
+                  value={filtroData}
+                  onChange={e => { setFiltroData(e.target.value); setSelecionadas(new Set()) }}
+                  className="flex-1 min-w-0 bg-white border border-cobeb-border rounded-xl px-2 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]"
+                />
+                {filtroData && (
+                  <button
+                    onClick={() => { setFiltroData(''); setSelecionadas(new Set()) }}
+                    className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
