@@ -188,7 +188,7 @@ export default function Historico() {
             className={`flex-1 ${selCls}`}>
             <option value="">Todas as unidades</option>
             {unidades.map(u => (
-              <option key={u.id} value={u.id}>{u.nome}</option>
+              <option key={u.id} value={u.id}>{u.nome} — {u.cidade}</option>
             ))}
           </select>
           <select
