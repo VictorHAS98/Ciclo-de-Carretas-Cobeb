@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { AlertTriangle, RefreshCw, MapPin, X, Trash2 } from 'lucide-react'
+import { AlertTriangle, RefreshCw, MapPin, X, Trash2, Factory } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import AdminLayout from '../components/AdminLayout'
 
@@ -42,7 +42,7 @@ export default function Anomalias() {
         .select(`
           *,
           tarefa:tarefas(numero_nf, viagem_id),
-          pedido:pedidos(descricao, cod_produto),
+          pedido:pedidos(descricao, cod_produto, fabrica),
           conferente:profiles(nome),
           unidade:unidades(id, nome, cidade)
         `)
@@ -226,6 +226,12 @@ export default function Anomalias() {
                       {ano.pedido && (
                         <p className="text-slate-500 text-[10px] font-mono mb-1.5">
                           {ano.pedido.cod_produto} — {ano.pedido.descricao}
+                        </p>
+                      )}
+                      {ano.pedido?.fabrica && (
+                        <p className="flex items-center gap-1 text-slate-500 text-[10px] mb-1.5">
+                          <Factory size={9} className="shrink-0" />
+                          {ano.pedido.fabrica}
                         </p>
                       )}
                       {ano.lote && (
