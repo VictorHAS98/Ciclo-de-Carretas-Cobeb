@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from 'react'
-import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, Search, X } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
 
@@ -18,16 +18,28 @@ function diffHHMM(start, end) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+function isoToPtDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+const selCls = 'bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue transition-colors appearance-none cursor-pointer'
+
 export default function Historico() {
   const [viagens,      setViagens]      = useState([])
-  const [busca,        setBusca]        = useState('')
+  const [unidades,     setUnidades]     = useState([])
+  const [todasPlacas,  setTodasPlacas]  = useState([])
+  const [filtroUnid,   setFiltroUnid]   = useState('')
+  const [filtroPlaca,  setFiltroPlaca]  = useState('')
+  const [filtroData,   setFiltroData]   = useState('')
   const [selecionadas, setSelecionadas] = useState(new Set())
   const [loading,      setLoading]      = useState(true)
   const [excluindo,    setExcluindo]    = useState(false)
   const [modalExcluir, setModalExcluir] = useState(false)
-  const [modalLiberar, setModalLiberar] = useState(null) // viagem object
-  const [liberando,    setLiberando]    = useState(null) // viagem id
-  const [feedback,     setFeedback]     = useState(null) // { tipo: 'ok'|'erro', msg }
+  const [modalLiberar, setModalLiberar] = useState(null)
+  const [liberando,    setLiberando]    = useState(null)
+  const [feedback,     setFeedback]     = useState(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -35,18 +47,23 @@ export default function Historico() {
     setLoading(true)
     setSelecionadas(new Set())
 
-    const { data: v } = await supabase
-      .from('viagens')
-      .select(`
-        id, status, numero_nf, dt_saida_revenda, dt_chegada_fabrica,
-        dt_saida_fabrica, dt_chegada_revenda, dt_saida_entrega,
-        unidade:unidades(id, nome, cidade),
-        carreta:carretas(placa, tipo),
-        cavalo:cavalos(placa, tipo),
-        motorista:profiles(nome, tipo)
-      `)
-      .in('status', ['concluida', 'aguardando_conferencia'])
-      .order('dt_chegada_revenda', { ascending: false })
+    const [{ data: v }, { data: u }, { data: carretas }, { data: cavalos }] = await Promise.all([
+      supabase
+        .from('viagens')
+        .select(`
+          id, status, numero_nf, dt_saida_revenda, dt_chegada_fabrica,
+          dt_saida_fabrica, dt_chegada_revenda, dt_saida_entrega,
+          unidade:unidades(id, nome, cidade),
+          carreta:carretas(placa, tipo),
+          cavalo:cavalos(placa, tipo),
+          motorista:profiles(nome, tipo)
+        `)
+        .in('status', ['concluida', 'aguardando_conferencia'])
+        .order('dt_chegada_revenda', { ascending: false }),
+      supabase.from('unidades').select('id, nome, cidade').order('nome'),
+      supabase.from('carretas').select('placa').order('placa'),
+      supabase.from('cavalos').select('placa').order('placa'),
+    ])
 
     const viagens = v ?? []
 
@@ -67,22 +84,45 @@ export default function Historico() {
       }
     }
 
+    const placas = [...new Set([
+      ...(carretas ?? []).map(c => c.placa),
+      ...(cavalos  ?? []).map(c => c.placa),
+    ])].filter(Boolean).sort()
+
     setViagens(viagensComPedidos)
+    setUnidades(u ?? [])
+    setTodasPlacas(placas)
     setLoading(false)
   }
 
-  const viagensFiltradas = (() => {
-    const q = busca.trim().toLowerCase()
-    if (!q) return viagens
+  // Datas únicas derivadas das viagens (usa dt_chegada_revenda como referência)
+  const datasDisponiveis = useMemo(() => {
+    const set = new Set(
+      viagens
+        .map(v => (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10))
+        .filter(Boolean)
+    )
+    return [...set].sort().reverse()
+  }, [viagens])
+
+  const viagensFiltradas = useMemo(() => {
     return viagens.filter(v => {
-      if (v.unidade?.nome?.toLowerCase().includes(q)) return true
-      if (v.unidade?.cidade?.toLowerCase().includes(q)) return true
-      if (v.carreta?.placa?.toLowerCase().includes(q)) return true
-      if (v.cavalo?.placa?.toLowerCase().includes(q)) return true
-      if (v.numeros_pedido?.some(n => String(n).includes(q))) return true
-      return false
+      if (filtroUnid && v.unidade?.id !== filtroUnid) return false
+      if (filtroPlaca && v.carreta?.placa !== filtroPlaca && v.cavalo?.placa !== filtroPlaca) return false
+      if (filtroData) {
+        const ref = (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10)
+        if (ref !== filtroData) return false
+      }
+      return true
     })
-  })()
+  }, [viagens, filtroUnid, filtroPlaca, filtroData])
+
+  function resetFiltros() {
+    setFiltroUnid('')
+    setFiltroPlaca('')
+    setFiltroData('')
+    setSelecionadas(new Set())
+  }
 
   function toggleSelecionada(id) {
     setSelecionadas(prev => {
@@ -136,6 +176,7 @@ export default function Historico() {
     setLiberando(null)
   }
 
+  const temFiltroAtivo = filtroUnid || filtroPlaca || filtroData
   const todasSelecionadas = viagensFiltradas.length > 0 && selecionadas.size === viagensFiltradas.length
   const algumaSelecionada = selecionadas.size > 0
 
@@ -157,20 +198,56 @@ export default function Historico() {
           </div>
         )}
 
-        {/* Filtro — busca por unidade, placa ou pedido */}
-        <div className="relative">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            value={busca}
-            onChange={e => { setBusca(e.target.value); setSelecionadas(new Set()) }}
-            placeholder="Buscar por unidade, placa ou nº pedido..."
-            className="w-full bg-white border border-cobeb-border rounded-xl pl-9 pr-9 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors"
-          />
-          {busca && (
+        {/* Filtros */}
+        <div className="bg-white border border-cobeb-border rounded-2xl p-4 space-y-3">
+          {/* Filtro Unidade */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Unidade</label>
+            <select
+              value={filtroUnid}
+              onChange={e => { setFiltroUnid(e.target.value); setSelecionadas(new Set()) }}
+              className={`w-full ${selCls}`}>
+              <option value="">Todas as unidades</option>
+              {unidades.map(u => (
+                <option key={u.id} value={u.id}>{u.nome} — {u.cidade}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Placa + Data */}
+          <div className="flex gap-3">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Placa</label>
+              <select
+                value={filtroPlaca}
+                onChange={e => { setFiltroPlaca(e.target.value); setSelecionadas(new Set()) }}
+                className={`w-full ${selCls}`}>
+                <option value="">Todas as placas</option>
+                {todasPlacas.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Data</label>
+              <select
+                value={filtroData}
+                onChange={e => { setFiltroData(e.target.value); setSelecionadas(new Set()) }}
+                className={`w-full ${selCls}`}>
+                <option value="">Todas as datas</option>
+                {datasDisponiveis.map(d => (
+                  <option key={d} value={d}>{isoToPtDate(d)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Limpar filtros */}
+          {temFiltroAtivo && (
             <button
-              onClick={() => { setBusca(''); setSelecionadas(new Set()) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400">
-              <X size={14} />
+              onClick={resetFiltros}
+              className="text-xs text-cobeb-blue hover:underline font-medium">
+              Limpar filtros
             </button>
           )}
         </div>
@@ -197,8 +274,8 @@ export default function Historico() {
           <div className="text-center py-16">
             <Clock size={32} className="text-slate-700 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">
-              {busca.trim()
-                ? 'Nenhuma viagem encontrada para essa busca'
+              {temFiltroAtivo
+                ? 'Nenhuma viagem encontrada com esses filtros'
                 : 'Nenhuma viagem concluída ou em conferência'}
             </p>
           </div>
