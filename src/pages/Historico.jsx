@@ -54,7 +54,7 @@ export default function Historico() {
     setLoading(true)
     setSelecionadas(new Set())
 
-    const [{ data: v }, { data: u }, { data: carretas }, { data: cavalos }] = await Promise.all([
+    const [{ data: v }, { data: u }, { data: cavalos }] = await Promise.all([
       supabase
         .from('viagens')
         .select(`
@@ -68,7 +68,6 @@ export default function Historico() {
         .in('status', ['concluida', 'aguardando_conferencia'])
         .order('dt_chegada_revenda', { ascending: false }),
       supabase.from('unidades').select('id, nome, cidade').order('nome'),
-      supabase.from('carretas').select('placa').order('placa'),
       supabase.from('cavalos').select('placa').order('placa'),
     ])
 
@@ -91,10 +90,7 @@ export default function Historico() {
       }
     }
 
-    const placas = [...new Set([
-      ...(carretas ?? []).map(c => c.placa),
-      ...(cavalos  ?? []).map(c => c.placa),
-    ])].filter(Boolean).sort()
+    const placas = (cavalos ?? []).map(c => c.placa).filter(Boolean)
 
     setViagens(viagensComPedidos)
     setUnidades(u ?? [])
@@ -115,7 +111,7 @@ export default function Historico() {
   const viagensFiltradas = useMemo(() => {
     return viagens.filter(v => {
       if (filtroUnid && v.unidade?.id !== filtroUnid) return false
-      if (filtroPlaca && v.carreta?.placa !== filtroPlaca && v.cavalo?.placa !== filtroPlaca) return false
+      if (filtroPlaca && v.cavalo?.placa !== filtroPlaca) return false
       if (filtroData) {
         const ref = (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10)
         if (ref !== filtroData) return false
