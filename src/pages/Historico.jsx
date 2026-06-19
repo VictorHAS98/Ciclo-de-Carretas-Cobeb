@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, X } from 'lucide-react'
+import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, X, Factory } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
 
@@ -67,15 +67,24 @@ export default function Historico() {
     if (viagens.length) {
       const { data: peds } = await supabase
         .from('pedidos')
-        .select('viagem_id, numero_pedido')
+        .select('viagem_id, numero_pedido, fabrica')
         .in('viagem_id', viagens.map(x => x.id))
       if (peds?.length) {
         const porViagem = {}
+        const fabricasPorViagem = {}
         peds.forEach(p => {
           if (!porViagem[p.viagem_id]) porViagem[p.viagem_id] = []
           porViagem[p.viagem_id].push(p.numero_pedido)
+          if (p.fabrica) {
+            if (!fabricasPorViagem[p.viagem_id]) fabricasPorViagem[p.viagem_id] = new Set()
+            fabricasPorViagem[p.viagem_id].add(p.fabrica)
+          }
         })
-        viagensComPedidos = viagens.map(vi => ({ ...vi, numeros_pedido: [...new Set(porViagem[vi.id] ?? [])] }))
+        viagensComPedidos = viagens.map(vi => ({
+          ...vi,
+          numeros_pedido: [...new Set(porViagem[vi.id] ?? [])],
+          fabricas: [...(fabricasPorViagem[vi.id] ?? [])],
+        }))
       }
     }
 
@@ -337,6 +346,14 @@ export default function Historico() {
                           {v.numero_nf && <span className="text-slate-500 text-xs">NF {v.numero_nf}</span>}
                           {tmvTotal && <span className="text-slate-500 text-xs font-mono">⏱ {tmvTotal}</span>}
                         </div>
+
+                        {/* Fábrica */}
+                        {v.fabricas?.length > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <Factory size={12} className="text-slate-400 shrink-0" />
+                            <span className="text-slate-500 text-xs">{v.fabricas.join(' · ')}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </button>
