@@ -1,7 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
-import { AlertTriangle, RefreshCw, MapPin, X } from 'lucide-react'
+import { AlertTriangle, RefreshCw, MapPin, X, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import AdminLayout from '../components/AdminLayout'
+
+function urlToStoragePath(url) {
+  const marker = '/anomalias-fotos/'
+  const idx = url?.indexOf(marker)
+  return idx >= 0 ? url.slice(idx + marker.length) : null
+}
 
 function formatTs(iso) {
   if (!iso) return '—'
@@ -22,6 +28,8 @@ export default function Anomalias() {
   const [filtroDataAte, setFiltroDataAte] = useState('')
   const [loading,       setLoading]       = useState(true)
   const [fotoAmpliada,  setFotoAmpliada]  = useState(null)
+  const [modalExcluir,  setModalExcluir]  = useState(null) // anomalia object
+  const [excluindo,     setExcluindo]     = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -77,6 +85,26 @@ export default function Anomalias() {
       return true
     })
   }, [anomalias, filtroUnidade, filtroPlaca, filtroDataDe, filtroDataAte])
+
+  async function confirmarExclusao() {
+    const ano = modalExcluir
+    setModalExcluir(null)
+    setExcluindo(true)
+
+    // Remove fotos do storage
+    const paths = (ano.fotos ?? []).map(urlToStoragePath).filter(Boolean)
+    if (paths.length) {
+      await supabase.storage.from('anomalias-fotos').remove(paths)
+    }
+
+    // Remove registro da tabela
+    const { error } = await supabase.from('anomalias').delete().eq('id', ano.id)
+    if (!error) {
+      setAnomalias(prev => prev.filter(a => a.id !== ano.id))
+    }
+
+    setExcluindo(false)
+  }
 
   const temFiltroAtivo = filtroUnidade || filtroPlaca || filtroDataDe || filtroDataAte
 
@@ -205,7 +233,15 @@ export default function Anomalias() {
                         <p className="text-slate-500 text-[10px] mt-1.5">Conferente: {ano.conferente.nome}</p>
                       )}
                     </div>
-                    <span className="text-slate-500 text-[10px] shrink-0 whitespace-nowrap">{formatTs(ano.created_at)}</span>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="text-slate-500 text-[10px] whitespace-nowrap">{formatTs(ano.created_at)}</span>
+                      <button
+                        onClick={() => setModalExcluir(ano)}
+                        disabled={excluindo}
+                        className="text-slate-500 hover:text-red-400 transition-colors disabled:opacity-40">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -228,6 +264,40 @@ export default function Anomalias() {
           </div>
         )}
       </div>
+
+      {/* Modal: confirmar exclusão */}
+      {modalExcluir && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+          <div className="w-full max-w-lg mx-auto bg-white rounded-t-3xl p-6 space-y-5">
+            <div className="w-10 h-1 bg-[#1E3A5F] rounded-full mx-auto" />
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} className="text-red-400" />
+              </div>
+              <div>
+                <p className="text-cobeb-text font-semibold text-base">Excluir anomalia</p>
+                <p className="text-slate-500 text-sm mt-1">
+                  Esta anomalia será excluída permanentemente
+                  {modalExcluir.fotos?.length > 0 && `, incluindo ${modalExcluir.fotos.length} foto(s) arquivada(s)`}.
+                </p>
+                <p className="text-red-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalExcluir(null)}
+                className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-400 font-semibold py-4 rounded-2xl text-sm">
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarExclusao}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-4 rounded-2xl text-sm transition-colors">
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {fotoAmpliada && (
