@@ -1,0 +1,414 @@
+import { useState, useEffect, useMemo } from 'react'
+import { ClipboardCheck, Search, X, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import AdminLayout from '../components/AdminLayout'
+import { supabase } from '../lib/supabase'
+
+function ptDate(iso) {
+  if (!iso) return '—'
+  const s = String(iso).split('T')[0]
+  const [y, m, d] = s.split('-')
+  return `${d}/${m}/${y}`
+}
+
+function isoToday() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function addDays(isoDate, n) {
+  const d = new Date(isoDate + 'T12:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().split('T')[0]
+}
+
+function calcCaixas(qtdeRecebida, pedido) {
+  const rec = Number(qtdeRecebida)
+  const pal = Number(pedido.qtde_pallets)
+  const cx  = Number(pedido.qtde_skus)
+  if (!rec || !pal) return null
+  return Math.round(rec * (cx / pal))
+}
+
+const selCls   = 'bg-white border border-cobeb-border rounded-xl px-3 py-2 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue appearance-none cursor-pointer'
+const pillBase = 'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border'
+const pillOn   = 'bg-cobeb-navy border-orange-500 text-white'
+const pillOff  = 'bg-transparent border-cobeb-border text-slate-500 hover:border-orange-500/50 hover:text-cobeb-text'
+
+export default function CheckRecebimento() {
+  const [grupos,      setGrupos]      = useState([])
+  const [unidades,    setUnidades]    = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [expanded,    setExpanded]    = useState(new Set())
+  const [filtData,    setFiltData]    = useState('')
+  const [filtUnidade, setFiltUnidade] = useState('')
+  const [filtFabrica, setFiltFabrica] = useState('')
+  const [search,      setSearch]      = useState('')
+
+  useEffect(() => { load() }, [])
+
+  // Aplica data mais recente na primeira carga
+  const datas = useMemo(
+    () => [...new Set(grupos.map(g => g.data).filter(Boolean))].sort().reverse(),
+    [grupos]
+  )
+  useEffect(() => {
+    if (!filtData && datas.length > 0) setFiltData(datas[0])
+  }, [datas])
+
+  async function load() {
+    setLoading(true)
+    setExpanded(new Set())
+
+    // 1. Tarefas com conferência iniciada ou concluída
+    const { data: tarefas } = await supabase
+      .from('tarefas')
+      .select('id, numero_nf, status, unidade_id, viagem_id, unidade:unidades(id, nome, cidade, codigo)')
+      .in('status', ['concluida', 'aguardando_conferencia'])
+      .order('created_at', { ascending: false })
+
+    const lista = tarefas ?? []
+    if (!lista.length) {
+      setGrupos([])
+      setLoading(false)
+      return
+    }
+
+    const tarefaIds = lista.map(t => t.id)
+    const viagemIds = [...new Set(lista.map(t => t.viagem_id).filter(Boolean))]
+
+    const [{ data: pedidos }, { data: itens }, { data: viagens }, { data: unis }] = await Promise.all([
+      viagemIds.length
+        ? supabase.from('pedidos')
+            .select('id, cod_produto, descricao, embalagem, qtde_pallets, qtde_skus, fabrica, numero_pedido, viagem_id')
+            .in('viagem_id', viagemIds)
+        : { data: [] },
+      supabase.from('conferencia_itens')
+        .select('id, tarefa_id, pedido_id, qtde_recebida, data_validade')
+        .in('tarefa_id', tarefaIds),
+      viagemIds.length
+        ? supabase.from('viagens')
+            .select('id, dt_chegada_revenda, cavalo:cavalos(placa)')
+            .in('id', viagemIds)
+        : { data: [] },
+      supabase.from('unidades').select('id, nome, cidade, codigo').order('nome'),
+    ])
+
+    // Mapas de lookup
+    const pedsByViagem = {}
+    ;(pedidos ?? []).forEach(p => {
+      if (!pedsByViagem[p.viagem_id]) pedsByViagem[p.viagem_id] = []
+      pedsByViagem[p.viagem_id].push(p)
+    })
+
+    const itemByTarefaPedido = {}
+    ;(itens ?? []).forEach(it => {
+      if (!itemByTarefaPedido[it.tarefa_id]) itemByTarefaPedido[it.tarefa_id] = {}
+      itemByTarefaPedido[it.tarefa_id][it.pedido_id] = it
+    })
+
+    const viagemById = {}
+    ;(viagens ?? []).forEach(v => { viagemById[v.id] = v })
+
+    const result = lista
+      .filter(t => (pedsByViagem[t.viagem_id] ?? []).length > 0)
+      .map(t => {
+        const viagem   = t.viagem_id ? viagemById[t.viagem_id] : null
+        const peds     = pedsByViagem[t.viagem_id] ?? []
+        const itemMap  = itemByTarefaPedido[t.id] ?? {}
+        const data     = viagem?.dt_chegada_revenda?.split('T')[0] ?? null
+        const fabricas = [...new Set(peds.map(p => p.fabrica).filter(Boolean))]
+
+        const produtos = peds.map(p => ({ ...p, item: itemMap[p.id] ?? null }))
+
+        const totalPrevPal    = peds.reduce((s, p) => s + (Number(p.qtde_pallets) || 0), 0)
+        const totalRecPal     = produtos.reduce((s, p) => s + (Number(p.item?.qtde_recebida) || 0), 0)
+        const conferidoCount  = produtos.filter(p => p.item?.qtde_recebida != null).length
+        const temDivergencia  = produtos.some(p =>
+          p.item?.qtde_recebida != null &&
+          Math.abs(Number(p.item.qtde_recebida) - Number(p.qtde_pallets)) > 0.001
+        )
+
+        return {
+          id: t.id,
+          numero_nf: t.numero_nf,
+          status: t.status,
+          unidade_id: t.unidade_id,
+          unidade: t.unidade,
+          placa_cavalo: viagem?.cavalo?.placa ?? null,
+          data,
+          fabricas,
+          produtos,
+          totalPrevPal,
+          totalRecPal,
+          conferidoCount,
+          totalProd: peds.length,
+          temDivergencia,
+        }
+      })
+
+    setGrupos(result)
+    setUnidades(unis ?? [])
+    setLoading(false)
+  }
+
+  const fabricas = useMemo(
+    () => [...new Set(grupos.flatMap(g => g.fabricas))].sort(),
+    [grupos]
+  )
+
+  const gruposFiltrados = useMemo(() => {
+    return grupos.filter(g => {
+      if (filtData    && g.data !== filtData)                        return false
+      if (filtUnidade && g.unidade_id !== filtUnidade)               return false
+      if (filtFabrica && !g.fabricas.includes(filtFabrica))          return false
+      if (search.trim() && !String(g.numero_nf ?? '').includes(search.trim())) return false
+      return true
+    })
+  }, [grupos, filtData, filtUnidade, filtFabrica, search])
+
+  function toggleExpand(id) {
+    setExpanded(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
+  const temFiltroAtivo = filtData || filtUnidade || filtFabrica || search
+
+  return (
+    <AdminLayout title="Check de Recebimento">
+      <div className="max-w-lg mx-auto">
+
+        {/* Filtro data */}
+        <div className="px-4 pt-4">
+          <div className="flex items-center gap-2">
+            {[{ label: 'D-1', diff: -1 }, { label: 'D0', diff: 0 }, { label: 'D1', diff: 1 }].map(({ label, diff }) => {
+              const iso    = addDays(isoToday(), diff)
+              const active = filtData === iso
+              const hasData = datas.includes(iso)
+              return (
+                <button
+                  key={label}
+                  onClick={() => setFiltData(active ? '' : iso)}
+                  className={`${pillBase} ${active ? pillOn : pillOff} ${!hasData ? 'opacity-40' : ''}`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+            <input
+              type="date"
+              value={filtData}
+              onChange={e => setFiltData(e.target.value)}
+              className="flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]"
+            />
+            {filtData && (
+              <button onClick={() => setFiltData('')} className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Busca + selects */}
+        <div className="px-4 pt-3 space-y-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar NF..."
+              className="w-full bg-white border border-cobeb-border rounded-xl pl-9 pr-4 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <select value={filtUnidade} onChange={e => setFiltUnidade(e.target.value)} className={`flex-1 ${selCls}`}>
+              <option value="">Todas unidades</option>
+              {unidades.map(u => <option key={u.id} value={u.id}>{u.codigo}</option>)}
+            </select>
+            <select value={filtFabrica} onChange={e => setFiltFabrica(e.target.value)} className={`flex-1 ${selCls}`}>
+              <option value="">Todas fábricas</option>
+              {fabricas.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Lista */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : gruposFiltrados.length === 0 ? (
+          <div className="text-center py-20 px-4">
+            <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
+              <ClipboardCheck size={22} className="text-cobeb-border" />
+            </div>
+            <p className="text-slate-500 text-sm font-medium">
+              {temFiltroAtivo ? 'Nenhuma conferência encontrada com esses filtros' : 'Nenhuma conferência registrada'}
+            </p>
+          </div>
+        ) : (
+          <div className="px-4 pt-4 pb-6 space-y-2">
+            {gruposFiltrados.map(g => {
+              const isOpen    = expanded.has(g.id)
+              const concluida = g.status === 'concluida'
+
+              return (
+                <div key={g.id} className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
+
+                  {/* Cabeçalho */}
+                  <button onClick={() => toggleExpand(g.id)} className="w-full text-left px-4 py-3">
+                    {/* Linha 1: NF + badges + data + chevron */}
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <span className="text-cobeb-yellow font-semibold text-sm shrink-0">
+                          {g.numero_nf ? `NF ${g.numero_nf}` : '—'}
+                        </span>
+                        {concluida ? (
+                          <span className="text-[10px] font-semibold bg-green-500/15 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full shrink-0">
+                            Concluída
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full shrink-0">
+                            Em Conferência
+                          </span>
+                        )}
+                        {g.temDivergencia && (
+                          <span className="text-[10px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full shrink-0">
+                            Divergência
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-slate-500 text-[10px]">{ptDate(g.data)}</span>
+                        {isOpen
+                          ? <ChevronUp size={15} className="text-slate-500" />
+                          : <ChevronDown size={15} className="text-slate-500" />}
+                      </div>
+                    </div>
+
+                    {/* Linha 2: unidade · placa · fábrica */}
+                    <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-slate-500">
+                      {g.unidade && (
+                        <span>{g.unidade.nome}{g.unidade.cidade ? ` — ${g.unidade.cidade}` : ''}</span>
+                      )}
+                      {g.placa_cavalo && <><span>·</span><span className="font-mono">{g.placa_cavalo}</span></>}
+                      {g.fabricas.length > 0 && <><span>·</span><span>{g.fabricas.join(' · ')}</span></>}
+                    </div>
+
+                    {/* Linha 3: progresso */}
+                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
+                      <span>{g.conferidoCount}/{g.totalProd} prod. conferidos</span>
+                      <span>·</span>
+                      <span>Prev. {g.totalPrevPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal</span>
+                      <span>·</span>
+                      <span>Rec. {g.totalRecPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal</span>
+                    </div>
+                  </button>
+
+                  {/* Produtos expandidos */}
+                  {isOpen && (
+                    <div className="border-t border-cobeb-border/50">
+                      {/* Sub-header */}
+                      <div className="grid px-4 py-2 bg-[#EBF5FF]" style={{ gridTemplateColumns: '1fr auto' }}>
+                        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Produto</span>
+                        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest text-right">Prev / Rec / Val.</span>
+                      </div>
+
+                      {g.produtos.map((p, i) => {
+                        const rec      = p.item?.qtde_recebida
+                        const val      = p.item?.data_validade
+                        const prevPal  = Number(p.qtde_pallets)
+                        const recPal   = rec != null ? Number(rec) : null
+                        const diff     = recPal != null ? recPal - prevPal : null
+                        const cxRec    = recPal != null ? calcCaixas(recPal, p) : null
+                        const okColor  = diff == null ? '' : diff === 0 ? 'text-green-500' : diff < 0 ? 'text-orange-400' : 'text-red-400'
+
+                        return (
+                          <div
+                            key={p.id}
+                            className={`grid items-start gap-x-3 px-4 py-2.5 ${i < g.produtos.length - 1 ? 'border-b border-cobeb-border/30' : ''}`}
+                            style={{ gridTemplateColumns: '1fr auto' }}
+                          >
+                            {/* Produto info */}
+                            <div className="min-w-0">
+                              <p className="text-cobeb-text text-xs font-medium truncate">{p.descricao}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-slate-500 text-[10px] font-mono">{p.cod_produto}</span>
+                                {p.embalagem && <span className="text-slate-500 text-[10px]">{p.embalagem}</span>}
+                              </div>
+                            </div>
+
+                            {/* Números */}
+                            <div className="text-right shrink-0 space-y-0.5">
+                              <p className="text-slate-500 text-[10px]">
+                                Prev: {prevPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
+                                {' / '}{Number(p.qtde_skus).toLocaleString('pt-BR')} cx
+                              </p>
+
+                              {recPal != null ? (
+                                <p className={`text-xs font-semibold ${okColor}`}>
+                                  Rec: {recPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
+                                  {cxRec != null && <span className="text-[10px] ml-1">/ {cxRec.toLocaleString('pt-BR')} cx</span>}
+                                  {diff !== 0 && diff != null && (
+                                    <span className="text-[10px] ml-1">
+                                      ({diff > 0 ? '+' : ''}{diff.toLocaleString('pt-BR', { maximumFractionDigits: 1 })})
+                                    </span>
+                                  )}
+                                </p>
+                              ) : (
+                                <p className="text-[10px] text-slate-400 italic">Não conferido</p>
+                              )}
+
+                              {val && (
+                                <p className="text-[10px] text-slate-500">Val: {ptDate(val)}</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {/* Totais */}
+                      <div className="grid items-center gap-x-3 px-4 py-2.5 bg-[#EBF5FF]" style={{ gridTemplateColumns: '1fr auto' }}>
+                        <span className="text-slate-500 text-[10px] font-semibold uppercase tracking-widest">
+                          Total ({g.totalProd} produtos)
+                        </span>
+                        <div className="text-right">
+                          <span className="text-slate-500 text-[10px]">
+                            Prev: {g.totalPrevPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
+                          </span>
+                          <span className={`text-xs font-bold ml-2 ${g.totalRecPal === g.totalPrevPal ? 'text-green-500' : 'text-cobeb-yellow'}`}>
+                            Rec: {g.totalRecPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Rodapé */}
+        {!loading && (
+          <div className="px-4 pb-6 flex items-center justify-between">
+            <p className="text-slate-500 text-xs">
+              <span className="text-cobeb-text font-semibold">{gruposFiltrados.length}</span> conferência(s)
+            </p>
+            <button onClick={load} className="flex items-center gap-1.5 text-slate-500 hover:text-cobeb-yellow text-xs transition-colors">
+              <RefreshCw size={12} />
+              Atualizar
+            </button>
+          </div>
+        )}
+
+      </div>
+    </AdminLayout>
+  )
+}

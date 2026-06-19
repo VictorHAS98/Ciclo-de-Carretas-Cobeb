@@ -10,6 +10,7 @@ import Viagem from './pages/Viagem'
 import Tarefas from './pages/Tarefas'
 import Anomalias from './pages/Anomalias'
 import Historico from './pages/Historico'
+import CheckRecebimento from './pages/CheckRecebimento'
 
 const PERFIL_ROTA = {
   admin:      '/dashboard',
@@ -91,6 +92,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <Historico />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/check-recebimento"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <CheckRecebimento />
           </ProtectedRoute>
         }
       />
