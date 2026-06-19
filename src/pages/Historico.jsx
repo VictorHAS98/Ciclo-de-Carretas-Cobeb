@@ -18,28 +18,17 @@ function diffHHMM(start, end) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-function isoToday() {
-  return new Date().toISOString().split('T')[0]
-}
-
-function addDays(isoDate, n) {
-  const d = new Date(isoDate + 'T12:00:00Z')
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().split('T')[0]
-}
-
 const selCls = 'bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue transition-colors appearance-none cursor-pointer'
-const pillBase = 'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors border'
-const pillActive = 'bg-cobeb-navy border-orange-500 text-white'
-const pillInactive = 'bg-transparent border-cobeb-border text-slate-500 hover:border-orange-500/50 hover:text-cobeb-text'
+const dateCls = 'flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-2 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]'
 
 export default function Historico() {
   const [viagens,      setViagens]      = useState([])
   const [unidades,     setUnidades]     = useState([])
   const [todasPlacas,  setTodasPlacas]  = useState([])
-  const [filtroUnid,   setFiltroUnid]   = useState('')
-  const [filtroPlaca,  setFiltroPlaca]  = useState('')
-  const [filtroData,   setFiltroData]   = useState('')
+  const [filtroUnid,    setFiltroUnid]    = useState('')
+  const [filtroPlaca,   setFiltroPlaca]   = useState('')
+  const [filtroDataDe,  setFiltroDataDe]  = useState('')
+  const [filtroDataAte, setFiltroDataAte] = useState('')
   const [selecionadas, setSelecionadas] = useState(new Set())
   const [loading,      setLoading]      = useState(true)
   const [excluindo,    setExcluindo]    = useState(false)
@@ -98,32 +87,22 @@ export default function Historico() {
     setLoading(false)
   }
 
-  // Datas únicas derivadas das viagens (usa dt_chegada_revenda como referência)
-  const datasDisponiveis = useMemo(() => {
-    const set = new Set(
-      viagens
-        .map(v => (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10))
-        .filter(Boolean)
-    )
-    return [...set].sort().reverse()
-  }, [viagens])
-
   const viagensFiltradas = useMemo(() => {
     return viagens.filter(v => {
       if (filtroUnid && v.unidade?.id !== filtroUnid) return false
       if (filtroPlaca && v.cavalo?.placa !== filtroPlaca) return false
-      if (filtroData) {
-        const ref = (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10)
-        if (ref !== filtroData) return false
-      }
+      const ref = (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10)
+      if (filtroDataDe  && ref < filtroDataDe)  return false
+      if (filtroDataAte && ref > filtroDataAte) return false
       return true
     })
-  }, [viagens, filtroUnid, filtroPlaca, filtroData])
+  }, [viagens, filtroUnid, filtroPlaca, filtroDataDe, filtroDataAte])
 
   function resetFiltros() {
     setFiltroUnid('')
     setFiltroPlaca('')
-    setFiltroData('')
+    setFiltroDataDe('')
+    setFiltroDataAte('')
     setSelecionadas(new Set())
   }
 
@@ -179,7 +158,7 @@ export default function Historico() {
     setLiberando(null)
   }
 
-  const temFiltroAtivo = filtroUnid || filtroPlaca || filtroData
+  const temFiltroAtivo = filtroUnid || filtroPlaca || filtroDataDe || filtroDataAte
   const todasSelecionadas = viagensFiltradas.length > 0 && selecionadas.size === viagensFiltradas.length
   const algumaSelecionada = selecionadas.size > 0
 
@@ -217,49 +196,53 @@ export default function Historico() {
             </select>
           </div>
 
-          {/* Filtro Placa + Data */}
-          <div className="flex gap-3">
-            <div className="flex-1 flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Placa</label>
-              <select
-                value={filtroPlaca}
-                onChange={e => { setFiltroPlaca(e.target.value); setSelecionadas(new Set()) }}
-                className={`w-full ${selCls}`}>
-                <option value="">Todas as placas</option>
-                {todasPlacas.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+          {/* Filtro Placa */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Placa do cavalo</label>
+            <select
+              value={filtroPlaca}
+              onChange={e => { setFiltroPlaca(e.target.value); setSelecionadas(new Set()) }}
+              className={`w-full ${selCls}`}>
+              <option value="">Todas as placas</option>
+              {todasPlacas.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Período */}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Período</label>
+              {(filtroDataDe || filtroDataAte) && (
+                <button
+                  onClick={() => { setFiltroDataDe(''); setFiltroDataAte(''); setSelecionadas(new Set()) }}
+                  className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-cobeb-yellow transition-colors">
+                  <X size={11} /> Limpar datas
+                </button>
+              )}
             </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Data</label>
-              <div className="flex items-center gap-1.5">
-                {[{ label: 'D-1', diff: -1 }, { label: 'D0', diff: 0 }, { label: 'D1', diff: 1 }].map(({ label, diff }) => {
-                  const iso    = addDays(isoToday(), diff)
-                  const active = filtroData === iso
-                  const hasData = datasDisponiveis.includes(iso)
-                  return (
-                    <button
-                      key={label}
-                      onClick={() => { setFiltroData(active ? '' : iso); setSelecionadas(new Set()) }}
-                      className={`${pillBase} ${active ? pillActive : pillInactive} ${!hasData ? 'opacity-40' : ''}`}>
-                      {label}
-                    </button>
-                  )
-                })}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-[10px] text-slate-400">De</span>
                 <input
                   type="date"
-                  value={filtroData}
-                  onChange={e => { setFiltroData(e.target.value); setSelecionadas(new Set()) }}
-                  className="flex-1 min-w-0 bg-white border border-cobeb-border rounded-xl px-2 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]"
+                  value={filtroDataDe}
+                  max={filtroDataAte || undefined}
+                  onChange={e => { setFiltroDataDe(e.target.value); setSelecionadas(new Set()) }}
+                  className={dateCls}
                 />
-                {filtroData && (
-                  <button
-                    onClick={() => { setFiltroData(''); setSelecionadas(new Set()) }}
-                    className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
-                    <X size={15} />
-                  </button>
-                )}
+              </div>
+              <span className="text-slate-400 text-sm mt-4">—</span>
+              <div className="flex-1 flex flex-col gap-0.5">
+                <span className="text-[10px] text-slate-400">Até</span>
+                <input
+                  type="date"
+                  value={filtroDataAte}
+                  min={filtroDataDe || undefined}
+                  onChange={e => { setFiltroDataAte(e.target.value); setSelecionadas(new Set()) }}
+                  className={dateCls}
+                />
               </div>
             </div>
           </div>
