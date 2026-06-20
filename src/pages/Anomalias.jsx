@@ -228,6 +228,12 @@ export default function Anomalias() {
                           <span className="text-slate-500 text-[10px] font-mono">{ano.placa_cavalo}</span>
                         )}
                       </div>
+                      <div className="mb-1.5">
+                        {ano.tipo === 'inversao'
+                          ? <span className="text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full">Inversão de Produto</span>
+                          : <span className="text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full">Problema de Qualidade</span>
+                        }
+                      </div>
                       {ano.pedido && (
                         <p className="text-slate-500 text-[10px] font-mono mb-1.5">
                           {ano.pedido.cod_produto} — {ano.pedido.descricao}
@@ -245,6 +251,22 @@ export default function Anomalias() {
                         </p>
                       )}
                       <p className="text-cobeb-text text-xs leading-relaxed">{ano.descricao}</p>
+                      {ano.substituto_codigo && (
+                        <div className="mt-1.5 bg-[#EBF5FF] rounded-xl px-3 py-2 border border-cobeb-border">
+                          <p className="text-[10px] font-semibold text-cobeb-navy uppercase tracking-widest mb-0.5">Substituto recebido</p>
+                          <p className="text-cobeb-text text-xs font-mono font-semibold">{ano.substituto_codigo}</p>
+                          {ano.substituto_descricao && <p className="text-slate-500 text-[10px]">{ano.substituto_descricao}</p>}
+                          {ano.substituto_qtde_pallets != null && (
+                            <p className="text-cobeb-yellow text-xs font-semibold mt-0.5">
+                              {Number(ano.substituto_qtde_pallets).toLocaleString('pt-BR')} plt
+                              {ano.substituto_qtde_caixas != null && ` · ${Number(ano.substituto_qtde_caixas).toLocaleString('pt-BR')} cx`}
+                            </p>
+                          )}
+                          {ano.substituto_data_validade && (
+                            <p className="text-slate-500 text-[10px] mt-0.5">Val: {new Date(ano.substituto_data_validade + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                          )}
+                        </div>
+                      )}
                       {ano.conferente?.nome && (
                         <p className="text-slate-500 text-[10px] mt-1.5">Conferente: {ano.conferente.nome}</p>
                       )}
