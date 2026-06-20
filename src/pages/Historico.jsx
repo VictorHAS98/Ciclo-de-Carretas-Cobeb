@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, X, Factory } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 function formatTs(iso) {
   if (!iso) return '—'
@@ -22,6 +23,9 @@ const selCls  = 'bg-white border border-cobeb-border rounded-xl px-3 py-2 text-c
 const dateCls = 'flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]'
 
 export default function Historico() {
+  const { profile } = useAuth()
+  const isAdminTotal = profile?.acesso_total === true
+
   const [viagens,      setViagens]      = useState([])
   const [unidades,     setUnidades]     = useState([])
   const [todasPlacas,  setTodasPlacas]  = useState([])
@@ -133,6 +137,10 @@ export default function Historico() {
 
   async function confirmarExclusao() {
     setModalExcluir(false)
+    if (!isAdminTotal) {
+      setFeedback({ tipo: 'erro', msg: 'Exclusão permitida somente para o Administrador com acesso total.' })
+      return
+    }
     setExcluindo(true)
     setFeedback(null)
 
@@ -246,8 +254,8 @@ export default function Historico() {
           </div>
         )}
 
-        {/* Barra de seleção */}
-        {!loading && viagensFiltradas.length > 0 && (
+        {/* Barra de seleção — somente admin_total */}
+        {isAdminTotal && !loading && viagensFiltradas.length > 0 && (
           <div className="flex items-center justify-between bg-white rounded-2xl border border-cobeb-border px-4 py-3">
             <button onClick={toggleTodas} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
               {todasSelecionadas
@@ -291,14 +299,16 @@ export default function Historico() {
                         : 'bg-white border-cobeb-border'
                   }`}>
 
-                  {/* Área clicável para seleção */}
-                  <button onClick={() => toggleSelecionada(v.id)} className="w-full text-left p-4">
+                  {/* Área clicável para seleção — checkbox só para admin_total */}
+                  <button onClick={() => isAdminTotal && toggleSelecionada(v.id)} className="w-full text-left p-4">
                     <div className="flex items-start gap-3">
-                      <div className="mt-0.5 shrink-0">
-                        {sel
-                          ? <CheckSquare size={18} className="text-cobeb-yellow" />
-                          : <Square size={18} className="text-slate-500" />}
-                      </div>
+                      {isAdminTotal && (
+                        <div className="mt-0.5 shrink-0">
+                          {sel
+                            ? <CheckSquare size={18} className="text-cobeb-yellow" />
+                            : <Square size={18} className="text-slate-500" />}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0 space-y-2">
                         {/* Unidade + badge + data */}
                         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -379,8 +389,8 @@ export default function Historico() {
         )}
       </div>
 
-      {/* Barra de ação — excluir selecionadas */}
-      {algumaSelecionada && (
+      {/* Barra de ação — excluir selecionadas (somente admin_total) */}
+      {isAdminTotal && algumaSelecionada && (
         <div className="fixed bottom-20 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
           <div className="w-full max-w-2xl bg-[#1E3A5F] border border-cobeb-blue/40 rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl pointer-events-auto">
             <span className="text-cobeb-text text-sm font-semibold">
