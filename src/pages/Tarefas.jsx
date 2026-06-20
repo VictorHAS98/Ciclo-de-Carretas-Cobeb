@@ -232,14 +232,15 @@ export default function Tarefas() {
 
   function abrirModalAnomalia() {
     setAnomaliaForm({
-      pedido_id:         '',
-      descricao:         '',
-      lote:              '',
-      folderKey:         crypto.randomUUID(),
-      fotos:             [null, null, null, null],
-      fotosUrls:         [null, null, null, null],
-      uploading:         [false, false, false, false],
-      erros:             [null, null, null, null],
+      tipo:                'qualidade',
+      pedido_id:           '',
+      descricao:           '',
+      lote:                '',
+      folderKey:           crypto.randomUUID(),
+      fotos:               [null, null, null, null],
+      fotosUrls:           [null, null, null, null],
+      uploading:           [false, false, false, false],
+      erros:               [null, null, null, null],
       sub_codigo:          '',
       sub_descricao:       null,
       sub_erro:            null,
@@ -327,11 +328,12 @@ export default function Tarefas() {
       descricao:               anomForm.descricao.trim(),
       lote:                    anomForm.lote.trim() || null,
       fotos:                   fotosEnviadas,
-      substituto_codigo:        anomForm.sub_codigo.trim() || null,
-      substituto_descricao:     anomForm.sub_descricao || null,
-      substituto_qtde_pallets:  anomForm.sub_qtde_pallets ? Number(anomForm.sub_qtde_pallets) : null,
-      substituto_qtde_caixas:   anomForm.sub_qtde_caixas || null,
-      substituto_data_validade: anomForm.sub_data_validade || null,
+      tipo:                     anomForm.tipo,
+      substituto_codigo:        anomForm.tipo === 'inversao' ? (anomForm.sub_codigo.trim() || null) : null,
+      substituto_descricao:     anomForm.tipo === 'inversao' ? (anomForm.sub_descricao || null) : null,
+      substituto_qtde_pallets:  anomForm.tipo === 'inversao' && anomForm.sub_qtde_pallets ? Number(anomForm.sub_qtde_pallets) : null,
+      substituto_qtde_caixas:   anomForm.tipo === 'inversao' ? (anomForm.sub_qtde_caixas || null) : null,
+      substituto_data_validade: anomForm.tipo === 'inversao' ? (anomForm.sub_data_validade || null) : null,
     }).select('*, pedido:pedidos(descricao, cod_produto)').single()
     setSalvandoAno(false)
     if (!error && data) {
@@ -750,6 +752,12 @@ function ConferenciaView({
                   {anomalias.map(ano => (
                     <div key={ano.id} className="bg-white rounded-2xl border border-orange-500/20 overflow-hidden">
                       <div className="px-4 py-3">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          {ano.tipo === 'inversao'
+                            ? <span className="text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded-full">Inversão de Produto</span>
+                            : <span className="text-[10px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full">Problema de Qualidade</span>
+                          }
+                        </div>
                         {ano.pedido && (
                           <p className="text-slate-500 text-[10px] mb-1 font-mono">
                             {ano.pedido.cod_produto} — {ano.pedido.descricao}
@@ -838,6 +846,34 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
         </div>
 
         <div className="space-y-5">
+          {/* Tipo de anomalia */}
+          <div>
+            <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Tipo de anomalia <span className="text-cobeb-yellow">*</span></label>
+            <div className="flex gap-2">
+              {[
+                { key: 'qualidade', label: 'Problema de Qualidade' },
+                { key: 'inversao', label: 'Inversão de Produto' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onChange(f => ({
+                    ...f, tipo: key,
+                    sub_codigo: '', sub_descricao: null, sub_erro: null,
+                    sub_qtde_pallets: '', sub_qtde_caixas: null, sub_caixas_pallet: null, sub_data_validade: '',
+                  }))}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                    form.tipo === key
+                      ? 'bg-cobeb-navy text-white border-cobeb-navy'
+                      : 'bg-white text-slate-500 border-cobeb-border hover:border-cobeb-blue/50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Product selector */}
           <div>
             <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Produto</label>
@@ -881,8 +917,8 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
             />
           </div>
 
-          {/* Produto substituto */}
-          <div className="bg-[#EBF5FF] rounded-2xl p-4 space-y-3 border border-cobeb-border">
+          {/* Produto substituto — só para inversão */}
+          {form.tipo === 'inversao' && <div className="bg-[#EBF5FF] rounded-2xl p-4 space-y-3 border border-cobeb-border">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-cobeb-navy">Produto recebido no lugar</p>
 
             {/* Código */}
@@ -949,7 +985,7 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Photos */}
           <div>
