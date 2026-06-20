@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { LogOut, Clock, CheckCircle, Truck, RefreshCw } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -19,6 +19,10 @@ function formatTs(iso) {
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function isoToday() {
+  return new Date().toISOString().split('T')[0]
+}
+
 function ElapsedTimer({ from }) {
   const [elapsed, setElapsed] = useState('')
   useEffect(() => {
@@ -32,12 +36,22 @@ function ElapsedTimer({ from }) {
   return <span>{elapsed}</span>
 }
 
+const STATUS_TABS = [
+  { key: 'todos',          label: 'Todos'          },
+  { key: 'aguardando',     label: 'Aguardando'     },
+  { key: 'em_atendimento', label: 'Em Atendimento' },
+  { key: 'concluido',      label: 'Concluídos'     },
+]
+
 export default function PortariaPage() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
+
   const [atendimentos, setAtendimentos] = useState([])
   const [loading,      setLoading]      = useState(true)
   const [registrando,  setRegistrando]  = useState(null)
+  const [filtroStatus, setFiltroStatus] = useState('todos')
+  const [filtroData,   setFiltroData]   = useState(isoToday())
 
   const carregar = useCallback(async () => {
     if (!profile?.unidade_id) return
@@ -46,6 +60,7 @@ export default function PortariaPage() {
       .from('portaria_atendimentos')
       .select('*')
       .eq('unidade_id', profile.unidade_id)
+      .is('excluido_em', null)
       .order('created_at', { ascending: false })
     setAtendimentos(data ?? [])
     setLoading(false)
@@ -78,10 +93,21 @@ export default function PortariaPage() {
     setRegistrando(null)
   }
 
-  const aguardando    = atendimentos.filter(a => a.status === 'aguardando')
-  const emAtendimento = atendimentos.filter(a => a.status === 'em_atendimento')
-  const concluidos    = atendimentos.filter(a => a.status === 'concluido')
-  const semAtividade  = aguardando.length === 0 && emAtendimento.length === 0 && concluidos.length === 0
+  const filtrados = useMemo(() => {
+    return atendimentos.filter(a => {
+      if (filtroStatus !== 'todos' && a.status !== filtroStatus) return false
+      if (filtroData) {
+        const dia = (a.created_at ?? '').slice(0, 10)
+        if (dia !== filtroData) return false
+      }
+      return true
+    })
+  }, [atendimentos, filtroStatus, filtroData])
+
+  const aguardando    = filtrados.filter(a => a.status === 'aguardando')
+  const emAtendimento = filtrados.filter(a => a.status === 'em_atendimento')
+  const concluidos    = filtrados.filter(a => a.status === 'concluido')
+  const semAtividade  = filtrados.length === 0
 
   return (
     <div className="min-h-screen bg-[#EBF5FF] flex flex-col">
@@ -116,7 +142,42 @@ export default function PortariaPage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 pt-5 pb-8 max-w-lg mx-auto w-full space-y-5">
+      {/* Filtros */}
+      <div className="bg-white border-b border-cobeb-border px-4 py-3 space-y-3 shrink-0">
+        {/* Status pills */}
+        <div className="flex gap-2 overflow-x-auto pb-0.5">
+          {STATUS_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setFiltroStatus(tab.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                filtroStatus === tab.key
+                  ? 'bg-cobeb-navy border-orange-500 text-white'
+                  : 'bg-transparent border-cobeb-border text-slate-500 hover:border-cobeb-blue/50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Data */}
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={filtroData}
+            onChange={e => setFiltroData(e.target.value)}
+            className="flex-1 bg-[#EBF5FF] border border-cobeb-border rounded-xl px-3 py-1.5 text-cobeb-text text-xs focus:outline-none focus:border-cobeb-blue [color-scheme:light]"
+          />
+          {filtroData && (
+            <button onClick={() => setFiltroData('')} className="text-slate-500 hover:text-cobeb-yellow transition-colors shrink-0">
+              <X size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-8 max-w-lg mx-auto w-full space-y-5">
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -131,19 +192,14 @@ export default function PortariaPage() {
                 <div className="space-y-3">
                   {emAtendimento.map(a => (
                     <div key={a.id} className="bg-white rounded-2xl border-2 border-cobeb-blue p-4">
-                      {/* Veículo + NF */}
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <Truck size={16} className="text-cobeb-yellow shrink-0" />
                           <span className="text-cobeb-text font-bold text-sm">{a.placa_cavalo ?? '—'}</span>
-                          {a.placa_carreta && (
-                            <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>
-                          )}
+                          {a.placa_carreta && <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>}
                         </div>
                         <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>
                       </div>
-
-                      {/* Entrada + timer */}
                       <div className="flex items-center gap-3 mb-4">
                         <span className="text-slate-500 text-xs">Entrada: {formatTs(a.dt_entrada)}</span>
                         <div className="flex items-center gap-1 text-cobeb-yellow font-mono font-bold text-lg">
@@ -151,7 +207,6 @@ export default function PortariaPage() {
                           <ElapsedTimer from={a.dt_entrada} />
                         </div>
                       </div>
-
                       <button
                         onClick={() => registrarSaida(a)}
                         disabled={registrando === a.id}
@@ -167,7 +222,7 @@ export default function PortariaPage() {
               </section>
             )}
 
-            {/* Aguardando entrada */}
+            {/* Aguardando */}
             {aguardando.length > 0 && (
               <section>
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">Aguardando Entrada</p>
@@ -178,13 +233,10 @@ export default function PortariaPage() {
                         <div className="flex items-center gap-2">
                           <Truck size={15} className="text-slate-500 shrink-0" />
                           <span className="text-cobeb-text font-semibold text-sm">{a.placa_cavalo ?? '—'}</span>
-                          {a.placa_carreta && (
-                            <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>
-                          )}
+                          {a.placa_carreta && <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>}
                         </div>
                         <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>
                       </div>
-
                       <button
                         onClick={() => registrarEntrada(a)}
                         disabled={registrando === a.id}
@@ -200,14 +252,14 @@ export default function PortariaPage() {
               </section>
             )}
 
-            {/* Empty state */}
+            {/* Empty */}
             {semAtividade && (
               <div className="text-center py-20">
                 <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
                   <Truck size={24} className="text-cobeb-border" />
                 </div>
-                <p className="text-slate-500 text-sm font-medium">Nenhum veículo aguardando</p>
-                <p className="text-cobeb-border text-xs mt-1">Os atendimentos aparecem quando o motorista registra a chegada na revenda</p>
+                <p className="text-slate-500 text-sm font-medium">Nenhum atendimento encontrado</p>
+                <p className="text-cobeb-border text-xs mt-1">Ajuste os filtros ou aguarde novos registros</p>
               </div>
             )}
 
@@ -224,16 +276,10 @@ export default function PortariaPage() {
                           <div className="flex items-center gap-2 min-w-0">
                             <CheckCircle size={14} className="text-green-400 shrink-0" />
                             <span className="text-cobeb-text text-sm font-semibold font-mono">{a.placa_cavalo ?? '—'}</span>
-                            {a.placa_carreta && (
-                              <span className="text-slate-500 text-xs font-mono truncate">/ {a.placa_carreta}</span>
-                            )}
+                            {a.placa_carreta && <span className="text-slate-500 text-xs font-mono truncate">/ {a.placa_carreta}</span>}
                             <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>
                           </div>
-                          {tma && (
-                            <span className="text-cobeb-yellow font-mono text-sm font-bold shrink-0 ml-2">
-                              {tma}
-                            </span>
-                          )}
+                          {tma && <span className="text-cobeb-yellow font-mono text-sm font-bold shrink-0 ml-2">{tma}</span>}
                         </div>
                         <div className="flex items-center gap-4 mt-1.5 text-[10px] text-slate-500">
                           <span>Entrada: {formatTs(a.dt_entrada)}</span>
