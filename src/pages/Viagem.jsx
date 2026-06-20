@@ -244,14 +244,23 @@ export default function Viagem() {
 
     if (etapa.requireNF) {
       const tarefa = { viagem_id: viagemAtiva.id, unidade_id: viagemAtiva.unidade_descarga_id, numero_nf: nf }
+      const portariaAtend = {
+        viagem_id:     viagemAtiva.id,
+        unidade_id:    viagemAtiva.unidade_descarga_id,
+        numero_nf:     nf,
+        placa_cavalo:  viagemAtiva.cavalo?.placa  ?? null,
+        placa_carreta: viagemAtiva.carreta?.placa ?? null,
+      }
       if (isOnline) {
         const { error: tarefaErr } = await supabase.from('tarefas').insert(tarefa)
         if (tarefaErr) {
           console.error('Erro ao criar tarefa:', tarefaErr)
           alert('Aviso: a tarefa de conferência não foi gerada (' + tarefaErr.message + '). Contate o administrador.')
         }
+        await supabase.from('portaria_atendimentos').insert(portariaAtend)
       } else {
         saveOfflineAction({ type: 'INSERT_TAREFA', tarefa })
+        saveOfflineAction({ type: 'INSERT_PORTARIA', portariaAtend })
       }
     }
 
@@ -292,6 +301,8 @@ export default function Viagem() {
           await supabase.from('viagens').update(action.updates).eq('id', action.viagem_id)
         else if (action.type === 'INSERT_TAREFA')
           await supabase.from('tarefas').insert(action.tarefa)
+        else if (action.type === 'INSERT_PORTARIA')
+          await supabase.from('portaria_atendimentos').insert(action.portariaAtend)
       }
       clearOfflineQueue(); setPendingSync(false)
     } finally { setSyncing(false) }
