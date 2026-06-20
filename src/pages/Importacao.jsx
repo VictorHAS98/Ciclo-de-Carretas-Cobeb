@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Upload, FileSpreadsheet, Trash2, RefreshCw,
-  AlertCircle, CheckCircle2, X, Database, AlertTriangle,
+  AlertCircle, CheckCircle2, X, Database, AlertTriangle, Package,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
-const FILE_PATTERN = /^BASE_(\d{2})-(\d{2})-(\d{4})\.xlsx$/i
+const FILE_PATTERN      = /^BASE_(\d{2})-(\d{2})-(\d{4})\.xlsx$/i
+const FILE_PATTERN_PROD = /^\d{2}\.\d{2}\.xlsx$/i
 
 function excelSerial(n) {
   if (!n) return null
@@ -55,8 +56,10 @@ function ptTs(iso) {
 
 export default function Importacao() {
   const { profile } = useAuth()
-  const fileRef = useRef(null)
+  const fileRef     = useRef(null)
+  const fileRefProd = useRef(null)
 
+  // BASE Ambev
   const [bases,        setBases]        = useState([])
   const [unidades,     setUnidades]     = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -68,13 +71,21 @@ export default function Importacao() {
   const [confirmarDel, setConfirmarDel] = useState(null)
   const [excluindo,    setExcluindo]    = useState(false)
 
+  // Tabela de Produtos
+  const [basesProd,       setBasesProd]       = useState([])
+  const [pendingFileProd, setPendingFileProd] = useState(null)
+  const [fileErrorProd,   setFileErrorProd]   = useState('')
+  const [importingProd,   setImportingProd]   = useState(false)
+  const [importResultProd,setImportResultProd]= useState(null)
+
   useEffect(() => { carregar() }, [])
 
   async function carregar() {
     setLoading(true)
-    const [{ data: peds }, { data: unis }] = await Promise.all([
+    const [{ data: peds }, { data: unis }, { data: prods }] = await Promise.all([
       supabase.from('pedidos').select('arquivo_origem, data_puxada, viagem_id, importado_em'),
       supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
+      supabase.from('produtos_catalogo').select('arquivo_origem, importado_em'),
     ])
 
     const map = {}
@@ -98,6 +109,19 @@ export default function Importacao() {
 
     setBases(Object.values(map).sort((a, b) => (b.data_puxada ?? '').localeCompare(a.data_puxada ?? '')))
     setUnidades(unis ?? [])
+
+    // Agrupa catálogos de produtos por arquivo_origem
+    const prodMap = {}
+    ;(prods ?? []).forEach(p => {
+      if (!prodMap[p.arquivo_origem]) {
+        prodMap[p.arquivo_origem] = { arquivo_origem: p.arquivo_origem, total: 0, importado_em: p.importado_em }
+      }
+      prodMap[p.arquivo_origem].total++
+      if ((p.importado_em ?? '') > (prodMap[p.arquivo_origem].importado_em ?? ''))
+        prodMap[p.arquivo_origem].importado_em = p.importado_em
+    })
+    setBasesProd(Object.values(prodMap).sort((a, b) => (b.arquivo_origem ?? '').localeCompare(a.arquivo_origem ?? '')))
+
     setLoading(false)
   }
 
@@ -260,6 +284,79 @@ export default function Importacao() {
       setImportResult({ ok: false, msg: err.message || 'Erro ao importar.' })
     } finally {
       setImporting(false)
+    }
+  }
+
+  // ── tabela de produtos ────────────────────────────────────────────────────────
+
+  function handleFileChangeProd(e) {
+    const file = e.target.files?.[0]
+    if (fileRefProd.current) fileRefProd.current.value = ''
+    setFileErrorProd(''); setImportResultProd(null); setPendingFileProd(null)
+    if (!file) return
+    if (!FILE_PATTERN_PROD.test(file.name)) {
+      setFileErrorProd('Nome inválido. Use o padrão DD.MM.xlsx (ex: 01.11.xlsx)')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })
+        const dataRows = rows.slice(1).filter(r => r[0])
+        if (!dataRows.length) { setFileErrorProd('Arquivo sem dados válidos.'); return }
+        const arqOrigem = file.name.replace(/\.xlsx$/i, '')
+        setPendingFileProd({ name: file.name, arqOrigem, data: dataRows, count: dataRows.length })
+      } catch {
+        setFileErrorProd('Erro ao ler o arquivo.')
+      }
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  async function handleImportProd() {
+    if (!pendingFileProd) return
+    setImportingProd(true); setImportResultProd(null)
+    try {
+      const records = pendingFileProd.data.map(r => ({
+        codigo:             String(r[0] ?? '').trim(),
+        descricao:          String(r[1] ?? '').trim(),
+        tipo_marca:         String(r[4] ?? '').trim() || null,
+        linha_marca:        String(r[5] ?? '').trim() || null,
+        embalagem:          String(r[6] ?? '').trim() || null,
+        marca:              String(r[7] ?? '').trim() || null,
+        peso_bruto:         parseFloat(r[12]) || null,
+        fator:              parseFloat(r[13]) || null,
+        grupo:              String(r[17] ?? '').trim() || null,
+        ean:                String(r[19] ?? '').trim() || null,
+        caixas_pallet:      parseFloat(r[21]) || null,
+        nr_fator_conversao: parseFloat(r[22]) || null,
+        codigo_sap:         String(r[38] ?? '').trim() || null,
+        ncm:                String(r[40] ?? '').trim() || null,
+        subtipo:            String(r[47] ?? '').trim() || null,
+        arquivo_origem:     pendingFileProd.arqOrigem,
+        importado_por:      profile?.id,
+      })).filter(r => r.codigo)
+
+      let inseridos = 0, atualizados = 0
+      for (const batch of chunk(records, 500)) {
+        const { data, error } = await supabase
+          .from('produtos_catalogo')
+          .upsert(batch, { onConflict: 'codigo', ignoreDuplicates: false })
+          .select('codigo')
+        if (error) throw error
+        // Supabase upsert não distingue insert/update facilmente; contamos tudo
+        inseridos += batch.length
+      }
+
+      setImportResultProd({ ok: true, total: records.length })
+      setPendingFileProd(null)
+      await carregar()
+    } catch (err) {
+      setImportResultProd({ ok: false, msg: err.message || 'Erro ao importar.' })
+    } finally {
+      setImportingProd(false)
     }
   }
 
@@ -434,6 +531,96 @@ export default function Importacao() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Seção: Tabela de Produtos ── */}
+      <div className="max-w-lg mx-auto px-4 pb-8 space-y-5">
+
+        {/* Upload produtos */}
+        <div className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-cobeb-border">
+            <Package size={16} className="text-cobeb-yellow" />
+            <span className="text-cobeb-text text-sm font-semibold">Importar Tabela de Produtos</span>
+          </div>
+          <div className="p-4 space-y-3">
+            <input ref={fileRefProd} type="file" accept=".xlsx" onChange={handleFileChangeProd} className="hidden" />
+
+            {!pendingFileProd ? (
+              <button
+                onClick={() => fileRefProd.current?.click()}
+                className="w-full border-2 border-dashed border-cobeb-border hover:border-orange-500/50 rounded-xl py-6 flex flex-col items-center gap-2 transition-colors group"
+              >
+                <Upload size={18} className="text-slate-500 group-hover:text-cobeb-yellow transition-colors" />
+                <span className="text-slate-500 text-sm">Selecionar tabela de produtos...</span>
+                <span className="text-slate-600 text-xs">Padrão: DD.MM.xlsx (ex: 01.11.xlsx)</span>
+              </button>
+            ) : (
+              <div className="bg-[#EBF5FF] rounded-xl p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Package size={16} className="text-cobeb-yellow shrink-0" />
+                  <div>
+                    <p className="text-cobeb-text text-sm font-medium">{pendingFileProd.name}</p>
+                    <p className="text-slate-500 text-xs">{pendingFileProd.count.toLocaleString('pt-BR')} produtos</p>
+                  </div>
+                </div>
+                <button onClick={() => { setPendingFileProd(null); setImportResultProd(null) }} className="text-slate-500 hover:text-slate-400">
+                  <X size={15} />
+                </button>
+              </div>
+            )}
+
+            {fileErrorProd && (
+              <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 rounded-xl px-4 py-3">
+                <AlertCircle size={13} className="shrink-0" />{fileErrorProd}
+              </div>
+            )}
+
+            {importResultProd && (
+              <div className={`rounded-xl px-4 py-3 text-xs ${importResultProd.ok ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                {importResultProd.ok ? (
+                  <div className="flex items-center gap-1.5 text-green-400 font-semibold">
+                    <CheckCircle2 size={13} />
+                    {importResultProd.total.toLocaleString('pt-BR')} produtos importados/atualizados com sucesso
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-400">
+                    <AlertCircle size={13} className="shrink-0" />{importResultProd.msg}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {pendingFileProd && (
+              <button
+                onClick={handleImportProd}
+                disabled={importingProd}
+                className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-sm font-semibold rounded-xl py-3 transition-colors flex items-center justify-center gap-2"
+              >
+                {importingProd
+                  ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Importando {pendingFileProd.count.toLocaleString('pt-BR')} produtos...</>
+                  : <><Upload size={15} />Importar {pendingFileProd.count.toLocaleString('pt-BR')} produtos</>}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Lista de catálogos importados */}
+        {basesProd.length > 0 && (
+          <div>
+            <p className="text-cobeb-text text-sm font-semibold mb-3">{basesProd.length} catálogo(s) importado(s)</p>
+            <div className="space-y-2">
+              {basesProd.map(b => (
+                <div key={b.arquivo_origem} className="bg-white rounded-2xl border border-cobeb-border px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-cobeb-text text-sm font-semibold font-mono">{b.arquivo_origem}</p>
+                    <p className="text-slate-500 text-xs mt-0.5">{b.total.toLocaleString('pt-BR')} produtos · Importado em: {ptTs(b.importado_em)}</p>
+                  </div>
+                  <Package size={16} className="text-cobeb-border shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal confirmar exclusão */}
