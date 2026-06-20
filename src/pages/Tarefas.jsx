@@ -240,13 +240,14 @@ export default function Tarefas() {
       fotosUrls:         [null, null, null, null],
       uploading:         [false, false, false, false],
       erros:             [null, null, null, null],
-      sub_codigo:        '',
-      sub_descricao:     null,
-      sub_erro:          null,
-      sub_buscando:      false,
-      sub_qtde_pallets:  '',
-      sub_qtde_caixas:   null,
-      sub_caixas_pallet: null,
+      sub_codigo:          '',
+      sub_descricao:       null,
+      sub_erro:            null,
+      sub_buscando:        false,
+      sub_qtde_pallets:    '',
+      sub_qtde_caixas:     null,
+      sub_caixas_pallet:   null,
+      sub_data_validade:   '',
     })
     setShowModal(true)
   }
@@ -326,10 +327,11 @@ export default function Tarefas() {
       descricao:               anomForm.descricao.trim(),
       lote:                    anomForm.lote.trim() || null,
       fotos:                   fotosEnviadas,
-      substituto_codigo:       anomForm.sub_codigo.trim() || null,
-      substituto_descricao:    anomForm.sub_descricao || null,
-      substituto_qtde_pallets: anomForm.sub_qtde_pallets ? Number(anomForm.sub_qtde_pallets) : null,
-      substituto_qtde_caixas:  anomForm.sub_qtde_caixas || null,
+      substituto_codigo:        anomForm.sub_codigo.trim() || null,
+      substituto_descricao:     anomForm.sub_descricao || null,
+      substituto_qtde_pallets:  anomForm.sub_qtde_pallets ? Number(anomForm.sub_qtde_pallets) : null,
+      substituto_qtde_caixas:   anomForm.sub_qtde_caixas || null,
+      substituto_data_validade: anomForm.sub_data_validade || null,
     }).select('*, pedido:pedidos(descricao, cod_produto)').single()
     setSalvandoAno(false)
     if (!error && data) {
@@ -765,6 +767,9 @@ function ConferenciaView({
                                 {ano.substituto_qtde_caixas != null && ` · ${Number(ano.substituto_qtde_caixas).toLocaleString('pt-BR')} cx`}
                               </p>
                             )}
+                            {ano.substituto_data_validade && (
+                              <p className="text-slate-500 text-[10px] mt-0.5">Val: {new Date(ano.substituto_data_validade + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                            )}
                           </div>
                         )}
                         <p className="text-slate-500 text-[10px] mt-1">{formatTs(ano.created_at)}</p>
@@ -909,28 +914,39 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
               )}
             </div>
 
-            {/* Quantidade */}
+            {/* Quantidade + Data validade */}
             {form.sub_descricao && (
-              <div>
-                <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-1.5">Quantidade recebida (paletes)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  value={form.sub_qtde_pallets}
-                  onChange={e => {
-                    const v = e.target.value
-                    const cx = v && form.sub_caixas_pallet
-                      ? Math.round(Number(v) * Number(form.sub_caixas_pallet))
-                      : null
-                    onChange(f => ({ ...f, sub_qtde_pallets: v, sub_qtde_caixas: cx }))
-                  }}
-                  className="w-32 bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors text-right"
-                />
-                {form.sub_qtde_caixas != null && (
-                  <p className="text-slate-500 text-xs mt-1">= {form.sub_qtde_caixas.toLocaleString('pt-BR')} cx</p>
-                )}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-1.5">Quantidade recebida (paletes)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={form.sub_qtde_pallets}
+                    onChange={e => {
+                      const v = e.target.value
+                      const cx = v && form.sub_caixas_pallet
+                        ? Math.round(Number(v) * Number(form.sub_caixas_pallet))
+                        : null
+                      onChange(f => ({ ...f, sub_qtde_pallets: v, sub_qtde_caixas: cx }))
+                    }}
+                    className="w-32 bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors text-right"
+                  />
+                  {form.sub_qtde_caixas != null && (
+                    <p className="text-slate-500 text-xs mt-1">= {form.sub_qtde_caixas.toLocaleString('pt-BR')} cx</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-1.5">Data de validade</label>
+                  <input
+                    type="date"
+                    value={form.sub_data_validade}
+                    onChange={e => onChange(f => ({ ...f, sub_data_validade: e.target.value }))}
+                    className="bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors [color-scheme:light]"
+                  />
+                </div>
               </div>
             )}
           </div>
