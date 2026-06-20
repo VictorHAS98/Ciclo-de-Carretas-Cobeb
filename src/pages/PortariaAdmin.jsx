@@ -49,8 +49,13 @@ export default function PortariaAdmin() {
 
   useEffect(() => { carregar() }, [])
 
-  async function carregar() {
-    setLoading(true)
+  useEffect(() => {
+    const timer = setInterval(() => carregar(true), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
+  async function carregar(silent = false) {
+    if (!silent) setLoading(true)
     const [{ data: atends }, { data: unis }] = await Promise.all([
       supabase
         .from('portaria_atendimentos')
@@ -60,7 +65,7 @@ export default function PortariaAdmin() {
     ])
     setAtendimentos(atends ?? [])
     setUnidades(unis ?? [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   const filtrados = useMemo(() => {

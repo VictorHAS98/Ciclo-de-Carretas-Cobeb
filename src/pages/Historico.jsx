@@ -43,9 +43,14 @@ export default function Historico() {
 
   useEffect(() => { carregar() }, [])
 
-  async function carregar() {
-    setLoading(true)
-    setSelecionadas(new Set())
+  useEffect(() => {
+    const timer = setInterval(() => carregar(true), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
+  async function carregar(silent = false) {
+    if (!silent) setLoading(true)
+    if (!silent) setSelecionadas(new Set())
 
     const [{ data: v }, { data: u }, { data: cavalos }] = await Promise.all([
       supabase
@@ -97,7 +102,7 @@ export default function Historico() {
     setViagens(viagensComPedidos)
     setUnidades(u ?? [])
     setTodasPlacas(placas)
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   const viagensFiltradas = useMemo(() => {

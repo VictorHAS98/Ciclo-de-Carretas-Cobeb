@@ -33,8 +33,13 @@ export default function Anomalias() {
 
   useEffect(() => { load() }, [])
 
-  async function load() {
-    setLoading(true)
+  useEffect(() => {
+    const timer = setInterval(() => load(true), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
 
     const [{ data: anos }, { data: uns }, { data: cavalos }] = await Promise.all([
       supabase
@@ -72,7 +77,7 @@ export default function Anomalias() {
     })))
     setUnidades(uns ?? [])
     setTodasPlacas((cavalos ?? []).map(c => c.placa).filter(Boolean))
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   const anomaliasFiltradas = useMemo(() => {

@@ -45,6 +45,11 @@ export default function CheckRecebimento() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    const timer = setInterval(() => load(true), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
   // Aplica data mais recente na primeira carga
   const datas = useMemo(
     () => [...new Set(grupos.map(g => g.data).filter(Boolean))].sort().reverse(),
@@ -54,9 +59,9 @@ export default function CheckRecebimento() {
     if (!filtData && datas.length > 0) setFiltData(datas[0])
   }, [datas])
 
-  async function load() {
-    setLoading(true)
-    setExpanded(new Set())
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
+    if (!silent) setExpanded(new Set())
 
     // 1. Tarefas com conferência iniciada ou concluída
     const { data: tarefas } = await supabase
@@ -68,7 +73,7 @@ export default function CheckRecebimento() {
     const lista = tarefas ?? []
     if (!lista.length) {
       setGrupos([])
-      setLoading(false)
+      if (!silent) setLoading(false)
       return
     }
 
@@ -147,7 +152,7 @@ export default function CheckRecebimento() {
 
     setGrupos(result)
     setUnidades(unis ?? [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   const fabricas = useMemo(

@@ -59,10 +59,15 @@ export default function Tarefas() {
 
   useEffect(() => { loadLista() }, [])
 
+  useEffect(() => {
+    const timer = setInterval(() => loadLista(true), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
   // ─── Lista ──────────────────────────────────────────────────────────────────
 
-  async function loadLista() {
-    setLoading(true)
+  async function loadLista(silent = false) {
+    if (!silent) setLoading(true)
     const { data } = await supabase
       .from('tarefas')
       .select(`*,
@@ -93,7 +98,7 @@ export default function Tarefas() {
     }
 
     setTarefas(lista)
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   // Polling para tarefas pendentes aguardando portaria

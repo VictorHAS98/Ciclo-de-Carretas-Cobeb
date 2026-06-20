@@ -53,9 +53,9 @@ export default function PortariaPage() {
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [filtroData,   setFiltroData]   = useState(isoToday())
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (silent = false) => {
     if (!profile?.unidade_id) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     const { data } = await supabase
       .from('portaria_atendimentos')
       .select('*')
@@ -63,10 +63,15 @@ export default function PortariaPage() {
       .is('excluido_em', null)
       .order('created_at', { ascending: false })
     setAtendimentos(data ?? [])
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [profile?.unidade_id])
 
   useEffect(() => { carregar() }, [carregar])
+
+  useEffect(() => {
+    const timer = setInterval(() => carregar(true), 30000)
+    return () => clearInterval(timer)
+  }, [carregar])
 
   const handleLogout = async () => {
     await signOut()
