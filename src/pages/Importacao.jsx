@@ -72,11 +72,13 @@ export default function Importacao() {
   const [excluindo,    setExcluindo]    = useState(false)
 
   // Tabela de Produtos
-  const [basesProd,       setBasesProd]       = useState([])
-  const [pendingFileProd, setPendingFileProd] = useState(null)
-  const [fileErrorProd,   setFileErrorProd]   = useState('')
-  const [importingProd,   setImportingProd]   = useState(false)
-  const [importResultProd,setImportResultProd]= useState(null)
+  const [basesProd,        setBasesProd]        = useState([])
+  const [pendingFileProd,  setPendingFileProd]  = useState(null)
+  const [fileErrorProd,    setFileErrorProd]    = useState('')
+  const [importingProd,    setImportingProd]    = useState(false)
+  const [importResultProd, setImportResultProd] = useState(null)
+  const [confirmarDelProd, setConfirmarDelProd] = useState(null)
+  const [excluindoProd,    setExcluindoProd]    = useState(false)
 
   useEffect(() => { carregar() }, [])
 
@@ -360,6 +362,15 @@ export default function Importacao() {
     }
   }
 
+  async function excluirBaseProd() {
+    if (!confirmarDelProd) return
+    setExcluindoProd(true)
+    await supabase.from('produtos_catalogo').delete().eq('arquivo_origem', confirmarDelProd.arquivo_origem)
+    setConfirmarDelProd(null)
+    setExcluindoProd(false)
+    await carregar()
+  }
+
   // ── excluir base ─────────────────────────────────────────────────────────────
 
   async function excluirBase() {
@@ -611,11 +622,17 @@ export default function Importacao() {
             <div className="space-y-2">
               {basesProd.map(b => (
                 <div key={b.arquivo_origem} className="bg-white rounded-2xl border border-cobeb-border px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-cobeb-text text-sm font-semibold font-mono">{b.arquivo_origem}</p>
                     <p className="text-slate-500 text-xs mt-0.5">{b.total.toLocaleString('pt-BR')} produtos · Importado em: {ptTs(b.importado_em)}</p>
                   </div>
-                  <Package size={16} className="text-cobeb-border shrink-0" />
+                  <button
+                    onClick={() => setConfirmarDelProd(b)}
+                    title="Excluir catálogo"
+                    className="w-8 h-8 rounded-lg bg-[#EBF5FF] border border-cobeb-border flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/40 transition-colors shrink-0"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -654,6 +671,38 @@ export default function Importacao() {
               <button onClick={excluirBase} disabled={excluindo}
                 className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-4 rounded-2xl text-sm transition-colors">
                 {excluindo ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar exclusão — catálogo de produtos */}
+      {confirmarDelProd && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+          <div className="w-full max-w-lg mx-auto bg-white rounded-t-3xl p-6 space-y-5">
+            <div className="w-10 h-1 bg-[#1E3A5F] rounded-full mx-auto" />
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} className="text-red-400" />
+              </div>
+              <div>
+                <p className="text-cobeb-text font-semibold text-base">Excluir catálogo</p>
+                <p className="text-slate-500 text-sm mt-0.5 font-mono">{confirmarDelProd.arquivo_origem}</p>
+                <p className="text-slate-500 text-sm mt-2">
+                  <span className="text-red-400 font-semibold">{confirmarDelProd.total.toLocaleString('pt-BR')} produto(s)</span> serão excluídos permanentemente.
+                </p>
+                <p className="text-red-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmarDelProd(null)}
+                className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-400 font-semibold py-4 rounded-2xl text-sm">
+                Cancelar
+              </button>
+              <button onClick={excluirBaseProd} disabled={excluindoProd}
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold py-4 rounded-2xl text-sm transition-colors">
+                {excluindoProd ? 'Excluindo...' : 'Excluir'}
               </button>
             </div>
           </div>
