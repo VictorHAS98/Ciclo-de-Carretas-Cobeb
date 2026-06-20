@@ -3,7 +3,7 @@ import {
   Truck, ChevronLeft, ChevronRight, Plus, Trash2,
   CheckCircle, Clock, MapPin, Factory, Home, Search,
   AlertCircle, WifiOff, RefreshCw, LogOut, Package,
-  Lock, AlertTriangle, User,
+  AlertTriangle, User,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -746,22 +746,12 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, onVerificarTarefa, showNF,
         </div>
       </div>
 
-      {/* Banner: aguardando conferência */}
-      {viagem?.status === 'aguardando_conferencia' && (
-        <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-2xl px-4 py-3">
-          <Clock size={14} className="text-blue-400 shrink-0" />
-          <p className="text-blue-400 text-xs">
-            NF entregue — conferência em andamento na revenda. Registre a saída quando o veículo partir.
-          </p>
-        </div>
-      )}
 
       {/* Stages */}
       <div className="space-y-2">
         {ETAPAS.map((etapa, i) => {
           const done    = !!viagem?.[etapa.field]
           const current = !done && i === etapaAtualIdx
-          const bloqueada = current && etapa.closeCycle && tarefaStatus !== 'concluida'
 
           if (done) return (
             <div key={etapa.key} className="bg-white rounded-2xl border border-cobeb-border px-4 py-3 flex items-center gap-3">
@@ -773,28 +763,35 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, onVerificarTarefa, showNF,
             </div>
           )
 
-          if (current && bloqueada) return (
-            <div key={etapa.key} className="bg-white rounded-2xl border border-cobeb-border p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock size={15} className="text-slate-500 shrink-0" />
-                <p className="text-slate-500 font-semibold text-sm">{etapa.label}</p>
-              </div>
-              <div className="bg-[#EBF5FF] rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                <p className="text-slate-500 text-xs">Aguardando conclusão da conferência na revenda</p>
-                <button onClick={onVerificarTarefa}
-                  className="text-cobeb-yellow text-xs font-semibold shrink-0 flex items-center gap-1 hover:text-cobeb-blue transition-colors">
-                  <RefreshCw size={12} />Verificar
-                </button>
-              </div>
-            </div>
-          )
-
           if (current) return (
             <div key={etapa.key} className="bg-cobeb-navy/10 rounded-2xl border-2 border-cobeb-blue p-4">
               <div className="flex items-center gap-2 mb-4">
                 <etapa.Icon size={16} className="text-cobeb-yellow" />
                 <p className="text-cobeb-yellow font-semibold text-sm uppercase tracking-wide">{etapa.label}</p>
               </div>
+
+              {/* Status da conferência — visível apenas na última etapa */}
+              {etapa.closeCycle && (
+                <div className={`flex items-center gap-2 rounded-xl px-3 py-2 mb-4 ${
+                  tarefaStatus === 'concluida'
+                    ? 'bg-green-500/10 border border-green-500/30'
+                    : 'bg-blue-500/10 border border-blue-500/30'
+                }`}>
+                  {tarefaStatus === 'concluida'
+                    ? <CheckCircle size={13} className="text-green-400 shrink-0" />
+                    : <Clock size={13} className="text-blue-400 shrink-0" />}
+                  <p className={`text-xs flex-1 ${tarefaStatus === 'concluida' ? 'text-green-400' : 'text-blue-400'}`}>
+                    {tarefaStatus === 'concluida' ? 'Conferência concluída' : 'Conferência em andamento'}
+                  </p>
+                  {tarefaStatus !== 'concluida' && (
+                    <button onClick={onVerificarTarefa}
+                      className="text-cobeb-yellow text-xs font-semibold flex items-center gap-1 hover:text-cobeb-blue transition-colors shrink-0">
+                      <RefreshCw size={11} />Verificar
+                    </button>
+                  )}
+                </div>
+              )}
+
               <button onClick={() => handleEtapa(etapa)} disabled={registrando}
                 className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-bold py-5 rounded-xl text-base transition-colors flex items-center justify-center gap-3">
                 {registrando
