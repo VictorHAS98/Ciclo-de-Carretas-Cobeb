@@ -36,6 +36,7 @@ const STATUS_TABS = [
 
 export default function PortariaAdmin() {
   const { profile } = useAuth()
+  const isAdminTotal = profile?.acesso_total === true
 
   const [atendimentos,  setAtendimentos]  = useState([])
   const [unidades,      setUnidades]      = useState([])
@@ -204,8 +205,8 @@ export default function PortariaAdmin() {
                       )}
                     </div>
 
-                    {/* Botão excluir (só para não excluídos) */}
-                    {!excluido && (
+                    {/* Botão excluir (só admin_total e não excluídos) */}
+                    {isAdminTotal && !excluido && (
                       <button
                         onClick={() => setConfirmarDel(a)}
                         className="w-8 h-8 rounded-lg bg-[#EBF5FF] border border-cobeb-border flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/40 transition-colors shrink-0"
