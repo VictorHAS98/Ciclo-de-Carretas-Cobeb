@@ -221,7 +221,10 @@ export default function Importacao() {
         if (error) throw error
       }
 
-      const upsertRows = toUpdate.map(({ id, payload }) => ({ id, ...payload }))
+      // Deduplica por id antes do upsert (arquivo pode ter linhas duplicadas)
+      const upsertById = {}
+      toUpdate.forEach(({ id, payload }) => { upsertById[id] = { id, ...payload } })
+      const upsertRows = Object.values(upsertById)
       for (const batch of chunk(upsertRows, 500)) {
         const { error } = await supabase.from('pedidos').upsert(batch, { onConflict: 'id' })
         if (error) throw error
