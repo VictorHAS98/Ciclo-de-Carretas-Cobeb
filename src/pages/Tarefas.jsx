@@ -41,6 +41,8 @@ export default function Tarefas() {
   const [loading, setLoading]             = useState(true)
   const [filtroStatus, setFiltroStatus]   = useState('')
   const [iniciando, setIniciando]         = useState(null)
+  const [portariaMap, setPortariaMap]     = useState({}) // viagem_id → status portaria
+  const [verificando, setVerificando]     = useState(null)
 
   // conferência
   const [pedidos, setPedidos]             = useState([])
@@ -72,8 +74,61 @@ export default function Tarefas() {
         )
       `)
       .order('created_at', { ascending: false })
-    setTarefas(data ?? [])
+
+    const lista = data ?? []
+
+    // Busca status portaria para tarefas pendentes
+    const viagemIds = lista
+      .filter(t => t.status === 'pendente' && t.viagem?.id)
+      .map(t => t.viagem.id)
+    if (viagemIds.length) {
+      const { data: ports } = await supabase
+        .from('portaria_atendimentos')
+        .select('viagem_id, status')
+        .in('viagem_id', viagemIds)
+        .is('excluido_em', null)
+      const map = {}
+      ;(ports ?? []).forEach(p => { map[p.viagem_id] = p.status })
+      setPortariaMap(map)
+    }
+
+    setTarefas(lista)
     setLoading(false)
+  }
+
+  // Polling para tarefas pendentes aguardando portaria
+  useEffect(() => {
+    const bloqueadas = tarefas.filter(t =>
+      t.status === 'pendente' && t.viagem?.id && portariaMap[t.viagem.id] === 'aguardando'
+    )
+    if (!bloqueadas.length) return
+    const ids = bloqueadas.map(t => t.viagem.id)
+    const timer = setInterval(async () => {
+      const { data: ports } = await supabase
+        .from('portaria_atendimentos')
+        .select('viagem_id, status')
+        .in('viagem_id', ids)
+        .is('excluido_em', null)
+      setPortariaMap(prev => {
+        const next = { ...prev }
+        ;(ports ?? []).forEach(p => { next[p.viagem_id] = p.status })
+        return next
+      })
+    }, 30000)
+    return () => clearInterval(timer)
+  }, [tarefas, portariaMap])
+
+  async function verificarPortaria(tarefa) {
+    if (!tarefa.viagem?.id) return
+    setVerificando(tarefa.id)
+    const { data } = await supabase
+      .from('portaria_atendimentos')
+      .select('viagem_id, status')
+      .eq('viagem_id', tarefa.viagem.id)
+      .is('excluido_em', null)
+      .maybeSingle()
+    if (data) setPortariaMap(prev => ({ ...prev, [data.viagem_id]: data.status }))
+    setVerificando(null)
   }
 
   async function iniciarConferencia(tarefa) {
@@ -403,12 +458,30 @@ export default function Tarefas() {
                       </div>
 
                       {tarefa.status === 'pendente' && (
-                        <button onClick={() => iniciarConferencia(tarefa)} disabled={iniciando === tarefa.id}
-                          className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
-                          {iniciando === tarefa.id
-                            ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                            : <><AlertCircle size={13} />Iniciar Conferência</>}
-                        </button>
+                        portariaMap[tarefa.viagem?.id] === 'aguardando' ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-xl px-3 py-2.5">
+                              <Clock size={13} className="text-blue-400 shrink-0" />
+                              <p className="text-blue-400 text-xs flex-1">Aguardando entrada portaria</p>
+                              <button
+                                onClick={() => verificarPortaria(tarefa)}
+                                disabled={verificando === tarefa.id}
+                                className="text-cobeb-yellow text-xs font-semibold flex items-center gap-1 hover:text-cobeb-blue transition-colors shrink-0">
+                                {verificando === tarefa.id
+                                  ? <div className="w-3 h-3 border border-cobeb-yellow/40 border-t-cobeb-yellow rounded-full animate-spin" />
+                                  : <RefreshCw size={11} />}
+                                Verificar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button onClick={() => iniciarConferencia(tarefa)} disabled={iniciando === tarefa.id}
+                            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                            {iniciando === tarefa.id
+                              ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              : <><AlertCircle size={13} />Iniciar Conferência</>}
+                          </button>
+                        )
                       )}
                       {tarefa.status === 'em_andamento' && (
                         <button onClick={() => openConferencia(tarefa)}
