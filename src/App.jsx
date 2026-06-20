@@ -11,11 +11,13 @@ import Tarefas from './pages/Tarefas'
 import Anomalias from './pages/Anomalias'
 import Historico from './pages/Historico'
 import CheckRecebimento from './pages/CheckRecebimento'
+import PortariaPage from './pages/PortariaPage'
 
 const PERFIL_ROTA = {
   admin:      '/dashboard',
   motorista:  '/viagem',
   conferente: '/tarefas',
+  portaria:   '/portaria',
 }
 
 function Spinner() {
@@ -100,6 +102,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <CheckRecebimento />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/portaria"
+        element={
+          <ProtectedRoute allowedRoles={['portaria']}>
+            <PortariaPage />
           </ProtectedRoute>
         }
       />

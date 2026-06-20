@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Truck, Users, ClipboardList, Tractor, Shield } from 'lucide-react'
+import { Truck, Users, ClipboardList, Tractor, Shield, DoorOpen } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import ErrorBoundary from '../components/ErrorBoundary'
 import Motoristas from './cadastros/Motoristas'
 import Conferentes from './cadastros/Conferentes'
+import Portaria from './cadastros/Portaria'
 import Carretas from './cadastros/Carretas'
 import Cavalos from './cadastros/Cavalos'
 import Admins from './cadastros/Admins'
@@ -11,6 +12,7 @@ import Admins from './cadastros/Admins'
 const TABS = [
   { id: 'motoristas',  label: 'Motoristas',  icon: Users         },
   { id: 'conferentes', label: 'Conferentes', icon: ClipboardList },
+  { id: 'portaria',    label: 'Portaria',    icon: DoorOpen      },
   { id: 'carretas',    label: 'Carretas',    icon: Truck         },
   { id: 'cavalos',     label: 'Cavalos',     icon: Tractor       },
   { id: 'admins',      label: 'Admins',      icon: Shield        },
@@ -48,6 +50,7 @@ export default function Cadastros() {
       <ErrorBoundary>
         {abaAtiva === 'motoristas'  && <Motoristas />}
         {abaAtiva === 'conferentes' && <Conferentes />}
+        {abaAtiva === 'portaria'    && <Portaria />}
         {abaAtiva === 'carretas'    && <Carretas />}
         {abaAtiva === 'cavalos'     && <Cavalos />}
         {abaAtiva === 'admins'      && <Admins />}

@@ -5,6 +5,7 @@ const PERFIL_ROTA = {
   admin:      '/dashboard',
   motorista:  '/viagem',
   conferente: '/tarefas',
+  portaria:   '/portaria',
 }
 
 export default function ProtectedRoute({ children, allowedRoles, requireAdminTotal }) {
