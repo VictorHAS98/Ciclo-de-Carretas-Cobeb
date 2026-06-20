@@ -12,6 +12,7 @@ import Anomalias from './pages/Anomalias'
 import Historico from './pages/Historico'
 import CheckRecebimento from './pages/CheckRecebimento'
 import PortariaPage from './pages/PortariaPage'
+import Importacao from './pages/Importacao'
 
 const PERFIL_ROTA = {
   admin:      '/dashboard',
@@ -110,6 +111,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['portaria']}>
             <PortariaPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/importacao"
+        element={
+          <ProtectedRoute allowedRoles={['admin']} requireAdminTotal>
+            <Importacao />
           </ProtectedRoute>
         }
       />

@@ -1,5 +1,5 @@
 ﻿import { useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History, ClipboardCheck, Database } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AdminLayout({ title, children }) {
@@ -20,7 +20,10 @@ export default function AdminLayout({ title, children }) {
     { path: '/check-recebimento', icon: ClipboardCheck,  label: 'Check'     },
     { path: '/anomalias',         icon: AlertTriangle,   label: 'Anomalias' },
     { path: '/historico',         icon: History,         label: 'Histórico' },
-    ...(isAdminTotal ? [{ path: '/cadastros', icon: Users, label: 'Cadastros' }] : []),
+    ...(isAdminTotal ? [
+      { path: '/importacao', icon: Database, label: 'Importar' },
+      { path: '/cadastros',  icon: Users,    label: 'Cadastros' },
+    ] : []),
   ]
 
   return (

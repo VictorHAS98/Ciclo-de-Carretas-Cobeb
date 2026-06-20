@@ -1,48 +1,10 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import {
-  Upload, FileSpreadsheet, ChevronDown, ChevronUp,
-  AlertCircle, CheckCircle2, X, Search, RefreshCw,
-  CheckCircle, AlertOctagon, Clock,
+  ChevronDown, ChevronUp, X, Search, RefreshCw,
+  CheckCircle, Clock, Package,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
 import AdminLayout from '../components/AdminLayout'
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-const FILE_PATTERN = /^BASE_(\d{2})-(\d{2})-(\d{4})\.xlsx$/i
-
-function excelSerial(n) {
-  if (!n) return null
-  if (typeof n === 'number')
-    return new Date(Math.round((n - 25569) * 86400 * 1000)).toISOString().split('T')[0]
-  const d = new Date(n)
-  return isNaN(d) ? null : d.toISOString().split('T')[0]
-}
-
-function arqOrigemToDate(s) {
-  const m = s.match(/^BASE_(\d{2})-(\d{2})-(\d{4})$/i)
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : null
-}
-
-function mapRevenda(revenda, unidades) {
-  if (!revenda) return null
-  const r = revenda.toLowerCase()
-  if (r.includes('lagoa') || r.includes('188300'))
-    return unidades.find(u => u.codigo === 'FILIAL_LP')?.id ?? null
-  if (r.includes('abaet') || r.includes('98450'))
-    return unidades.find(u => u.codigo === 'FILIAL_AB')?.id ?? null
-  if (r.includes('para') || r.includes('77200'))
-    return unidades.find(u => u.codigo === 'MATRIZ')?.id ?? null
-  return null
-}
-
-function chunk(arr, size) {
-  const out = []
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
-  return out
-}
 
 function ptDate(iso) {
   if (!iso) return '—'
@@ -63,20 +25,9 @@ function addDays(isoDate, n) {
 // ── component ─────────────────────────────────────────────────────────────────
 
 export default function Pedidos() {
-  const { profile } = useAuth()
-  const isAdminTotal = profile?.acesso_total === true
-  const fileRef = useRef(null)
-
   const [unidades, setUnidades] = useState([])
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showImport, setShowImport] = useState(false)
-
-  // import state
-  const [pendingFile, setPendingFile] = useState(null)
-  const [fileError, setFileError] = useState('')
-  const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState(null)
 
   // filter state
   const [filtData, setFiltData] = useState('')
@@ -149,183 +100,6 @@ export default function Pedidos() {
     [pedidos]
   )
 
-  // ── file handling ───────────────────────────────────────────────────────────
-
-  function handleFileChange(e) {
-    const file = e.target.files?.[0]
-    if (fileRef.current) fileRef.current.value = ''
-    setFileError(''); setImportResult(null); setPendingFile(null)
-    if (!file) return
-    if (!FILE_PATTERN.test(file.name)) {
-      setFileError('Nome inválido. Use o padrão BASE_DD-MM-YYYY.xlsx')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = ev => {
-      try {
-        const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true })
-        const dataRows = rows.slice(1).filter(r => r[3])
-        if (!dataRows.length) { setFileError('Arquivo sem dados válidos.'); return }
-        const arqOrigem = file.name.replace(/\.xlsx$/i, '')
-        setPendingFile({ name: file.name, arqOrigem, data: dataRows, count: dataRows.length })
-      } catch {
-        setFileError('Erro ao ler o arquivo.')
-      }
-    }
-    reader.readAsArrayBuffer(file)
-  }
-
-  async function handleImport() {
-    if (!pendingFile) return
-    setImporting(true); setImportResult(null)
-
-    const importedDate = arqOrigemToDate(pendingFile.arqOrigem)
-
-    try {
-      // 1. Parseia os registros do arquivo
-      const newRecords = pendingFile.data.map(r => ({
-        data_puxada:    excelSerial(r[0]),
-        revenda:        String(r[1] || ''),
-        unidade_id:     mapRevenda(String(r[1] || ''), unidades),
-        fabrica:        String(r[2] || ''),
-        numero_pedido:  Number(r[3]),
-        placa:          r[4] ? String(r[4]).toUpperCase().trim() : null,
-        cod_produto:    String(r[5] || ''),
-        descricao:      String(r[6] || ''),
-        embalagem:      r[7] ? String(r[7]) : null,
-        curva:          r[8] ? String(r[8]).trim() : null,
-        qtde_pallets:   Number(r[9]) || 0,
-        qtde_skus:      Number(r[10]) || 0,
-        arquivo_origem: pendingFile.arqOrigem,
-        importado_por:  profile?.id,
-      }))
-
-      // 2. Busca pedidos existentes com os mesmos numero_pedido (em chunks para evitar URL longa)
-      const numeroPedidos = [...new Set(newRecords.map(r => r.numero_pedido))]
-      let existingPedidos = []
-      for (const batch of chunk(numeroPedidos, 200)) {
-        const { data, error } = await supabase
-          .from('pedidos')
-          .select('id, numero_pedido, cod_produto, viagem_id, arquivo_origem')
-          .in('numero_pedido', batch)
-        if (error) throw error
-        existingPedidos = existingPedidos.concat(data ?? [])
-      }
-
-      // 3. Busca pedidos do mesmo arquivo_origem que não estão na nova base (para limpeza)
-      const { data: oldSameBase, error: oldErr } = await supabase
-        .from('pedidos')
-        .select('id, numero_pedido, cod_produto, viagem_id')
-        .eq('arquivo_origem', pendingFile.arqOrigem)
-      if (oldErr) throw oldErr
-
-      // 4. Busca status das viagens envolvidas
-      const allViagemIds = [...new Set([
-        ...(existingPedidos ?? []).map(p => p.viagem_id),
-        ...(oldSameBase     ?? []).map(p => p.viagem_id),
-      ].filter(Boolean))]
-
-      const viagemStatusMap = {}
-      if (allViagemIds.length) {
-        for (const batch of chunk(allViagemIds, 200)) {
-          const { data } = await supabase.from('viagens').select('id, status').in('id', batch)
-          ;(data ?? []).forEach(v => { viagemStatusMap[v.id] = v.status })
-        }
-      }
-
-      // 5. Monta lookup: "numero_pedido|cod_produto" → melhor registro existente
-      //    Prioriza o que tem viagem vinculada
-      const existingMap = {}
-      ;(existingPedidos ?? []).forEach(p => {
-        const key = `${p.numero_pedido}|${p.cod_produto}`
-        const prev = existingMap[key]
-        if (!prev || (!prev.viagem_id && p.viagem_id)) existingMap[key] = p
-      })
-
-      // 6. Classifica cada registro da nova base
-      const toInsert = []
-      const toUpdate = [] // { id, payload }
-      let ignoradosCount = 0
-      const viagensAlteradasIds = new Set()
-
-      for (const rec of newRecords) {
-        const key = `${rec.numero_pedido}|${rec.cod_produto}`
-        const ex  = existingMap[key]
-
-        if (!ex) {
-          toInsert.push(rec)
-        } else {
-          const status = ex.viagem_id ? viagemStatusMap[ex.viagem_id] : null
-          if (status === 'concluida') {
-            ignoradosCount++
-          } else if (ex.viagem_id) {
-            // Viagem ativa: atualiza conteúdo, preserva vínculo
-            toUpdate.push({ id: ex.id, payload: { ...rec, viagem_id: ex.viagem_id } })
-            viagensAlteradasIds.add(ex.viagem_id)
-          } else {
-            // Sem viagem: atualização livre
-            toUpdate.push({ id: ex.id, payload: rec })
-          }
-        }
-      }
-
-      // 7. Pedidos do mesmo arquivo_origem que sumiram da nova base e não têm viagem → deletar
-      const newKeys = new Set(newRecords.map(r => `${r.numero_pedido}|${r.cod_produto}`))
-      const toDelete = (oldSameBase ?? [])
-        .filter(p => !newKeys.has(`${p.numero_pedido}|${p.cod_produto}`) && !p.viagem_id)
-        .map(p => p.id)
-
-      // 8. Executa inserções
-      for (const batch of chunk(toInsert, 500)) {
-        const { error } = await supabase.from('pedidos').insert(batch)
-        if (error) throw error
-      }
-
-      // 9. Executa atualizações via upsert por id
-      const upsertRows = toUpdate.map(({ id, payload }) => ({ id, ...payload }))
-      for (const batch of chunk(upsertRows, 500)) {
-        const { error } = await supabase.from('pedidos').upsert(batch, { onConflict: 'id' })
-        if (error) throw error
-      }
-
-      // 10. Deleta pedidos obsoletos sem viagem
-      for (const batch of chunk(toDelete, 500)) {
-        const { error } = await supabase.from('pedidos').delete().in('id', batch)
-        if (error) throw error
-      }
-
-      // 11. Resolve nomes/placas das viagens alteradas para o resumo
-      let viagensAlteradas = []
-      if (viagensAlteradasIds.size) {
-        const { data } = await supabase
-          .from('viagens')
-          .select('id, carreta:carretas(placa), cavalo:cavalos(placa)')
-          .in('id', [...viagensAlteradasIds])
-        viagensAlteradas = (data ?? []).map(v =>
-          [v.carreta?.placa, v.cavalo?.placa].filter(Boolean).join('/') || v.id
-        )
-      }
-
-      setImportResult({
-        ok: true,
-        inseridos:        toInsert.length,
-        atualizados:      toUpdate.length,
-        ignorados:        ignoradosCount,
-        deletados:        toDelete.length,
-        viagensAlteradas,
-      })
-      setPendingFile(null)
-      await loadData()
-      if (importedDate) setFiltData(importedDate)
-    } catch (err) {
-      setImportResult({ ok: false, msg: err.message || 'Erro ao importar.' })
-    } finally {
-      setImporting(false)
-    }
-  }
-
   // ── grouping ────────────────────────────────────────────────────────────────
 
   const agrupados = useMemo(() => {
@@ -387,99 +161,6 @@ export default function Pedidos() {
   return (
     <AdminLayout title="Consulta de Pedidos">
       <div className="max-w-lg mx-auto">
-
-        {/* ── Import toggle (admin_total) ── */}
-        {isAdminTotal && (
-          <div className="px-4 pt-4">
-            <div className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
-              <button
-                onClick={() => { setShowImport(v => !v); setImportResult(null) }}
-                className="w-full flex items-center justify-between px-5 py-3.5"
-              >
-                <div className="flex items-center gap-2.5">
-                  <FileSpreadsheet size={16} className="text-cobeb-yellow" />
-                  <span className="text-cobeb-text text-sm font-semibold">Importar BASE Ambev</span>
-                </div>
-                {showImport ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
-              </button>
-
-              {showImport && (
-                <div className="border-t border-cobeb-border p-4 space-y-3">
-                  <input ref={fileRef} type="file" accept=".xlsx" onChange={handleFileChange} className="hidden" />
-
-                  {!pendingFile ? (
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      className="w-full border-2 border-dashed border-cobeb-border hover:border-orange-500/50 rounded-xl py-6 flex flex-col items-center gap-2 transition-colors group"
-                    >
-                      <Upload size={18} className="text-slate-500 group-hover:text-cobeb-yellow transition-colors" />
-                      <span className="text-slate-500 text-sm">Selecionar arquivo BASE...</span>
-                    </button>
-                  ) : (
-                    <div className="bg-[#EBF5FF] rounded-xl p-3.5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <FileSpreadsheet size={16} className="text-cobeb-yellow shrink-0" />
-                        <div>
-                          <p className="text-cobeb-text text-sm font-medium">{pendingFile.name}</p>
-                          <p className="text-slate-500 text-xs">{pendingFile.count.toLocaleString('pt-BR')} registros</p>
-                        </div>
-                      </div>
-                      <button onClick={() => setPendingFile(null)} className="text-slate-500 hover:text-slate-400">
-                        <X size={15} />
-                      </button>
-                    </div>
-                  )}
-
-                  {fileError && (
-                    <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 rounded-xl px-4 py-3">
-                      <AlertCircle size={13} className="shrink-0" />{fileError}
-                    </div>
-                  )}
-                  {importResult && (
-                    <div className={`rounded-xl px-4 py-3 text-xs ${importResult.ok ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                      {importResult.ok ? (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-1.5 text-green-400 font-semibold mb-2">
-                            <CheckCircle2 size={13} />Importação concluída
-                          </div>
-                          <p className="text-green-400">+ {importResult.inseridos} pedido(s) inserido(s)</p>
-                          <p className="text-cobeb-yellow">↻ {importResult.atualizados} pedido(s) atualizado(s)</p>
-                          {importResult.deletados > 0 && (
-                            <p className="text-slate-400">− {importResult.deletados} removido(s) da base</p>
-                          )}
-                          {importResult.ignorados > 0 && (
-                            <p className="text-slate-500">⊘ {importResult.ignorados} ignorado(s) — viagem finalizada</p>
-                          )}
-                          {importResult.viagensAlteradas?.length > 0 && (
-                            <p className="text-blue-400 mt-1">
-                              ✎ Viagens alteradas: {importResult.viagensAlteradas.join(', ')}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-red-400">
-                          <AlertCircle size={13} className="shrink-0" />{importResult.msg}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {pendingFile && (
-                    <button
-                      onClick={handleImport}
-                      disabled={importing}
-                      className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-sm font-semibold rounded-xl py-3 transition-colors flex items-center justify-center gap-2"
-                    >
-                      {importing
-                        ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Importando...</>
-                        : <><Upload size={15} />Importar {pendingFile.count.toLocaleString('pt-BR')} registros</>}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* ── Date filter ── */}
         <div className="px-4 pt-4">
@@ -569,11 +250,11 @@ export default function Pedidos() {
         ) : agrupados.length === 0 ? (
           <div className="text-center py-20 px-4">
             <div className="w-14 h-14 rounded-2xl bg-white border border-cobeb-border flex items-center justify-center mx-auto mb-4">
-              <FileSpreadsheet size={22} className="text-cobeb-border" />
+              <Package size={22} className="text-cobeb-border" />
             </div>
             <p className="text-slate-500 text-sm font-medium">Nenhum pedido encontrado</p>
             <p className="text-cobeb-border text-xs mt-1">
-              {pedidos.length === 0 ? 'Importe um arquivo BASE para começar' : 'Ajuste os filtros acima'}
+              {pedidos.length === 0 ? 'Acesse a guia Importação para adicionar bases' : 'Ajuste os filtros acima'}
             </p>
           </div>
         ) : (
