@@ -180,8 +180,12 @@ export default function Pedidos() {
   async function handleImport() {
     if (!pendingFile) return
     setImporting(true); setImportResult(null)
+
+    const importedDate = arqOrigemToDate(pendingFile.arqOrigem)
+
     try {
-      const records = pendingFile.data.map(r => ({
+      // 1. Parseia os registros do arquivo
+      const newRecords = pendingFile.data.map(r => ({
         data_puxada:    excelSerial(r[0]),
         revenda:        String(r[1] || ''),
         unidade_id:     mapRevenda(String(r[1] || ''), unidades),
@@ -198,17 +202,120 @@ export default function Pedidos() {
         importado_por:  profile?.id,
       }))
 
-      const { error: delErr } = await supabase
-        .from('pedidos').delete().eq('arquivo_origem', pendingFile.arqOrigem)
-      if (delErr) throw delErr
-
-      for (const batch of chunk(records, 500)) {
-        const { error: insErr } = await supabase.from('pedidos').insert(batch)
-        if (insErr) throw insErr
+      // 2. Busca pedidos existentes com os mesmos numero_pedido (em chunks para evitar URL longa)
+      const numeroPedidos = [...new Set(newRecords.map(r => r.numero_pedido))]
+      let existingPedidos = []
+      for (const batch of chunk(numeroPedidos, 200)) {
+        const { data, error } = await supabase
+          .from('pedidos')
+          .select('id, numero_pedido, cod_produto, viagem_id, arquivo_origem')
+          .in('numero_pedido', batch)
+        if (error) throw error
+        existingPedidos = existingPedidos.concat(data ?? [])
       }
 
-      const importedDate = arqOrigemToDate(pendingFile.arqOrigem)
-      setImportResult({ ok: true, msg: `${records.length.toLocaleString('pt-BR')} registros importados.` })
+      // 3. Busca pedidos do mesmo arquivo_origem que não estão na nova base (para limpeza)
+      const { data: oldSameBase, error: oldErr } = await supabase
+        .from('pedidos')
+        .select('id, numero_pedido, cod_produto, viagem_id')
+        .eq('arquivo_origem', pendingFile.arqOrigem)
+      if (oldErr) throw oldErr
+
+      // 4. Busca status das viagens envolvidas
+      const allViagemIds = [...new Set([
+        ...(existingPedidos ?? []).map(p => p.viagem_id),
+        ...(oldSameBase     ?? []).map(p => p.viagem_id),
+      ].filter(Boolean))]
+
+      const viagemStatusMap = {}
+      if (allViagemIds.length) {
+        for (const batch of chunk(allViagemIds, 200)) {
+          const { data } = await supabase.from('viagens').select('id, status').in('id', batch)
+          ;(data ?? []).forEach(v => { viagemStatusMap[v.id] = v.status })
+        }
+      }
+
+      // 5. Monta lookup: "numero_pedido|cod_produto" → melhor registro existente
+      //    Prioriza o que tem viagem vinculada
+      const existingMap = {}
+      ;(existingPedidos ?? []).forEach(p => {
+        const key = `${p.numero_pedido}|${p.cod_produto}`
+        const prev = existingMap[key]
+        if (!prev || (!prev.viagem_id && p.viagem_id)) existingMap[key] = p
+      })
+
+      // 6. Classifica cada registro da nova base
+      const toInsert = []
+      const toUpdate = [] // { id, payload }
+      let ignoradosCount = 0
+      const viagensAlteradasIds = new Set()
+
+      for (const rec of newRecords) {
+        const key = `${rec.numero_pedido}|${rec.cod_produto}`
+        const ex  = existingMap[key]
+
+        if (!ex) {
+          toInsert.push(rec)
+        } else {
+          const status = ex.viagem_id ? viagemStatusMap[ex.viagem_id] : null
+          if (status === 'concluida') {
+            ignoradosCount++
+          } else if (ex.viagem_id) {
+            // Viagem ativa: atualiza conteúdo, preserva vínculo
+            toUpdate.push({ id: ex.id, payload: { ...rec, viagem_id: ex.viagem_id } })
+            viagensAlteradasIds.add(ex.viagem_id)
+          } else {
+            // Sem viagem: atualização livre
+            toUpdate.push({ id: ex.id, payload: rec })
+          }
+        }
+      }
+
+      // 7. Pedidos do mesmo arquivo_origem que sumiram da nova base e não têm viagem → deletar
+      const newKeys = new Set(newRecords.map(r => `${r.numero_pedido}|${r.cod_produto}`))
+      const toDelete = (oldSameBase ?? [])
+        .filter(p => !newKeys.has(`${p.numero_pedido}|${p.cod_produto}`) && !p.viagem_id)
+        .map(p => p.id)
+
+      // 8. Executa inserções
+      for (const batch of chunk(toInsert, 500)) {
+        const { error } = await supabase.from('pedidos').insert(batch)
+        if (error) throw error
+      }
+
+      // 9. Executa atualizações via upsert por id
+      const upsertRows = toUpdate.map(({ id, payload }) => ({ id, ...payload }))
+      for (const batch of chunk(upsertRows, 500)) {
+        const { error } = await supabase.from('pedidos').upsert(batch, { onConflict: 'id' })
+        if (error) throw error
+      }
+
+      // 10. Deleta pedidos obsoletos sem viagem
+      for (const batch of chunk(toDelete, 500)) {
+        const { error } = await supabase.from('pedidos').delete().in('id', batch)
+        if (error) throw error
+      }
+
+      // 11. Resolve nomes/placas das viagens alteradas para o resumo
+      let viagensAlteradas = []
+      if (viagensAlteradasIds.size) {
+        const { data } = await supabase
+          .from('viagens')
+          .select('id, carreta:carretas(placa), cavalo:cavalos(placa)')
+          .in('id', [...viagensAlteradasIds])
+        viagensAlteradas = (data ?? []).map(v =>
+          [v.carreta?.placa, v.cavalo?.placa].filter(Boolean).join('/') || v.id
+        )
+      }
+
+      setImportResult({
+        ok: true,
+        inseridos:        toInsert.length,
+        atualizados:      toUpdate.length,
+        ignorados:        ignoradosCount,
+        deletados:        toDelete.length,
+        viagensAlteradas,
+      })
       setPendingFile(null)
       await loadData()
       if (importedDate) setFiltData(importedDate)
@@ -329,9 +436,31 @@ export default function Pedidos() {
                     </div>
                   )}
                   {importResult && (
-                    <div className={`flex items-center gap-2 text-xs rounded-xl px-4 py-3 ${importResult.ok ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
-                      {importResult.ok ? <CheckCircle2 size={13} className="shrink-0" /> : <AlertCircle size={13} className="shrink-0" />}
-                      {importResult.msg}
+                    <div className={`rounded-xl px-4 py-3 text-xs ${importResult.ok ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                      {importResult.ok ? (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-green-400 font-semibold mb-2">
+                            <CheckCircle2 size={13} />Importação concluída
+                          </div>
+                          <p className="text-green-400">+ {importResult.inseridos} pedido(s) inserido(s)</p>
+                          <p className="text-cobeb-yellow">↻ {importResult.atualizados} pedido(s) atualizado(s)</p>
+                          {importResult.deletados > 0 && (
+                            <p className="text-slate-400">− {importResult.deletados} removido(s) da base</p>
+                          )}
+                          {importResult.ignorados > 0 && (
+                            <p className="text-slate-500">⊘ {importResult.ignorados} ignorado(s) — viagem finalizada</p>
+                          )}
+                          {importResult.viagensAlteradas?.length > 0 && (
+                            <p className="text-blue-400 mt-1">
+                              ✎ Viagens alteradas: {importResult.viagensAlteradas.join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-400">
+                          <AlertCircle size={13} className="shrink-0" />{importResult.msg}
+                        </div>
+                      )}
                     </div>
                   )}
 
