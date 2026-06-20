@@ -232,16 +232,44 @@ export default function Tarefas() {
 
   function abrirModalAnomalia() {
     setAnomaliaForm({
-      pedido_id: '',
-      descricao: '',
-      lote:      '',
-      folderKey: crypto.randomUUID(),
-      fotos:     [null, null, null, null],
-      fotosUrls: [null, null, null, null],
-      uploading: [false, false, false, false],
-      erros:     [null, null, null, null],
+      pedido_id:         '',
+      descricao:         '',
+      lote:              '',
+      folderKey:         crypto.randomUUID(),
+      fotos:             [null, null, null, null],
+      fotosUrls:         [null, null, null, null],
+      uploading:         [false, false, false, false],
+      erros:             [null, null, null, null],
+      sub_codigo:        '',
+      sub_descricao:     null,
+      sub_erro:          null,
+      sub_buscando:      false,
+      sub_qtde_pallets:  '',
+      sub_qtde_caixas:   null,
+      sub_caixas_pallet: null,
     })
     setShowModal(true)
+  }
+
+  async function buscarSubstituto(codigo) {
+    const cod = codigo.trim()
+    if (!cod) return
+    setAnomaliaForm(f => f ? { ...f, sub_buscando: true, sub_erro: null, sub_descricao: null } : f)
+    const { data } = await supabase
+      .from('produtos_catalogo')
+      .select('codigo, descricao, caixas_pallet')
+      .eq('codigo', cod)
+      .maybeSingle()
+    setAnomaliaForm(f => {
+      if (!f) return f
+      if (data) {
+        const cx = f.sub_qtde_pallets && data.caixas_pallet
+          ? Math.round(Number(f.sub_qtde_pallets) * Number(data.caixas_pallet))
+          : null
+        return { ...f, sub_buscando: false, sub_descricao: data.descricao, sub_erro: null, sub_caixas_pallet: data.caixas_pallet, sub_qtde_caixas: cx }
+      }
+      return { ...f, sub_buscando: false, sub_descricao: null, sub_erro: 'Produto não encontrado na tabela', sub_caixas_pallet: null, sub_qtde_caixas: null }
+    })
   }
 
   async function handleFotoSelect(file, idx) {
@@ -291,13 +319,17 @@ export default function Tarefas() {
     setSalvandoAno(true)
     const fotosEnviadas = anomForm.fotosUrls.filter(Boolean)
     const { data, error } = await supabase.from('anomalias').insert({
-      tarefa_id:     tarefaSel.id,
-      pedido_id:     anomForm.pedido_id || null,
-      unidade_id:    tarefaSel.unidade_id,
-      conferente_id: profile.id,
-      descricao:     anomForm.descricao.trim(),
-      lote:          anomForm.lote.trim() || null,
-      fotos:         fotosEnviadas,
+      tarefa_id:               tarefaSel.id,
+      pedido_id:               anomForm.pedido_id || null,
+      unidade_id:              tarefaSel.unidade_id,
+      conferente_id:           profile.id,
+      descricao:               anomForm.descricao.trim(),
+      lote:                    anomForm.lote.trim() || null,
+      fotos:                   fotosEnviadas,
+      substituto_codigo:       anomForm.sub_codigo.trim() || null,
+      substituto_descricao:    anomForm.sub_descricao || null,
+      substituto_qtde_pallets: anomForm.sub_qtde_pallets ? Number(anomForm.sub_qtde_pallets) : null,
+      substituto_qtde_caixas:  anomForm.sub_qtde_caixas || null,
     }).select('*, pedido:pedidos(descricao, cod_produto)').single()
     setSalvandoAno(false)
     if (!error && data) {
@@ -347,6 +379,7 @@ export default function Tarefas() {
             onClose={() => { setShowModal(false); setAnomaliaForm(null) }}
             onSave={salvarAnomalia}
             onFotoSelect={handleFotoSelect}
+            onBuscarSubstituto={buscarSubstituto}
             onChange={setAnomaliaForm}
           />
         )}
@@ -721,6 +754,19 @@ function ConferenciaView({
                           </p>
                         )}
                         <p className="text-cobeb-text text-xs">{ano.descricao}</p>
+                        {ano.substituto_codigo && (
+                          <div className="mt-2 bg-[#EBF5FF] rounded-xl px-3 py-2 border border-cobeb-border">
+                            <p className="text-[10px] font-semibold text-cobeb-navy uppercase tracking-widest mb-0.5">Substituto recebido</p>
+                            <p className="text-cobeb-text text-xs font-mono font-semibold">{ano.substituto_codigo}</p>
+                            {ano.substituto_descricao && <p className="text-slate-500 text-[10px]">{ano.substituto_descricao}</p>}
+                            {ano.substituto_qtde_pallets != null && (
+                              <p className="text-cobeb-yellow text-xs font-semibold mt-0.5">
+                                {Number(ano.substituto_qtde_pallets).toLocaleString('pt-BR')} plt
+                                {ano.substituto_qtde_caixas != null && ` · ${Number(ano.substituto_qtde_caixas).toLocaleString('pt-BR')} cx`}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <p className="text-slate-500 text-[10px] mt-1">{formatTs(ano.created_at)}</p>
                       </div>
                       {ano.fotos?.length > 0 && (
@@ -769,7 +815,7 @@ function ConferenciaView({
 
 // ── AnomaliaModal ─────────────────────────────────────────────────────────────
 
-function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onFotoSelect, onChange }) {
+function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onFotoSelect, onChange, onBuscarSubstituto }) {
   const uploading = form.uploading.some(Boolean)
   const canSave   = form.descricao.trim() && !uploading && !salvando
 
@@ -828,6 +874,65 @@ function AnomaliaModal({ form, pedidos, fotoRefs, salvando, onClose, onSave, onF
               onChange={e => onChange(f => ({ ...f, lote: e.target.value }))}
               className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors"
             />
+          </div>
+
+          {/* Produto substituto */}
+          <div className="bg-[#EBF5FF] rounded-2xl p-4 space-y-3 border border-cobeb-border">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-cobeb-navy">Produto recebido no lugar</p>
+
+            {/* Código */}
+            <div>
+              <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-1.5">Código do produto substituto</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Ex: 38026"
+                  value={form.sub_codigo}
+                  onChange={e => onChange(f => ({ ...f, sub_codigo: e.target.value, sub_descricao: null, sub_erro: null }))}
+                  onBlur={() => onBuscarSubstituto(form.sub_codigo)}
+                  className="flex-1 bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text placeholder-slate-400 focus:outline-none focus:border-cobeb-blue transition-colors font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => onBuscarSubstituto(form.sub_codigo)}
+                  disabled={form.sub_buscando || !form.sub_codigo.trim()}
+                  className="px-3 py-2.5 bg-cobeb-navy text-white text-xs font-semibold rounded-xl disabled:opacity-40 transition-colors"
+                >
+                  {form.sub_buscando ? '...' : 'Buscar'}
+                </button>
+              </div>
+              {form.sub_descricao && (
+                <p className="text-cobeb-text text-xs mt-1.5 font-medium">{form.sub_descricao}</p>
+              )}
+              {form.sub_erro && (
+                <p className="text-red-400 text-xs mt-1.5">{form.sub_erro}</p>
+              )}
+            </div>
+
+            {/* Quantidade */}
+            {form.sub_descricao && (
+              <div>
+                <label className="text-slate-500 text-[11px] font-semibold uppercase tracking-widest block mb-1.5">Quantidade recebida (paletes)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  value={form.sub_qtde_pallets}
+                  onChange={e => {
+                    const v = e.target.value
+                    const cx = v && form.sub_caixas_pallet
+                      ? Math.round(Number(v) * Number(form.sub_caixas_pallet))
+                      : null
+                    onChange(f => ({ ...f, sub_qtde_pallets: v, sub_qtde_caixas: cx }))
+                  }}
+                  className="w-32 bg-white border border-cobeb-border rounded-xl px-3 py-2.5 text-xs text-cobeb-text focus:outline-none focus:border-cobeb-blue transition-colors text-right"
+                />
+                {form.sub_qtde_caixas != null && (
+                  <p className="text-slate-500 text-xs mt-1">= {form.sub_qtde_caixas.toLocaleString('pt-BR')} cx</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Photos */}
