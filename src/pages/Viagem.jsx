@@ -19,7 +19,7 @@ const ETAPAS = [
   { key: 'chegada_fabrica', label: 'Chegada na Fábrica', field: 'dt_chegada_fabrica', nextStatus: 'na_fabrica',             Icon: Factory,     requireNF: false, closeCycle: false },
   { key: 'saida_fabrica',   label: 'Saída da Fábrica',   field: 'dt_saida_fabrica',   nextStatus: 'retornando',             Icon: Truck,       requireNF: false, closeCycle: false },
   { key: 'chegada_revenda', label: 'Chegada na Revenda', field: 'dt_chegada_revenda', nextStatus: 'aguardando_conferencia', Icon: Home,        requireNF: true,  closeCycle: false },
-  { key: 'saida_entrega',   label: 'Saída após Entrega', field: 'dt_saida_entrega',   nextStatus: 'concluida',              Icon: CheckCircle, requireNF: false, closeCycle: true  },
+  { key: 'saida_entrega',   label: 'Finalizar Viagem',   field: 'dt_saida_entrega',   nextStatus: 'concluida',              Icon: CheckCircle, requireNF: false, closeCycle: true  },
 ]
 
 function formatTs(iso) {
@@ -70,8 +70,10 @@ export default function Viagem() {
   const [numeroNF, setNumeroNF]       = useState('')
 
   // módulo 6
-  const [tarefaStatus, setTarefaStatus] = useState(null) // null | 'pendente' | 'em_andamento' | 'concluida'
-  const [resumoData,   setResumoData]   = useState(null)
+  const [tarefaStatus,   setTarefaStatus]   = useState(null) // null | 'pendente' | 'em_andamento' | 'concluida'
+  const [portariaStatus, setPortariaStatus] = useState(null) // null | 'aguardando' | 'em_atendimento' | 'concluido'
+  const [portariaSaida,  setPortariaSaida]  = useState(null) // timestamp da saída da portaria
+  const [resumoData,     setResumoData]     = useState(null)
 
   // offline
   const [isOnline, setIsOnline]       = useState(navigator.onLine)
@@ -90,13 +92,20 @@ export default function Viagem() {
 
   useEffect(() => { init() }, [])
 
-  // Polling: enquanto motorista aguarda conferência, verifica a cada 30s
+  // Polling: enquanto motorista aguarda conferência/portaria, verifica a cada 30s
   useEffect(() => {
     if (view !== 'active' || viagemAtiva?.status !== 'aguardando_conferencia') return
     const id = viagemAtiva.id
     async function check() {
-      const { data } = await supabase.from('tarefas').select('status').eq('viagem_id', id).maybeSingle()
-      if (data?.status) setTarefaStatus(data.status)
+      const [{ data: tarefa }, { data: portaria }] = await Promise.all([
+        supabase.from('tarefas').select('status').eq('viagem_id', id).maybeSingle(),
+        supabase.from('portaria_atendimentos').select('status, dt_saida').eq('viagem_id', id).maybeSingle(),
+      ])
+      if (tarefa?.status) setTarefaStatus(tarefa.status)
+      if (portaria?.status) {
+        setPortariaStatus(portaria.status)
+        if (portaria.dt_saida) setPortariaSaida(portaria.dt_saida)
+      }
     }
     check()
     const timer = setInterval(check, 30000)
@@ -218,14 +227,21 @@ export default function Viagem() {
 
   async function verificarTarefa() {
     if (!viagemAtiva?.id) return
-    const { data } = await supabase.from('tarefas').select('status').eq('viagem_id', viagemAtiva.id).maybeSingle()
-    if (data?.status) setTarefaStatus(data.status)
+    const [{ data: tarefa }, { data: portaria }] = await Promise.all([
+      supabase.from('tarefas').select('status').eq('viagem_id', viagemAtiva.id).maybeSingle(),
+      supabase.from('portaria_atendimentos').select('status, dt_saida').eq('viagem_id', viagemAtiva.id).maybeSingle(),
+    ])
+    if (tarefa?.status) setTarefaStatus(tarefa.status)
+    if (portaria?.status) {
+      setPortariaStatus(portaria.status)
+      if (portaria.dt_saida) setPortariaSaida(portaria.dt_saida)
+    }
   }
 
   // ── registrar etapa ───────────────────────────────────────────────────────
 
   async function registrarEtapa(etapa, nf) {
-    const now    = new Date().toISOString()
+    const now     = etapa.closeCycle && portariaSaida ? portariaSaida : new Date().toISOString()
     const updates = { [etapa.field]: now, status: etapa.nextStatus }
     if (nf) updates.numero_nf = nf
     const updated = { ...viagemAtiva, ...updates }
@@ -388,6 +404,7 @@ export default function Viagem() {
               viagem={viagemAtiva}
               pedidos={pedidosDaViagem}
               tarefaStatus={tarefaStatus}
+              portariaStatus={portariaStatus}
               onVerificarTarefa={verificarTarefa}
               showNF={showNF} setShowNF={setShowNF}
               numeroNF={numeroNF} setNumeroNF={setNumeroNF}
@@ -704,7 +721,7 @@ function BotoesPasso({ onVoltar, onProximo, podeProximo }) {
 // Viagem Ativa
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ViagemAtiva({ viagem, pedidos, tarefaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa }) {
+function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa }) {
   const numerosUnicos = [...new Set(pedidos.map(p => p.numero_pedido))]
   const totalPallets  = pedidos.reduce((s, p) => s + (Number(p.qtde_pallets) || 0), 0)
   const totalSkus     = pedidos.reduce((s, p) => s + (Number(p.qtde_skus)    || 0), 0)
@@ -781,20 +798,24 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, onVerificarTarefa, showNF,
                 <p className="text-cobeb-yellow font-semibold text-sm uppercase tracking-wide">{etapa.label}</p>
               </div>
 
-              {/* Status da conferência — visível apenas na última etapa */}
+              {/* Status da portaria — visível apenas na última etapa */}
               {etapa.closeCycle && (
                 <div className={`flex items-center gap-2 rounded-xl px-3 py-2 mb-4 ${
-                  tarefaStatus === 'concluida'
+                  portariaStatus === 'concluido'
                     ? 'bg-green-500/10 border border-green-500/30'
                     : 'bg-blue-500/10 border border-blue-500/30'
                 }`}>
-                  {tarefaStatus === 'concluida'
+                  {portariaStatus === 'concluido'
                     ? <CheckCircle size={13} className="text-green-400 shrink-0" />
                     : <Clock size={13} className="text-blue-400 shrink-0" />}
-                  <p className={`text-xs flex-1 ${tarefaStatus === 'concluida' ? 'text-green-400' : 'text-blue-400'}`}>
-                    {tarefaStatus === 'concluida' ? 'Conferência concluída' : 'Conferência em andamento'}
+                  <p className={`text-xs flex-1 ${portariaStatus === 'concluido' ? 'text-green-400' : 'text-blue-400'}`}>
+                    {portariaStatus === 'concluido'
+                      ? 'Portaria liberada'
+                      : portariaStatus === 'em_atendimento'
+                        ? 'Veículo em atendimento na portaria'
+                        : 'Aguardando portaria'}
                   </p>
-                  {tarefaStatus !== 'concluida' && (
+                  {portariaStatus !== 'concluido' && (
                     <button onClick={onVerificarTarefa}
                       className="text-cobeb-yellow text-xs font-semibold flex items-center gap-1 hover:text-cobeb-blue transition-colors shrink-0">
                       <RefreshCw size={11} />Verificar
@@ -803,11 +824,13 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, onVerificarTarefa, showNF,
                 </div>
               )}
 
-              <button onClick={() => handleEtapa(etapa)} disabled={registrando}
+              <button
+                onClick={() => handleEtapa(etapa)}
+                disabled={registrando || (etapa.closeCycle && portariaStatus !== 'concluido')}
                 className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-bold py-5 rounded-xl text-base transition-colors flex items-center justify-center gap-3">
                 {registrando
                   ? <><div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Registrando...</>
-                  : <><Clock size={20} />Registrar {etapa.label}</>}
+                  : <><CheckCircle size={20} />{etapa.label}</>}
               </button>
             </div>
           )
