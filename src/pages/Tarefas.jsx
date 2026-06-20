@@ -92,7 +92,9 @@ export default function Tarefas() {
         .select('viagem_id, status')
         .in('viagem_id', viagemIds)
         .is('excluido_em', null)
+      // Default 'aguardando' para todas — sem registro = portaria ainda não iniciou
       const map = {}
+      viagemIds.forEach(id => { map[id] = 'aguardando' })
       ;(ports ?? []).forEach(p => { map[p.viagem_id] = p.status })
       setPortariaMap(map)
     }
