@@ -175,13 +175,15 @@ export default function Tarefas() {
 
   async function loadConferencia(tarefa) {
     setLoadingConf(true)
-    if (!tarefa.viagem?.id) {
+    // viagem_id direto da tarefa como fallback para quando o join viagem retorna null (ex: admin_total)
+    const viagemId = tarefa.viagem?.id ?? tarefa.viagem_id
+    if (!viagemId) {
       setPedidos([]); setItenState({}); setAnomalias([])
       setLoadingConf(false)
       return
     }
     const [{ data: peds }, { data: itens }, { data: anos }] = await Promise.all([
-      supabase.from('pedidos').select('*').eq('viagem_id', tarefa.viagem.id).order('descricao'),
+      supabase.from('pedidos').select('*').eq('viagem_id', viagemId).order('descricao'),
       supabase.from('conferencia_itens').select('*').eq('tarefa_id', tarefa.id),
       supabase.from('anomalias')
         .select('*, pedido:pedidos(descricao, cod_produto)')
@@ -238,8 +240,9 @@ export default function Tarefas() {
   async function abrirNRI(tarefa) {
     setAbrindoNRI(tarefa.id)
 
+    const nriViagemId = tarefa.viagem?.id ?? tarefa.viagem_id
     const [{ data: peds }, { data: itens }, { data: anos }] = await Promise.all([
-      supabase.from('pedidos').select('*').eq('viagem_id', tarefa.viagem.id).order('descricao'),
+      supabase.from('pedidos').select('*').eq('viagem_id', nriViagemId).order('descricao'),
       supabase.from('conferencia_itens')
         .select('pedido_id, qtde_recebida, data_validade')
         .eq('tarefa_id', tarefa.id)
