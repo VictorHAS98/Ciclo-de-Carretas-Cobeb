@@ -82,7 +82,7 @@ export default function CheckRecebimento() {
     const tarefaIds = lista.map(t => t.id)
     const viagemIds = [...new Set(lista.map(t => t.viagem_id).filter(Boolean))]
 
-    const [{ data: pedidos }, { data: itens }, { data: viagens }, { data: unis }, { data: emissoes }] = await Promise.all([
+    const [{ data: pedidos }, { data: itens }, { data: viagens }, { data: unis }, { data: emissoes }, { data: anos }] = await Promise.all([
       viagemIds.length
         ? supabase.from('pedidos')
             .select('id, cod_produto, descricao, embalagem, qtde_pallets, qtde_skus, fabrica, numero_pedido, viagem_id')
@@ -101,6 +101,9 @@ export default function CheckRecebimento() {
         .select('*')
         .in('tarefa_id', tarefaIds)
         .order('created_at', { ascending: false }),
+      supabase.from('anomalias')
+        .select('id, tarefa_id, pedido_id, tipo, substituto_codigo, substituto_descricao, substituto_qtde_pallets, substituto_qtde_caixas, substituto_data_validade')
+        .in('tarefa_id', tarefaIds),
     ])
 
     // Mapas de lookup
@@ -123,6 +126,13 @@ export default function CheckRecebimento() {
     const nriByTarefa = {}
     ;(emissoes ?? []).forEach(e => { if (!nriByTarefa[e.tarefa_id]) nriByTarefa[e.tarefa_id] = e })
 
+    // Mapa tarefa_id → lista de anomalias
+    const anosByTarefa = {}
+    ;(anos ?? []).forEach(a => {
+      if (!anosByTarefa[a.tarefa_id]) anosByTarefa[a.tarefa_id] = []
+      anosByTarefa[a.tarefa_id].push(a)
+    })
+
     const result = lista
       .filter(t => (pedsByViagem[t.viagem_id] ?? []).length > 0)
       .map(t => {
@@ -142,6 +152,17 @@ export default function CheckRecebimento() {
           Math.abs(Number(p.item.qtde_recebida) - Number(p.qtde_pallets)) > 0.001
         )
 
+        const anomalias        = anosByTarefa[t.id] ?? []
+        const temQualidade     = anomalias.some(a => a.tipo === 'qualidade')
+        const temInversao      = anomalias.some(a => a.tipo === 'inversao')
+        // pedido_id → substituto (para exibir na linha do produto)
+        const substituteByPedido = {}
+        anomalias.forEach(a => {
+          if (a.tipo === 'inversao' && a.pedido_id && a.substituto_codigo) {
+            substituteByPedido[a.pedido_id] = a
+          }
+        })
+
         return {
           id: t.id,
           numero_nf: t.numero_nf,
@@ -160,6 +181,9 @@ export default function CheckRecebimento() {
           conferidoCount,
           totalProd: peds.length,
           temDivergencia,
+          temQualidade,
+          temInversao,
+          substituteByPedido,
           nriEmissao: nriByTarefa[t.id] ?? null,
         }
       })
@@ -382,6 +406,16 @@ export default function CheckRecebimento() {
                             Divergência
                           </span>
                         )}
+                        {g.temQualidade && (
+                          <span className="text-[10px] font-semibold bg-red-500/15 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full shrink-0">
+                            Qualidade
+                          </span>
+                        )}
+                        {g.temInversao && (
+                          <span className="text-[10px] font-semibold bg-orange-400/15 text-orange-500 border border-orange-400/30 px-2 py-0.5 rounded-full shrink-0">
+                            Inversão
+                          </span>
+                        )}
                         {g.nriEmissao ? (
                           <span className="text-[10px] font-semibold bg-cobeb-navy/10 text-cobeb-navy border border-cobeb-navy/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
                             <FileText size={9} />NRI
@@ -437,46 +471,57 @@ export default function CheckRecebimento() {
                         const cxRec    = recPal != null ? calcCaixas(recPal, p) : null
                         const okColor  = diff == null ? '' : diff === 0 ? 'text-green-500' : diff < 0 ? 'text-orange-400' : 'text-red-400'
 
+                        const sub = g.substituteByPedido?.[p.id] ?? null
                         return (
-                          <div
-                            key={p.id}
-                            className={`grid items-start gap-x-3 px-4 py-2.5 ${i < g.produtos.length - 1 ? 'border-b border-cobeb-border/30' : ''}`}
-                            style={{ gridTemplateColumns: '1fr auto' }}
-                          >
-                            {/* Produto info */}
-                            <div className="min-w-0">
-                              <p className="text-cobeb-text text-xs font-medium truncate">{p.descricao}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-slate-500 text-[10px] font-mono">{p.cod_produto}</span>
-                                {p.embalagem && <span className="text-slate-500 text-[10px]">{p.embalagem}</span>}
+                          <div key={p.id} className={i < g.produtos.length - 1 || sub ? 'border-b border-cobeb-border/30' : ''}>
+                            {/* Linha produto */}
+                            <div className="grid items-start gap-x-3 px-4 py-2.5" style={{ gridTemplateColumns: '1fr auto' }}>
+                              <div className="min-w-0">
+                                <p className="text-cobeb-text text-xs font-medium truncate">{p.descricao}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-slate-500 text-[10px] font-mono">{p.cod_produto}</span>
+                                  {p.embalagem && <span className="text-slate-500 text-[10px]">{p.embalagem}</span>}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 space-y-0.5">
+                                <p className="text-slate-500 text-[10px]">
+                                  Prev: {prevPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
+                                  {' / '}{Number(p.qtde_skus).toLocaleString('pt-BR')} cx
+                                </p>
+                                {recPal != null ? (
+                                  <p className={`text-xs font-semibold ${okColor}`}>
+                                    Rec: {recPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
+                                    {cxRec != null && <span className="text-[10px] ml-1">/ {cxRec.toLocaleString('pt-BR')} cx</span>}
+                                    {diff !== 0 && diff != null && (
+                                      <span className="text-[10px] ml-1">
+                                        ({diff > 0 ? '+' : ''}{diff.toLocaleString('pt-BR', { maximumFractionDigits: 1 })})
+                                      </span>
+                                    )}
+                                  </p>
+                                ) : (
+                                  <p className="text-[10px] text-slate-400 italic">Não conferido</p>
+                                )}
+                                {val && <p className="text-[10px] text-slate-500">Val: {ptDate(val)}</p>}
                               </div>
                             </div>
 
-                            {/* Números */}
-                            <div className="text-right shrink-0 space-y-0.5">
-                              <p className="text-slate-500 text-[10px]">
-                                Prev: {prevPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
-                                {' / '}{Number(p.qtde_skus).toLocaleString('pt-BR')} cx
-                              </p>
-
-                              {recPal != null ? (
-                                <p className={`text-xs font-semibold ${okColor}`}>
-                                  Rec: {recPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
-                                  {cxRec != null && <span className="text-[10px] ml-1">/ {cxRec.toLocaleString('pt-BR')} cx</span>}
-                                  {diff !== 0 && diff != null && (
-                                    <span className="text-[10px] ml-1">
-                                      ({diff > 0 ? '+' : ''}{diff.toLocaleString('pt-BR', { maximumFractionDigits: 1 })})
+                            {/* Produto substituto (inversão) */}
+                            {sub && (
+                              <div className="mx-4 mb-2.5 pl-3 border-l-2 border-orange-400/60 space-y-0.5">
+                                <p className="text-[9px] font-bold text-orange-500 uppercase tracking-widest">↳ Substituto recebido</p>
+                                <p className="text-cobeb-text text-[11px] font-semibold">{sub.substituto_descricao}</p>
+                                <div className="flex items-center gap-3 text-[10px] text-slate-500 flex-wrap">
+                                  <span className="font-mono">{sub.substituto_codigo}</span>
+                                  {sub.substituto_qtde_pallets != null && (
+                                    <span className="font-semibold text-orange-500">
+                                      {Number(sub.substituto_qtde_pallets).toLocaleString('pt-BR')} plt
+                                      {sub.substituto_qtde_caixas != null && ` / ${Number(sub.substituto_qtde_caixas).toLocaleString('pt-BR')} cx`}
                                     </span>
                                   )}
-                                </p>
-                              ) : (
-                                <p className="text-[10px] text-slate-400 italic">Não conferido</p>
-                              )}
-
-                              {val && (
-                                <p className="text-[10px] text-slate-500">Val: {ptDate(val)}</p>
-                              )}
-                            </div>
+                                  {sub.substituto_data_validade && <span>Val: {ptDate(sub.substituto_data_validade)}</span>}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
