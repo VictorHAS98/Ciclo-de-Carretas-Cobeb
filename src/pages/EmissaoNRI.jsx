@@ -49,21 +49,21 @@ function renderNRI(doc, {
   cabecalho, placa, motorista, origem,
 }) {
   const x0       = marginX
-  const BLUE     = [26, 79, 156]   // #1a4f9c
+  const BLUE     = [26, 79, 156]
   const BLACK    = [0, 0, 0]
   const WHITE    = [255, 255, 255]
-  const GRAY_LT  = [230, 230, 230]
-  const GRAY_MID = [210, 210, 210]
+  const GRAY_LT  = [232, 232, 232]
+  const GRAY_MID = [212, 212, 212]
   const GRAY_TXT = [90, 90, 90]
-  const GRAY_BAR = [190, 190, 190]
+  const GRAY_BAR = [185, 185, 185]
 
-  // row heights (total = 97mm dentro de 99mm)
-  const r1H = 15   // cabeçalho: logo texto + número
-  const r2H = 15   // produto: código + descrição
-  const r3H = 28   // vencimento + curva/carregar até
-  const r4H = 24   // informações de recebimento
-  const r5H = 15   // rodapé table
-  const totalH = r1H + r2H + r3H + r4H + r5H
+  // row heights — total = 97mm (dentro de 99mm por NRI)
+  const r1H = 12   // cabeçalho: COBEB + número
+  const r2H = 19   // produto: código + descrição (maior)
+  const r3H = 33   // vencimento + curva/carregar até (maior)
+  const r4H = 22   // recebimento — 4 linhas com folga
+  const r5H = 11   // rodapé table
+  const totalH = r1H + r2H + r3H + r4H + r5H  // 97mm
 
   const r1Y = yBase + 1
   const r2Y = r1Y + r1H
@@ -71,8 +71,8 @@ function renderNRI(doc, {
   const r4Y = r3Y + r3H
   const r5Y = r4Y + r4H
 
-  const hline = (y, color = BLACK, lw = 0.25) => {
-    doc.setDrawColor(...color)
+  const hline = (y, lw = 0.25) => {
+    doc.setDrawColor(...BLACK)
     doc.setLineWidth(lw)
     doc.line(x0, y, x0 + W, y)
   }
@@ -82,53 +82,42 @@ function renderNRI(doc, {
   doc.setLineWidth(0.5)
   doc.rect(x0, r1Y, W, totalH, 'S')
 
-  // ─── Row 1: Cabeçalho — logo texto (esq) + número (dir) ──────────────────
+  // ─── Row 1: "COBEB" (esq) + número sequencial (dir) ──────────────────────
 
-  // "COBEB" — grande, negrito, azul
-  doc.setFontSize(19)
+  doc.setFontSize(20)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLUE)
   doc.text('COBEB', x0 + 3, r1Y + 9)
 
-  // "DISTRIBUIDORA AMBEV" — pequeno, espaçado, azul
-  doc.setFontSize(5.5)
-  doc.setFont('helvetica', 'normal')
-  doc.setCharSpace(2.5)
-  doc.setTextColor(...BLUE)
-  doc.text('DISTRIBUIDORA AMBEV', x0 + 3, r1Y + 13.5)
-  doc.setCharSpace(0)
-
-  // Número sequencial — grande, negrito, preto, lado direito
   doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
-  doc.text(String(nri.numero), x0 + W - 3, r1Y + 10, { align: 'right' })
+  doc.text(String(nri.numero), x0 + W - 3, r1Y + 8.5, { align: 'right' })
 
-  // Código de barras numérico — mono, cinza claro, abaixo do número
   doc.setFontSize(6)
   doc.setFont('courier', 'normal')
   doc.setTextColor(...GRAY_BAR)
-  doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 3, r1Y + 14, { align: 'right' })
+  doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 3, r1Y + 11.5, { align: 'right' })
 
   hline(r1Y + r1H)
 
-  // ─── Row 2: Produto — código (cinza) + descrição (grande, bold, center) ──
+  // ─── Row 2: Código (pequeno, cinza) + Descrição (grande, negrito, center) ─
 
   doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...GRAY_TXT)
   doc.text(`CÓD. ${nri.codigo || ''}`, x0 + W / 2, r2Y + 5, { align: 'center' })
 
-  doc.setFontSize(12.5)
+  doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
   const descRaw   = (nri.descricao || '').toUpperCase()
   const descLines = doc.splitTextToSize(descRaw, W - 6)
   if (descLines.length === 1) {
-    doc.text(descLines[0], x0 + W / 2, r2Y + 12, { align: 'center' })
+    doc.text(descLines[0], x0 + W / 2, r2Y + 14, { align: 'center' })
   } else {
-    doc.text(descLines[0], x0 + W / 2, r2Y + 9,  { align: 'center' })
-    doc.text(descLines[1], x0 + W / 2, r2Y + 14, { align: 'center' })
+    doc.text(descLines[0], x0 + W / 2, r2Y + 10, { align: 'center' })
+    doc.text(descLines[1], x0 + W / 2, r2Y + 17, { align: 'center' })
   }
 
   hline(r2Y + r2H)
@@ -139,72 +128,73 @@ function renderNRI(doc, {
   const leftW  = W - rightW
   const halfH  = r3H / 2
 
-  // Bloco esquerdo: VENCIMENTO (fundo preto, texto branco)
+  // Bloco esquerdo: fundo preto, texto branco
   doc.setFillColor(...BLACK)
   doc.rect(x0, r3Y, leftW, r3H, 'F')
 
-  doc.setFontSize(7.5)
+  doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...WHITE)
-  doc.text('VENCIMENTO', x0 + leftW / 2, r3Y + 6, { align: 'center' })
+  doc.text('VENCIMENTO', x0 + leftW / 2, r3Y + 6.5, { align: 'center' })
 
-  doc.setFontSize(27)
+  doc.setFontSize(32)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...WHITE)
-  doc.text(fmt2Y(nri.dataValidade), x0 + leftW / 2, r3Y + 23, { align: 'center' })
+  doc.text(fmt2Y(nri.dataValidade), x0 + leftW / 2, r3Y + 27, { align: 'center' })
 
-  // Bloco direito superior: CURVA (cinza claro)
+  // Bloco direito superior: CURVA
   doc.setFillColor(...GRAY_LT)
   doc.rect(x0 + leftW, r3Y, rightW, halfH, 'F')
 
   doc.setFontSize(6.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...GRAY_TXT)
-  doc.text('CURVA', x0 + leftW + rightW / 2, r3Y + 4.5, { align: 'center' })
+  doc.text('CURVA', x0 + leftW + rightW / 2, r3Y + 5, { align: 'center' })
 
-  doc.setFontSize(17)
+  doc.setFontSize(19)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
-  doc.text(nri.curva || '', x0 + leftW + rightW / 2, r3Y + 12, { align: 'center' })
+  doc.text(nri.curva || '', x0 + leftW + rightW / 2, r3Y + 14, { align: 'center' })
 
-  // Divisor entre curva e carregar até
+  // Divisor horizontal entre CURVA e CARREGAR ATÉ
   doc.setDrawColor(...GRAY_TXT)
   doc.setLineWidth(0.2)
   doc.line(x0 + leftW, r3Y + halfH, x0 + W, r3Y + halfH)
 
-  // Bloco direito inferior: CARREGAR ATÉ (cinza médio)
+  // Bloco direito inferior: CARREGAR ATÉ
   doc.setFillColor(...GRAY_MID)
   doc.rect(x0 + leftW, r3Y + halfH, rightW, halfH, 'F')
 
   doc.setFontSize(6)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...GRAY_TXT)
-  doc.text('CARREGAR ATÉ', x0 + leftW + rightW / 2, r3Y + halfH + 4.5, { align: 'center' })
+  doc.text('CARREGAR ATÉ', x0 + leftW + rightW / 2, r3Y + halfH + 5, { align: 'center' })
 
-  doc.setFontSize(11)
+  doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
-  doc.text(fmt2Y(minus30(nri.dataValidade)), x0 + leftW + rightW / 2, r3Y + halfH + 11.5, { align: 'center' })
+  doc.text(fmt2Y(minus30(nri.dataValidade)), x0 + leftW + rightW / 2, r3Y + halfH + 13, { align: 'center' })
 
-  // Divisor vertical entre esq e dir
+  // Divisor vertical entre blocos esq e dir
   doc.setDrawColor(...BLACK)
   doc.setLineWidth(0.25)
   doc.line(x0 + leftW, r3Y, x0 + leftW, r3Y + r3H)
 
   hline(r3Y + r3H)
 
-  // ─── Row 4: Informações de recebimento ────────────────────────────────────
+  // ─── Row 4: Informações de recebimento (4 linhas com espaçamento seguro) ──
 
+  const lineH4 = (r4H - 4) / 4   // espaço entre linhas
   doc.setFontSize(7.5)
   doc.setTextColor(...BLACK)
 
   doc.setFont('helvetica', 'normal')
-  doc.text(`RECEBIMENTO: ${dataRecebimento}`,                          x0 + 3, r4Y + 6)
+  doc.text(`RECEBIMENTO: ${dataRecebimento}`,                            x0 + 3, r4Y + 2 + lineH4 * 0.8)
   doc.setFont('helvetica', 'bold')
-  doc.text(`RESPONSÁVEL: ${(cabecalho.operador   || '').toUpperCase()}`, x0 + 3, r4Y + 12)
+  doc.text(`RESPONSÁVEL: ${(cabecalho.operador  || '').toUpperCase()}`,  x0 + 3, r4Y + 2 + lineH4 * 1.8)
   doc.setFont('helvetica', 'normal')
-  doc.text(`PLACA: ${placa}`,                                           x0 + 3, r4Y + 18)
-  doc.text(`CONFERENTE: ${(cabecalho.conferente || '').toUpperCase()}`, x0 + 3, r4Y + 24)
+  doc.text(`PLACA: ${placa}`,                                             x0 + 3, r4Y + 2 + lineH4 * 2.8)
+  doc.text(`CONFERENTE: ${(cabecalho.conferente || '').toUpperCase()}`,  x0 + 3, r4Y + 2 + lineH4 * 3.8)
 
   hline(r4Y + r4H)
 
@@ -218,7 +208,7 @@ function renderNRI(doc, {
     { label: 'MOTORISTA', value: (motorista || '').toUpperCase(),           w: 0.23 },
   ]
 
-  const hdrH = 6
+  const hdrH = 5
   const datH = r5H - hdrH
   let cx = x0
 
@@ -227,20 +217,20 @@ function renderNRI(doc, {
 
     doc.setFillColor(...BLACK)
     doc.rect(cx, r5Y, cW, hdrH, 'F')
-    doc.setFontSize(5.5)
+    doc.setFontSize(5)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...WHITE)
-    doc.text(col.label, cx + cW / 2, r5Y + 4.1, { align: 'center' })
+    doc.text(col.label, cx + cW / 2, r5Y + 3.6, { align: 'center' })
 
     doc.setFillColor(...WHITE)
     doc.setDrawColor(...BLACK)
     doc.setLineWidth(0.15)
     doc.rect(cx, r5Y + hdrH, cW, datH, 'FD')
-    doc.setFontSize(6.5)
+    doc.setFontSize(6)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(...BLACK)
     const v = doc.splitTextToSize(col.value, cW - 2)
-    doc.text(v[0] || '', cx + cW / 2, r5Y + hdrH + datH * 0.65, { align: 'center' })
+    doc.text(v[0] || '', cx + cW / 2, r5Y + hdrH + datH * 0.72, { align: 'center' })
 
     cx += cW
   }
