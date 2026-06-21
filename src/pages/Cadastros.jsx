@@ -15,7 +15,7 @@ const TABS = [
   { id: 'portaria',    label: 'Portaria',    icon: DoorOpen      },
   { id: 'carretas',    label: 'Carretas',    icon: Truck         },
   { id: 'cavalos',     label: 'Cavalos',     icon: Tractor       },
-  { id: 'admins',      label: 'Admins',      icon: Shield        },
+  { id: 'admins',      label: 'Usuários',    icon: Shield        },
 ]
 
 export default function Cadastros() {
