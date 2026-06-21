@@ -334,7 +334,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
       const marginX  = 3
       const W        = pageW - 2 * marginX  // 204mm
 
-      const ctx = { marginX, W, dataRecebimento, horaEmissao, cab, placa, motorista, origem, logoDataUrl }
+      const ctx = { marginX, W, dataRecebimento, horaEmissao, cabecalho: cab, placa, motorista, origem, logoDataUrl }
 
       for (let i = 0; i < allNRIs.length; i++) {
         const posOnPage = i % 3
