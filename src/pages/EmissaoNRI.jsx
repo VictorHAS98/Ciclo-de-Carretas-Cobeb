@@ -182,19 +182,18 @@ function renderNRI(doc, {
 
   hline(r3Y + r3H)
 
-  // ─── Row 4: Informações de recebimento (4 linhas com espaçamento seguro) ──
+  // ─── Row 4: Informações de recebimento (3 linhas) ────────────────────────
 
-  const lineH4 = (r4H - 4) / 4   // espaço entre linhas
-  doc.setFontSize(7.5)
+  const lineH4 = (r4H - 4) / 3
+  doc.setFontSize(8)
   doc.setTextColor(...BLACK)
 
   doc.setFont('helvetica', 'normal')
   doc.text(`RECEBIMENTO: ${dataRecebimento}`,                            x0 + 3, r4Y + 2 + lineH4 * 0.8)
   doc.setFont('helvetica', 'bold')
-  doc.text(`RESPONSÁVEL: ${(cabecalho.operador  || '').toUpperCase()}`,  x0 + 3, r4Y + 2 + lineH4 * 1.8)
+  doc.text(`RESPONSÁVEL: ${(cabecalho.conferente || '').toUpperCase()}`, x0 + 3, r4Y + 2 + lineH4 * 1.8)
   doc.setFont('helvetica', 'normal')
-  doc.text(`PLACA: ${placa}`,                                             x0 + 3, r4Y + 2 + lineH4 * 2.8)
-  doc.text(`CONFERENTE: ${(cabecalho.conferente || '').toUpperCase()}`,  x0 + 3, r4Y + 2 + lineH4 * 3.8)
+  doc.text(`PLACA: ${placa}`,                                            x0 + 3, r4Y + 2 + lineH4 * 2.8)
 
   hline(r4Y + r4H)
 
