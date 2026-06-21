@@ -46,7 +46,7 @@ function newGrupo() {
 function renderNRI(doc, {
   nri, yBase, marginX, W,
   dataRecebimento, horaEmissao,
-  cabecalho, placa, motorista, origem,
+  cabecalho, placaCarreta, placaCavalo, numeroNF, motorista, origem,
 }) {
   const x0       = marginX
   const BLUE     = [26, 79, 156]
@@ -178,18 +178,20 @@ function renderNRI(doc, {
 
   hline(r3Y + r3H)
 
-  // ─── Row 4: Informações de recebimento (3 linhas) ────────────────────────
+  // ─── Row 4: Informações de recebimento (4 linhas) ────────────────────────
 
-  const lineH4 = (r4H - 4) / 3
-  doc.setFontSize(8)
+  const placaStr = [placaCarreta, placaCavalo].filter(Boolean).join(' / ')
+  const lineH4   = (r4H - 3) / 4
+  doc.setFontSize(7.5)
   doc.setTextColor(...BLACK)
 
   doc.setFont('helvetica', 'normal')
-  doc.text(`RECEBIMENTO: ${dataRecebimento}`,                            x0 + 3, r4Y + 2 + lineH4 * 0.8)
+  doc.text(`RECEBIMENTO: ${dataRecebimento}`,                            x0 + 3, r4Y + 1.5 + lineH4 * 0.9)
   doc.setFont('helvetica', 'bold')
-  doc.text(`RESPONSÁVEL: ${(cabecalho.conferente || '').toUpperCase()}`, x0 + 3, r4Y + 2 + lineH4 * 1.8)
+  doc.text(`RESPONSÁVEL: ${(cabecalho.conferente || '').toUpperCase()}`, x0 + 3, r4Y + 1.5 + lineH4 * 1.9)
   doc.setFont('helvetica', 'normal')
-  doc.text(`PLACA: ${placa}`,                                            x0 + 3, r4Y + 2 + lineH4 * 2.8)
+  doc.text(`PLACA: ${placaStr}`,                                         x0 + 3, r4Y + 1.5 + lineH4 * 2.9)
+  doc.text(`NF: ${numeroNF}`,                                            x0 + 3, r4Y + 1.5 + lineH4 * 3.9)
 
   hline(r4Y + r4H)
 
@@ -242,9 +244,12 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
   const [pdfFilename, setPdfFn] = useState('')
 
   // Dados automáticos da viagem
-  const placa     = tarefa.viagem?.carreta?.placa ?? tarefa.viagem?.cavalo?.placa ?? ''
-  const motorista = tarefa.viagem?.motorista?.nome ?? ''
-  const origem    = pedidos[0]?.fabrica ?? ''
+  const placaCarreta = tarefa.viagem?.carreta?.placa ?? ''
+  const placaCavalo  = tarefa.viagem?.cavalo?.placa  ?? ''
+  const placa        = [placaCarreta, placaCavalo].filter(Boolean).join(' / ') || 'Não informada'
+  const motorista    = tarefa.viagem?.motorista?.nome ?? ''
+  const origem       = pedidos[0]?.fabrica ?? ''
+  const numeroNF     = tarefa.numero_nf ?? ''
 
   // ─── Busca produto no catálogo ──────────────────────────────────────────────
 
@@ -359,7 +364,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
       const marginX = 3
       const W       = pageW - 2 * marginX  // 204mm
 
-      const ctx = { marginX, W, dataRecebimento, horaEmissao, cabecalho: cab, placa, motorista, origem }
+      const ctx = { marginX, W, dataRecebimento, horaEmissao, cabecalho: cab, placaCarreta, placaCavalo, numeroNF, motorista, origem }
 
       for (let i = 0; i < allNRIs.length; i++) {
         const posOnPage = i % 3
