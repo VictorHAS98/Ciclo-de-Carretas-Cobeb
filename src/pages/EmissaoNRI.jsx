@@ -128,15 +128,22 @@ function renderNRI(doc, {
   doc.setFillColor(...BLACK)
   doc.rect(x0, r3Y, leftW, r3H, 'F')
 
-  doc.setFontSize(8)
+  // "VENCIMENTO" — esquerda, pequeno
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...WHITE)
-  doc.text('VENCIMENTO', x0 + leftW / 2, r3Y + 6.5, { align: 'center' })
+  doc.text('VENCIMENTO', x0 + 3, r3Y + 6)
 
-  doc.setFontSize(32)
+  // Data — tamanho máximo que cabe horizontalmente, calculado dinamicamente
+  const dateStr  = fmt2Y(nri.dataValidade)
+  const availW   = leftW - 6   // 3mm margem cada lado
   doc.setFont('helvetica', 'bold')
+  doc.setFontSize(40)
+  const w40          = doc.getTextWidth(dateStr)
+  const dateFontSize = Math.min(Math.floor(40 * availW / w40), 95)
+  doc.setFontSize(dateFontSize)
   doc.setTextColor(...WHITE)
-  doc.text(fmt2Y(nri.dataValidade), x0 + leftW / 2, r3Y + 27, { align: 'center' })
+  doc.text(dateStr, x0 + leftW / 2, r3Y + r3H - 3, { align: 'center' })
 
   // Bloco direito superior: CURVA
   doc.setFillColor(...GRAY_LT)
