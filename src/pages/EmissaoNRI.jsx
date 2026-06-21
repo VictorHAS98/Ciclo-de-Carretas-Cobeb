@@ -58,9 +58,9 @@ function renderNRI(doc, {
   const GRAY_BAR = [185, 185, 185]
 
   // row heights — total = 97mm (dentro de 99mm por NRI)
-  const r1H = 12   // cabeçalho: COBEB + número
-  const r2H = 19   // produto: código + descrição (maior)
-  const r3H = 33   // vencimento + curva/carregar até (maior)
+  const r1H = 11   // cabeçalho: COBEB + código de barras
+  const r2H = 20   // produto: código + descrição (folga para nomes longos)
+  const r3H = 33   // vencimento + curva/carregar até
   const r4H = 22   // recebimento — 4 linhas com folga
   const r5H = 11   // rodapé table
   const totalH = r1H + r2H + r3H + r4H + r5H  // 97mm
