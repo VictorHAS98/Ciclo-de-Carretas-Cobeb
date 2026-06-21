@@ -55,7 +55,8 @@ export default function Tarefas() {
   const [concluindo, setConcluindo]       = useState(false)
 
   // NRI
-  const [abrindoNRI, setAbrindoNRI] = useState(null) // tarefa.id enquanto carrega
+  const [abrindoNRI,  setAbrindoNRI]  = useState(null) // tarefa.id enquanto carrega
+  const [gruposNRI,   setGruposNRI]   = useState([])
 
   // anomalia modal
   const [showModal, setShowModal]         = useState(false)
@@ -236,12 +237,50 @@ export default function Tarefas() {
 
   async function abrirNRI(tarefa) {
     setAbrindoNRI(tarefa.id)
-    const { data: peds } = await supabase
-      .from('pedidos')
-      .select('*')
-      .eq('viagem_id', tarefa.viagem.id)
-      .order('descricao')
-    setPedidos(peds ?? [])
+
+    const [{ data: peds }, { data: itens }, { data: anos }] = await Promise.all([
+      supabase.from('pedidos').select('*').eq('viagem_id', tarefa.viagem.id).order('descricao'),
+      supabase.from('conferencia_itens')
+        .select('pedido_id, qtde_recebida, data_validade')
+        .eq('tarefa_id', tarefa.id)
+        .gt('qtde_recebida', 0),
+      supabase.from('anomalias')
+        .select('pedido_id')
+        .eq('tarefa_id', tarefa.id)
+        .not('pedido_id', 'is', null),
+    ])
+
+    const pedidos = peds ?? []
+    setPedidos(pedidos)
+
+    // Monta grupos pré-preenchidos excluindo produtos com anomalia
+    const pedidoMap        = {}
+    pedidos.forEach(p => { pedidoMap[p.id] = p })
+    const comAnomalia      = new Set((anos ?? []).map(a => a.pedido_id))
+
+    const gruposIniciais = (itens ?? [])
+      .filter(it => !comAnomalia.has(it.pedido_id) && pedidoMap[it.pedido_id])
+      .map(it => {
+        const p       = pedidoMap[it.pedido_id]
+        const cxPallet = (p.qtde_pallets > 0) ? p.qtde_skus / p.qtde_pallets : null
+        const qtd      = Number(it.qtde_recebida)
+        return {
+          _id:          crypto.randomUUID(),
+          codigo:       p.cod_produto,
+          descricao:    p.descricao,
+          cxPallet,
+          qtdePaletes:  String(qtd),
+          qtdeCaixas:   cxPallet && qtd ? Math.round(qtd * cxPallet) : null,
+          dataValidade: it.data_validade ?? '',
+          curva:        p.curva ?? null,
+          buscando:     false,
+          erroCodigo:   null,
+          erroQtd:      false,
+          erroData:     false,
+        }
+      })
+
+    setGruposNRI(gruposIniciais)
     setTarefaSel(tarefa)
     setAbrindoNRI(null)
     setView('nri')
@@ -380,6 +419,7 @@ export default function Tarefas() {
         tarefa={tarefaSel}
         pedidos={pedidos}
         profileNome={profile?.nome ?? ''}
+        gruposIniciais={gruposNRI}
         onVoltar={voltarLista}
       />
     )

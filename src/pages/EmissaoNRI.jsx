@@ -26,9 +26,11 @@ function newGrupo() {
   }
 }
 
-export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
+export default function EmissaoNRI({ tarefa, pedidos, profileNome, gruposIniciais, onVoltar }) {
   const [cab, setCab]           = useState({ operador: '', conferente: profileNome, turno: '' })
-  const [grupos, setGrupos]     = useState([newGrupo()])
+  const [grupos, setGrupos]     = useState(() =>
+    gruposIniciais?.length > 0 ? gruposIniciais : [newGrupo()]
+  )
   const [errCab, setErrCab]     = useState({})
   const [gerando, setGerando]   = useState(false)
   const [pdfUrl, setPdfUrl]     = useState(null)
