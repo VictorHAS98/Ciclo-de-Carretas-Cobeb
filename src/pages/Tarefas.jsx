@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import EmissaoNRI from './EmissaoNRI'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,9 @@ export default function Tarefas() {
   const [anomalias, setAnomalias]         = useState([])
   const [loadingConf, setLoadingConf]     = useState(false)
   const [concluindo, setConcluindo]       = useState(false)
+
+  // modal confirmação NRI
+  const [showNriModal, setShowNriModal]   = useState(false)
 
   // anomalia modal
   const [showModal, setShowModal]         = useState(false)
@@ -224,8 +228,8 @@ export default function Tarefas() {
     setConcluindo(true)
     await supabase.from('tarefas').update({ status: 'concluida' }).eq('id', tarefaSel.id)
     setConcluindo(false)
-    voltarLista()
     loadLista()
+    setShowNriModal(true)
   }
 
   // ─── Anomalia Modal ──────────────────────────────────────────────────────────
@@ -355,6 +359,17 @@ export default function Tarefas() {
     concluida:    tarefas.filter(t => t.status === 'concluida').length,
   }
 
+  if (view === 'nri' && tarefaSel) {
+    return (
+      <EmissaoNRI
+        tarefa={tarefaSel}
+        pedidos={pedidos}
+        profileNome={profile?.nome ?? ''}
+        onVoltar={voltarLista}
+      />
+    )
+  }
+
   if (view === 'conferencia' && tarefaSel) {
     return (
       <>
@@ -374,6 +389,31 @@ export default function Tarefas() {
           onAbrirAnomalia={abrirModalAnomalia}
           signOut={signOut}
         />
+        {showNriModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl">
+              <div className="w-10 h-10 bg-cobeb-navy/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Package size={20} className="text-cobeb-navy" />
+              </div>
+              <h2 className="text-cobeb-text font-bold text-base text-center mb-2">Emitir NRI?</h2>
+              <p className="text-slate-500 text-sm text-center mb-6">
+                Deseja emitir a Nota de Recebimento Interno para este recebimento?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowNriModal(false); voltarLista() }}
+                  className="flex-1 border border-cobeb-border text-slate-500 text-sm font-semibold py-3 rounded-2xl hover:bg-[#EBF5FF] transition-colors">
+                  Não
+                </button>
+                <button
+                  onClick={() => { setShowNriModal(false); setView('nri') }}
+                  className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue text-white text-sm font-semibold py-3 rounded-2xl transition-colors">
+                  Sim
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {showModal && anomForm && (
           <AnomaliaModal
             form={anomForm}
