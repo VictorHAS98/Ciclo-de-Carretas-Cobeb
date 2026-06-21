@@ -561,7 +561,8 @@ function StepPedidos({ pedidosAdicionados, unidadesNaViagem, unidadeDescarga, se
             <div key={p.numero_pedido} className="bg-white rounded-2xl border border-cobeb-border px-4 py-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-cobeb-yellow font-mono text-sm font-semibold">#{p.numero_pedido}</p>
-                <p className="text-slate-500 text-xs mt-0.5">{p.unidade?.codigo ?? '—'} · {p.total_pallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal · {p.total_skus.toLocaleString('pt-BR')} cx</p>
+                <p className="text-slate-500 text-xs mt-0.5">{p.unidade?.codigo ?? '—'} · {p.fabrica ?? '—'}</p>
+                <p className="text-slate-500 text-xs">{p.total_pallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal · {p.total_skus.toLocaleString('pt-BR')} cx</p>
               </div>
               <button onClick={() => removerPedido(p.numero_pedido)} className="text-slate-500 hover:text-red-400 transition-colors">
                 <Trash2 size={16} />
