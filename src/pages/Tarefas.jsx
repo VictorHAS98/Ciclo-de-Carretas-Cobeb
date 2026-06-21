@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import {
   LogOut, ClipboardList, MapPin, ChevronLeft, CheckCircle, Clock,
-  AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X,
+  AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X, FileText,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -52,8 +52,8 @@ export default function Tarefas() {
   const [loadingConf, setLoadingConf]     = useState(false)
   const [concluindo, setConcluindo]       = useState(false)
 
-  // modal confirmação NRI
-  const [showNriModal, setShowNriModal]   = useState(false)
+  // NRI
+  const [abrindoNRI, setAbrindoNRI] = useState(null) // tarefa.id enquanto carrega
 
   // anomalia modal
   const [showModal, setShowModal]         = useState(false)
@@ -228,8 +228,21 @@ export default function Tarefas() {
     setConcluindo(true)
     await supabase.from('tarefas').update({ status: 'concluida' }).eq('id', tarefaSel.id)
     setConcluindo(false)
+    voltarLista()
     loadLista()
-    setShowNriModal(true)
+  }
+
+  async function abrirNRI(tarefa) {
+    setAbrindoNRI(tarefa.id)
+    const { data: peds } = await supabase
+      .from('pedidos')
+      .select('*')
+      .eq('viagem_id', tarefa.viagem.id)
+      .order('descricao')
+    setPedidos(peds ?? [])
+    setTarefaSel(tarefa)
+    setAbrindoNRI(null)
+    setView('nri')
   }
 
   // ─── Anomalia Modal ──────────────────────────────────────────────────────────
@@ -389,31 +402,6 @@ export default function Tarefas() {
           onAbrirAnomalia={abrirModalAnomalia}
           signOut={signOut}
         />
-        {showNriModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
-            <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl">
-              <div className="w-10 h-10 bg-cobeb-navy/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Package size={20} className="text-cobeb-navy" />
-              </div>
-              <h2 className="text-cobeb-text font-bold text-base text-center mb-2">Emitir NRI?</h2>
-              <p className="text-slate-500 text-sm text-center mb-6">
-                Deseja emitir a Nota de Recebimento Interno para este recebimento?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setShowNriModal(false); voltarLista() }}
-                  className="flex-1 border border-cobeb-border text-slate-500 text-sm font-semibold py-3 rounded-2xl hover:bg-[#EBF5FF] transition-colors">
-                  Não
-                </button>
-                <button
-                  onClick={() => { setShowNriModal(false); setView('nri') }}
-                  className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue text-white text-sm font-semibold py-3 rounded-2xl transition-colors">
-                  Sim
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         {showModal && anomForm && (
           <AnomaliaModal
             form={anomForm}
@@ -574,10 +562,20 @@ export default function Tarefas() {
                         </button>
                       )}
                       {tarefa.status === 'concluida' && (
-                        <button onClick={() => openConferencia(tarefa)}
-                          className="w-full bg-[#EBF5FF] border border-green-500/30 hover:border-green-500/60 text-green-400 text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
-                          <CheckCircle size={13} />Ver Conferência
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => openConferencia(tarefa)}
+                            className="flex-1 bg-[#EBF5FF] border border-green-500/30 hover:border-green-500/60 text-green-400 text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                            <CheckCircle size={13} />Ver Conferência
+                          </button>
+                          <button
+                            onClick={() => abrirNRI(tarefa)}
+                            disabled={abrindoNRI === tarefa.id}
+                            className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                            {abrindoNRI === tarefa.id
+                              ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              : <><FileText size={13} />Gerar NRI</>}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
