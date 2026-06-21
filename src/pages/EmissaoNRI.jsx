@@ -132,7 +132,7 @@ function renderNRI(doc, {
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...WHITE)
-  doc.text('VENCIMENTO', x0 + 3, r3Y + 6)
+  doc.text('VENCIMENTO', x0 + leftW / 2, r3Y + 6, { align: 'center' })
 
   // Data — tamanho máximo que cabe horizontalmente, calculado dinamicamente
   const dateStr  = fmt2Y(nri.dataValidade)
