@@ -82,42 +82,38 @@ function renderNRI(doc, {
   doc.setLineWidth(0.5)
   doc.rect(x0, r1Y, W, totalH, 'S')
 
-  // ─── Row 1: "COBEB" (esq) + número sequencial (dir) ──────────────────────
+  // ─── Row 1: "COBEB" (esq) + código de barras numérico (dir, pequeno) ──────
 
   doc.setFontSize(20)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLUE)
   doc.text('COBEB', x0 + 3, r1Y + 9)
 
-  doc.setFontSize(22)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...BLACK)
-  doc.text(String(nri.numero), x0 + W - 3, r1Y + 8.5, { align: 'right' })
-
   doc.setFontSize(6)
   doc.setFont('courier', 'normal')
   doc.setTextColor(...GRAY_BAR)
-  doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 3, r1Y + 11.5, { align: 'right' })
+  doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 3, r1Y + 9, { align: 'right' })
 
   hline(r1Y + r1H)
 
-  // ─── Row 2: Código (pequeno, cinza) + Descrição (grande, negrito, center) ─
-
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(...GRAY_TXT)
-  doc.text(`CÓD. ${nri.codigo || ''}`, x0 + W / 2, r2Y + 5, { align: 'center' })
+  // ─── Row 2: Código (mesmo tamanho da descrição, negrito) + Descrição ──────
 
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...BLACK)
   const descRaw   = (nri.descricao || '').toUpperCase()
   const descLines = doc.splitTextToSize(descRaw, W - 6)
+  const codeLine  = `CÓD. ${nri.codigo || ''}`
+
   if (descLines.length === 1) {
-    doc.text(descLines[0], x0 + W / 2, r2Y + 14, { align: 'center' })
+    // 2 linhas: código + descrição
+    doc.text(codeLine,      x0 + W / 2, r2Y + 7,  { align: 'center' })
+    doc.text(descLines[0],  x0 + W / 2, r2Y + 15, { align: 'center' })
   } else {
-    doc.text(descLines[0], x0 + W / 2, r2Y + 10, { align: 'center' })
-    doc.text(descLines[1], x0 + W / 2, r2Y + 17, { align: 'center' })
+    // 3 linhas: código + 2 linhas de descrição
+    doc.text(codeLine,      x0 + W / 2, r2Y + 5,  { align: 'center' })
+    doc.text(descLines[0],  x0 + W / 2, r2Y + 11, { align: 'center' })
+    doc.text(descLines[1],  x0 + W / 2, r2Y + 17, { align: 'center' })
   }
 
   hline(r2Y + r2H)
