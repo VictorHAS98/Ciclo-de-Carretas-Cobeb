@@ -197,14 +197,26 @@ export default function CheckRecebimento() {
     if (!emissao) return
     setBaixandoNRI(g.id)
     try {
+      // Produtos conferidos normalmente
       const { data: itens } = await supabase
         .from('conferencia_itens')
         .select('qtde_recebida, data_validade, pedido:pedidos(cod_produto, descricao, curva, fabrica)')
         .eq('tarefa_id', g.id)
         .gt('qtde_recebida', 0)
 
+      // Produtos substitutos de anomalias de inversão
+      const { data: inversoes } = await supabase
+        .from('anomalias')
+        .select('substituto_codigo, substituto_descricao, substituto_qtde_pallets, substituto_data_validade, pedido:pedidos(curva)')
+        .eq('tarefa_id', g.id)
+        .eq('tipo', 'inversao')
+        .not('substituto_codigo', 'is', null)
+        .gt('substituto_qtde_pallets', 0)
+
       const allNRIs = []
       let num = emissao.primeiro_numero
+
+      // Itens regulares
       for (const item of (itens ?? [])) {
         const qtd = Number(item.qtde_recebida)
         for (let p = 0; p < qtd; p++) {
@@ -220,6 +232,22 @@ export default function CheckRecebimento() {
         }
       }
 
+      // Produtos substitutos (inversão)
+      for (const inv of (inversoes ?? [])) {
+        const qtd = Number(inv.substituto_qtde_pallets)
+        for (let p = 0; p < qtd; p++) {
+          for (let n = 0; n < 3; n++) {
+            allNRIs.push({
+              numero:       num++,
+              codigo:       inv.substituto_codigo    ?? '',
+              descricao:    inv.substituto_descricao ?? '',
+              dataValidade: inv.substituto_data_validade ?? '',
+              curva:        inv.pedido?.curva        ?? '',
+            })
+          }
+        }
+      }
+
       const emissaoDate     = new Date(emissao.created_at)
       const dataRecebimento = emissaoDate.toLocaleDateString('pt-BR')
       const horaEmissao     = emissaoDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -229,7 +257,7 @@ export default function CheckRecebimento() {
 
       gerarNRIPdf({
         allNRIs,
-        cabecalho:   { operador: emissao.operador, conferente: emissao.conferente, turno: emissao.turno },
+        cabecalho:    { operador: emissao.operador, conferente: emissao.conferente, turno: emissao.turno },
         placaCarreta: g.placa_carreta ?? '',
         placaCavalo:  g.placa_cavalo  ?? '',
         numeroNF:     g.numero_nf     ?? '',
