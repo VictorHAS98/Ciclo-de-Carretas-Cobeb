@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -14,8 +14,16 @@ import CheckRecebimento from './pages/CheckRecebimento'
 import PortariaPage from './pages/PortariaPage'
 import Importacao from './pages/Importacao'
 import PortariaAdmin from './pages/PortariaAdmin'
+import SeletorModulo from './pages/SeletorModulo'
 
 const PERFIL_ROTA = {
+  admin:      '/dashboard',
+  motorista:  '/viagem',
+  conferente: '/tarefas',
+  portaria:   '/portaria',
+}
+
+const MODO_ROTA = {
   admin:      '/dashboard',
   motorista:  '/viagem',
   conferente: '/tarefas',
@@ -31,11 +39,18 @@ function Spinner() {
 }
 
 function AppRoutes() {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, modoVisao } = useAuth()
 
   if (loading) return <Spinner />
 
-  const home = profile ? (PERFIL_ROTA[profile.perfil] ?? '/login') : '/login'
+  let home = '/login'
+  if (profile) {
+    if (profile.acesso_total) {
+      home = modoVisao ? (MODO_ROTA[modoVisao] ?? '/selecionar-modulo') : '/selecionar-modulo'
+    } else {
+      home = PERFIL_ROTA[profile.perfil] ?? '/login'
+    }
+  }
 
   return (
     <Routes>
@@ -43,96 +58,46 @@ function AppRoutes() {
         path="/login"
         element={user && profile ? <Navigate to={home} replace /> : <Login />}
       />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Dashboard />
-          </ProtectedRoute>
-        }
+
+      {/* Seletor de módulo — exclusivo para admin total, sem ProtectedRoute padrão */}
+      <Route path="/selecionar-modulo" element={<SeletorModulo />} />
+
+      <Route path="/dashboard"
+        element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>}
       />
-      <Route
-        path="/pedidos"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Pedidos />
-          </ProtectedRoute>
-        }
+      <Route path="/pedidos"
+        element={<ProtectedRoute allowedRoles={['admin']}><Pedidos /></ProtectedRoute>}
       />
-      <Route
-        path="/cadastros"
-        element={
-          <ProtectedRoute allowedRoles={['admin']} requireAdminTotal>
-            <Cadastros />
-          </ProtectedRoute>
-        }
+      <Route path="/cadastros"
+        element={<ProtectedRoute allowedRoles={['admin']} requireAdminTotal><Cadastros /></ProtectedRoute>}
       />
-      <Route
-        path="/viagem"
-        element={
-          <ProtectedRoute allowedRoles={['motorista']}>
-            <Viagem />
-          </ProtectedRoute>
-        }
+      <Route path="/viagem"
+        element={<ProtectedRoute allowedRoles={['motorista']}><Viagem /></ProtectedRoute>}
       />
-      <Route
-        path="/tarefas"
-        element={
-          <ProtectedRoute allowedRoles={['conferente']}>
-            <Tarefas />
-          </ProtectedRoute>
-        }
+      <Route path="/tarefas"
+        element={<ProtectedRoute allowedRoles={['conferente']}><Tarefas /></ProtectedRoute>}
       />
-      <Route
-        path="/anomalias"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Anomalias />
-          </ProtectedRoute>
-        }
+      <Route path="/anomalias"
+        element={<ProtectedRoute allowedRoles={['admin']}><Anomalias /></ProtectedRoute>}
       />
-      <Route
-        path="/historico"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Historico />
-          </ProtectedRoute>
-        }
+      <Route path="/historico"
+        element={<ProtectedRoute allowedRoles={['admin']}><Historico /></ProtectedRoute>}
       />
-      <Route
-        path="/check-recebimento"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <CheckRecebimento />
-          </ProtectedRoute>
-        }
+      <Route path="/check-recebimento"
+        element={<ProtectedRoute allowedRoles={['admin']}><CheckRecebimento /></ProtectedRoute>}
       />
-      <Route
-        path="/portaria"
-        element={
-          <ProtectedRoute allowedRoles={['portaria']}>
-            <PortariaPage />
-          </ProtectedRoute>
-        }
+      <Route path="/portaria"
+        element={<ProtectedRoute allowedRoles={['portaria']}><PortariaPage /></ProtectedRoute>}
       />
-      <Route
-        path="/importacao"
-        element={
-          <ProtectedRoute allowedRoles={['admin']} requireAdminTotal>
-            <Importacao />
-          </ProtectedRoute>
-        }
+      <Route path="/importacao"
+        element={<ProtectedRoute allowedRoles={['admin']} requireAdminTotal><Importacao /></ProtectedRoute>}
       />
-      <Route
-        path="/portaria-admin"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <PortariaAdmin />
-          </ProtectedRoute>
-        }
+      <Route path="/portaria-admin"
+        element={<ProtectedRoute allowedRoles={['admin']}><PortariaAdmin /></ProtectedRoute>}
       />
-      <Route path="/" element={<Navigate to={home} replace />} />
-      <Route path="*" element={<Navigate to={home} replace />} />
+
+      <Route path="/"  element={<Navigate to={home} replace />} />
+      <Route path="*"  element={<Navigate to={home} replace />} />
     </Routes>
   )
 }

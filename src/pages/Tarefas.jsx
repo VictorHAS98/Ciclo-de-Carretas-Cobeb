@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   LogOut, ClipboardList, MapPin, ChevronLeft, CheckCircle, Clock,
-  AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X, FileText,
+  AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X, FileText, LayoutGrid,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -32,7 +33,8 @@ function calcCaixas(qtdeRecebida, pedido) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function Tarefas() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, setModoVisao } = useAuth()
+  const navigate = useNavigate()
 
   const [view, setView]             = useState('lista')
   const [tarefaSel, setTarefaSel]   = useState(null)
@@ -441,6 +443,13 @@ export default function Tarefas() {
           <button onClick={loadLista} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
             <RefreshCw size={16} />
           </button>
+          {profile?.acesso_total && (
+            <button onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
+              className="text-cobeb-yellow hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+              title="Trocar Módulo">
+              <LayoutGrid size={16} />
+            </button>
+          )}
           <button onClick={() => signOut()} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
             <LogOut size={18} />
           </button>

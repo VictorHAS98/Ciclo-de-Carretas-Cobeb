@@ -3,10 +3,24 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
+const MODO_KEY = 'cobeb_modo_visao'
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [modoVisao, setModoVisaoState] = useState(
+    () => sessionStorage.getItem(MODO_KEY) || null
+  )
+
+  function setModoVisao(modo) {
+    if (modo) {
+      sessionStorage.setItem(MODO_KEY, modo)
+    } else {
+      sessionStorage.removeItem(MODO_KEY)
+    }
+    setModoVisaoState(modo)
+  }
 
   const fetchProfile = async (userId) => {
     const { data, error } = await supabase
@@ -17,7 +31,6 @@ export function AuthProvider({ children }) {
 
     if (!error && data) {
       if (!data.ativo) {
-        // Conta inativa — deslogar imediatamente
         await supabase.auth.signOut()
         setLoading(false)
         return
@@ -42,6 +55,7 @@ export function AuthProvider({ children }) {
         fetchProfile(u.id)
       } else {
         setProfile(null)
+        setModoVisao(null)
         setLoading(false)
       }
     })
@@ -52,10 +66,13 @@ export function AuthProvider({ children }) {
   const signIn = (email, password) =>
     supabase.auth.signInWithPassword({ email, password })
 
-  const signOut = () => supabase.auth.signOut()
+  const signOut = async () => {
+    setModoVisao(null)
+    await supabase.auth.signOut()
+  }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, modoVisao, setModoVisao, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

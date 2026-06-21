@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X } from 'lucide-react'
+import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X, LayoutGrid } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -44,7 +44,7 @@ const STATUS_TABS = [
 ]
 
 export default function PortariaPage() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, setModoVisao } = useAuth()
   const navigate = useNavigate()
 
   const [atendimentos, setAtendimentos] = useState([])
@@ -141,6 +141,13 @@ export default function PortariaPage() {
           <button onClick={carregar} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10" title="Atualizar">
             <RefreshCw size={16} />
           </button>
+          {profile?.acesso_total && (
+            <button onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
+              className="text-cobeb-yellow hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+              title="Trocar Módulo">
+              <LayoutGrid size={16} />
+            </button>
+          )}
           <button onClick={handleLogout} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10" title="Sair">
             <LogOut size={18} />
           </button>

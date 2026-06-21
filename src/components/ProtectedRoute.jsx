@@ -9,10 +9,16 @@ const PERFIL_ROTA = {
 }
 
 export default function ProtectedRoute({ children, allowedRoles, requireAdminTotal }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, modoVisao } = useAuth()
 
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!user)   return <Navigate to="/login" replace />
+
+  // Admin total: passa em qualquer rota enquanto tiver um modo selecionado
+  if (profile?.acesso_total) {
+    if (!modoVisao) return <Navigate to="/selecionar-modulo" replace />
+    return children
+  }
 
   if (allowedRoles && profile && !allowedRoles.includes(profile.perfil)) {
     return <Navigate to={PERFIL_ROTA[profile.perfil] ?? '/login'} replace />

@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Truck, ChevronLeft, ChevronRight, Plus, Trash2,
   CheckCircle, Clock, MapPin, Factory, Home, Search,
   AlertCircle, WifiOff, RefreshCw, LogOut, Package,
-  AlertTriangle, User,
+  AlertTriangle, User, LayoutGrid,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -40,7 +41,8 @@ function diffHHMM(start, end) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function Viagem() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, setModoVisao } = useAuth()
+  const navigate = useNavigate()
 
   const [view, setView]               = useState('loading')
   const [viagemAtiva, setViagemAtiva] = useState(null)
@@ -359,6 +361,13 @@ export default function Viagem() {
         </div>
         <div className="flex items-center gap-3">
           {!isOnline && <WifiOff size={16} className="text-yellow-300" />}
+          {profile?.acesso_total && (
+            <button onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
+              className="text-cobeb-yellow hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+              title="Trocar Módulo">
+              <LayoutGrid size={16} />
+            </button>
+          )}
           <button onClick={async () => { await signOut() }} className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10">
             <LogOut size={18} />
           </button>
