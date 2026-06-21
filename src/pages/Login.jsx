@@ -22,7 +22,7 @@ function LogoCobeb({ baseUrl }) {
     <img
       src={`${baseUrl}logos/logo-cobeb-transparent.png`}
       alt="COBEB Distribuidora"
-      className="h-64 w-auto object-contain mb-1"
+      className="h-28 sm:h-40 md:h-52 w-auto object-contain mb-1"
       style={{ filter: 'brightness(0) invert(1)', opacity: 0.95 }}
       onError={() => setFailed(true)}
     />
@@ -232,7 +232,7 @@ export default function Login() {
   const base = import.meta.env.BASE_URL
 
   return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center px-5 py-10 overflow-hidden">
+    <div className="min-h-[100dvh] relative flex flex-col items-center justify-center px-5 py-4 sm:py-8 overflow-y-auto">
 
       {/* Foto real do galpão Ambev como fundo */}
       <div
@@ -246,7 +246,7 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-[380px]">
 
         {/* Logotipo — sem espaço excessivo */}
-        <div className="flex flex-col items-center mb-6">
+        <div className="flex flex-col items-center mb-3 sm:mb-5">
           <LogoCobeb baseUrl={base} />
           <p className="text-white/80 text-sm tracking-[0.3em] uppercase font-semibold -mt-1">
             Ciclo de Carretas
@@ -254,7 +254,7 @@ export default function Login() {
         </div>
 
         {/* Card de login */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-2xl shadow-black/30">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/20 shadow-2xl shadow-black/30">
           <p className="text-slate-500 text-sm mb-6 leading-relaxed">
             Entre com suas credenciais para acessar o sistema.
           </p>
@@ -330,7 +330,7 @@ export default function Login() {
         </div>
 
         {/* Rodapé com logo Ambev */}
-        <div className="flex flex-col items-center mt-6 gap-2">
+        <div className="flex flex-col items-center mt-4 sm:mt-6 gap-2">
           <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest">
             Distribuidora Oficial
           </p>
