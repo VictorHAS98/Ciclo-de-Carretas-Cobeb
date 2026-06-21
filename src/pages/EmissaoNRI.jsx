@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ChevronLeft, Plus, X, Download, Printer, AlertCircle, Loader2, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { jsPDF } from 'jspdf'
@@ -41,38 +41,29 @@ function newGrupo() {
   }
 }
 
-async function loadImgDataUrl(src) {
-  return new Promise(resolve => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const c = document.createElement('canvas')
-      c.width = img.naturalWidth
-      c.height = img.naturalHeight
-      c.getContext('2d').drawImage(img, 0, 0)
-      resolve(c.toDataURL('image/png'))
-    }
-    img.onerror = () => resolve(null)
-    img.src = src
-  })
-}
-
 // ── PDF: render one NRI block ─────────────────────────────────────────────────
 
 function renderNRI(doc, {
   nri, yBase, marginX, W,
   dataRecebimento, horaEmissao,
   cabecalho, placa, motorista, origem,
-  logoDataUrl,
 }) {
-  const x0 = marginX
+  const x0       = marginX
+  const BLUE     = [26, 79, 156]   // #1a4f9c
+  const BLACK    = [0, 0, 0]
+  const WHITE    = [255, 255, 255]
+  const GRAY_LT  = [230, 230, 230]
+  const GRAY_MID = [210, 210, 210]
+  const GRAY_TXT = [90, 90, 90]
+  const GRAY_BAR = [190, 190, 190]
 
-  // row heights
-  const r1H = 16  // logo + número
-  const r2H = 10  // descrição
-  const r3H = 27  // vencimento / curva
-  const r4H = 25  // recebimento / carregar até
-  const r5H = 17  // footer table
+  // row heights (total = 97mm dentro de 99mm)
+  const r1H = 15   // cabeçalho: logo texto + número
+  const r2H = 15   // produto: código + descrição
+  const r3H = 28   // vencimento + curva/carregar até
+  const r4H = 24   // informações de recebimento
+  const r5H = 15   // rodapé table
+  const totalH = r1H + r2H + r3H + r4H + r5H
 
   const r1Y = yBase + 1
   const r2Y = r1Y + r1H
@@ -80,128 +71,176 @@ function renderNRI(doc, {
   const r4Y = r3Y + r3H
   const r5Y = r4Y + r4H
 
-  // helper shortcuts
-  const black = () => doc.setTextColor(0, 0, 0)
-  const white = () => doc.setTextColor(255, 255, 255)
-  const hline = y => { doc.setDrawColor(0,0,0); doc.setLineWidth(0.25); doc.line(x0, y, x0 + W, y) }
-
-  // ─── Outer border ──────────────────────────────────────────────────────────
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(0.5)
-  doc.rect(x0, r1Y, W, r1H + r2H + r3H + r4H + r5H, 'S')
-
-  // ─── Row 1: Header ─────────────────────────────────────────────────────────
-  if (logoDataUrl) {
-    doc.addImage(logoDataUrl, 'PNG', x0 + 1, r1Y + 2, 30, 12)
+  const hline = (y, color = BLACK, lw = 0.25) => {
+    doc.setDrawColor(...color)
+    doc.setLineWidth(lw)
+    doc.line(x0, y, x0 + W, y)
   }
 
-  doc.setFontSize(30)
-  doc.setFont('helvetica', 'bold')
-  black()
-  doc.text(String(nri.numero), x0 + W * 0.5, r1Y + 13, { align: 'center' })
+  // Borda externa
+  doc.setDrawColor(...BLACK)
+  doc.setLineWidth(0.5)
+  doc.rect(x0, r1Y, W, totalH, 'S')
 
-  doc.setFontSize(6.5)
+  // ─── Row 1: Cabeçalho — logo texto (esq) + número (dir) ──────────────────
+
+  // "COBEB" — grande, negrito, azul
+  doc.setFontSize(19)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BLUE)
+  doc.text('COBEB', x0 + 3, r1Y + 9)
+
+  // "DISTRIBUIDORA AMBEV" — pequeno, espaçado, azul
+  doc.setFontSize(5.5)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(80, 80, 80)
-  doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 2, r1Y + 14, { align: 'right' })
+  doc.setCharSpace(2.5)
+  doc.setTextColor(...BLUE)
+  doc.text('DISTRIBUIDORA AMBEV', x0 + 3, r1Y + 13.5)
+  doc.setCharSpace(0)
+
+  // Número sequencial — grande, negrito, preto, lado direito
+  doc.setFontSize(22)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BLACK)
+  doc.text(String(nri.numero), x0 + W - 3, r1Y + 10, { align: 'right' })
+
+  // Código de barras numérico — mono, cinza claro, abaixo do número
+  doc.setFontSize(6)
+  doc.setFont('courier', 'normal')
+  doc.setTextColor(...GRAY_BAR)
+  doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 3, r1Y + 14, { align: 'right' })
 
   hline(r1Y + r1H)
 
-  // ─── Row 2: Descrição ──────────────────────────────────────────────────────
-  doc.setFontSize(11)
+  // ─── Row 2: Produto — código (cinza) + descrição (grande, bold, center) ──
+
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...GRAY_TXT)
+  doc.text(`CÓD. ${nri.codigo || ''}`, x0 + W / 2, r2Y + 5, { align: 'center' })
+
+  doc.setFontSize(12.5)
   doc.setFont('helvetica', 'bold')
-  black()
-  const descLines = doc.splitTextToSize(nri.descricao || '', W - 4)
-  doc.text(descLines[0], x0 + 2, r2Y + 7)
+  doc.setTextColor(...BLACK)
+  const descRaw   = (nri.descricao || '').toUpperCase()
+  const descLines = doc.splitTextToSize(descRaw, W - 6)
+  if (descLines.length === 1) {
+    doc.text(descLines[0], x0 + W / 2, r2Y + 12, { align: 'center' })
+  } else {
+    doc.text(descLines[0], x0 + W / 2, r2Y + 9,  { align: 'center' })
+    doc.text(descLines[1], x0 + W / 2, r2Y + 14, { align: 'center' })
+  }
 
   hline(r2Y + r2H)
 
-  // ─── Row 3: VENCIMENTO + CURVA ─────────────────────────────────────────────
-  const curvaW = 42
-  const vencW  = W - curvaW
+  // ─── Row 3: VENCIMENTO (esq, preto) + CURVA / CARREGAR ATÉ (dir, cinza) ──
 
-  doc.setFillColor(218, 218, 218)
-  doc.rect(x0, r3Y, vencW, r3H, 'F')
+  const rightW = 54
+  const leftW  = W - rightW
+  const halfH  = r3H / 2
 
-  doc.setFontSize(8)
+  // Bloco esquerdo: VENCIMENTO (fundo preto, texto branco)
+  doc.setFillColor(...BLACK)
+  doc.rect(x0, r3Y, leftW, r3H, 'F')
+
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
-  black()
-  doc.text('VENCIMENTO', x0 + vencW / 2, r3Y + 6, { align: 'center' })
-  doc.setFontSize(25)
-  doc.text(fmt2Y(nri.dataValidade), x0 + vencW / 2, r3Y + 22, { align: 'center' })
+  doc.setTextColor(...WHITE)
+  doc.text('VENCIMENTO', x0 + leftW / 2, r3Y + 6, { align: 'center' })
 
-  doc.setFillColor(0, 0, 0)
-  doc.rect(x0 + vencW, r3Y, curvaW, r3H, 'F')
-  doc.setFontSize(8)
+  doc.setFontSize(27)
   doc.setFont('helvetica', 'bold')
-  white()
-  doc.text('CURVA', x0 + vencW + curvaW / 2, r3Y + 6, { align: 'center' })
-  doc.setFontSize(28)
-  doc.text(nri.curva || '', x0 + vencW + curvaW / 2, r3Y + 23, { align: 'center' })
+  doc.setTextColor(...WHITE)
+  doc.text(fmt2Y(nri.dataValidade), x0 + leftW / 2, r3Y + 23, { align: 'center' })
+
+  // Bloco direito superior: CURVA (cinza claro)
+  doc.setFillColor(...GRAY_LT)
+  doc.rect(x0 + leftW, r3Y, rightW, halfH, 'F')
+
+  doc.setFontSize(6.5)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...GRAY_TXT)
+  doc.text('CURVA', x0 + leftW + rightW / 2, r3Y + 4.5, { align: 'center' })
+
+  doc.setFontSize(17)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BLACK)
+  doc.text(nri.curva || '', x0 + leftW + rightW / 2, r3Y + 12, { align: 'center' })
+
+  // Divisor entre curva e carregar até
+  doc.setDrawColor(...GRAY_TXT)
+  doc.setLineWidth(0.2)
+  doc.line(x0 + leftW, r3Y + halfH, x0 + W, r3Y + halfH)
+
+  // Bloco direito inferior: CARREGAR ATÉ (cinza médio)
+  doc.setFillColor(...GRAY_MID)
+  doc.rect(x0 + leftW, r3Y + halfH, rightW, halfH, 'F')
+
+  doc.setFontSize(6)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(...GRAY_TXT)
+  doc.text('CARREGAR ATÉ', x0 + leftW + rightW / 2, r3Y + halfH + 4.5, { align: 'center' })
+
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...BLACK)
+  doc.text(fmt2Y(minus30(nri.dataValidade)), x0 + leftW + rightW / 2, r3Y + halfH + 11.5, { align: 'center' })
+
+  // Divisor vertical entre esq e dir
+  doc.setDrawColor(...BLACK)
+  doc.setLineWidth(0.25)
+  doc.line(x0 + leftW, r3Y, x0 + leftW, r3Y + r3H)
 
   hline(r3Y + r3H)
 
-  // ─── Row 4: Informações + CARREGAR ATÉ ─────────────────────────────────────
-  const carregarW = 44
-  const infoW     = W - carregarW
+  // ─── Row 4: Informações de recebimento ────────────────────────────────────
 
   doc.setFontSize(7.5)
-  black()
-  doc.setFont('helvetica', 'normal')
-  doc.text(`RECEBIMENTO: ${dataRecebimento}`,                        x0 + 2, r4Y + 5.5)
-  doc.setFont('helvetica', 'bold')
-  doc.text(`RESPONSÁVEL: ${(cabecalho.operador || '').toUpperCase()}`, x0 + 2, r4Y + 11.5)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`PLACA: ${placa}`,                                         x0 + 2, r4Y + 17.5)
-  doc.text(`CONFERENTE: ${(cabecalho.conferente || '').toUpperCase()}`,x0 + 2, r4Y + 23.5)
+  doc.setTextColor(...BLACK)
 
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(0.25)
-  doc.line(x0 + infoW, r4Y, x0 + infoW, r4Y + r4H)
-
-  doc.setFillColor(0, 0, 0)
-  doc.rect(x0 + infoW, r4Y, carregarW, r4H, 'F')
-  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`RECEBIMENTO: ${dataRecebimento}`,                          x0 + 3, r4Y + 6)
   doc.setFont('helvetica', 'bold')
-  white()
-  doc.text('CARREGAR ATÉ:', x0 + infoW + carregarW / 2, r4Y + 7, { align: 'center' })
-  doc.setFontSize(15)
-  doc.text(fmt2Y(minus30(nri.dataValidade)), x0 + infoW + carregarW / 2, r4Y + 19, { align: 'center' })
+  doc.text(`RESPONSÁVEL: ${(cabecalho.operador   || '').toUpperCase()}`, x0 + 3, r4Y + 12)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`PLACA: ${placa}`,                                           x0 + 3, r4Y + 18)
+  doc.text(`CONFERENTE: ${(cabecalho.conferente || '').toUpperCase()}`, x0 + 3, r4Y + 24)
 
   hline(r4Y + r4H)
 
-  // ─── Row 5: Footer table ───────────────────────────────────────────────────
+  // ─── Row 5: Rodapé table ──────────────────────────────────────────────────
+
   const cols = [
-    { label: 'OPERADOR',   value: (cabecalho.operador  || '').toUpperCase(), w: 0.27 },
-    { label: 'TURNO',      value:  cabecalho.turno      || '',               w: 0.10 },
-    { label: 'HORA',       value:  horaEmissao,                              w: 0.13 },
-    { label: 'ORIGEM',     value: (origem || '').toUpperCase(),              w: 0.27 },
-    { label: 'MOTORISTA',  value: (motorista || '').toUpperCase(),           w: 0.23 },
+    { label: 'OPERADOR',  value: (cabecalho.operador  || '').toUpperCase(), w: 0.27 },
+    { label: 'TURNO',     value:  cabecalho.turno      || '',               w: 0.10 },
+    { label: 'HORA',      value:  horaEmissao,                              w: 0.13 },
+    { label: 'ORIGEM',    value: (origem    || '').toUpperCase(),           w: 0.27 },
+    { label: 'MOTORISTA', value: (motorista || '').toUpperCase(),           w: 0.23 },
   ]
 
-  const headerH = 6
-  const dataH   = r5H - headerH
+  const hdrH = 6
+  const datH = r5H - hdrH
   let cx = x0
 
   for (const col of cols) {
-    const cW = Math.round(col.w * W * 100) / 100
+    const cW = col.w * W
 
-    doc.setFillColor(0, 0, 0)
-    doc.rect(cx, r5Y, cW, headerH, 'F')
-    doc.setFontSize(6)
+    doc.setFillColor(...BLACK)
+    doc.rect(cx, r5Y, cW, hdrH, 'F')
+    doc.setFontSize(5.5)
     doc.setFont('helvetica', 'bold')
-    white()
-    doc.text(col.label, cx + cW / 2, r5Y + 4.2, { align: 'center' })
+    doc.setTextColor(...WHITE)
+    doc.text(col.label, cx + cW / 2, r5Y + 4.1, { align: 'center' })
 
-    doc.setFillColor(255, 255, 255)
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.rect(cx, r5Y + headerH, cW, dataH, 'FD')
+    doc.setFillColor(...WHITE)
+    doc.setDrawColor(...BLACK)
+    doc.setLineWidth(0.15)
+    doc.rect(cx, r5Y + hdrH, cW, datH, 'FD')
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
-    black()
-    const val = doc.splitTextToSize(col.value, cW - 2)
-    doc.text(val[0] || '', cx + cW / 2, r5Y + headerH + dataH * 0.65, { align: 'center' })
+    doc.setTextColor(...BLACK)
+    const v = doc.splitTextToSize(col.value, cW - 2)
+    doc.text(v[0] || '', cx + cW / 2, r5Y + hdrH + datH * 0.65, { align: 'center' })
 
     cx += cW
   }
@@ -210,17 +249,12 @@ function renderNRI(doc, {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
-  const [cab, setCab] = useState({ operador: '', conferente: profileNome, turno: '' })
-  const [grupos, setGrupos]       = useState([newGrupo()])
-  const [errCab, setErrCab]       = useState({})
-  const [gerando, setGerando]     = useState(false)
-  const [pdfUrl, setPdfUrl]       = useState(null)
-  const [pdfFilename, setPdfFn]   = useState('')
-  const [logoDataUrl, setLogo]    = useState(null)
-
-  useEffect(() => {
-    loadImgDataUrl(`${import.meta.env.BASE_URL}logos/logo-cobeb-dist.png`).then(setLogo)
-  }, [])
+  const [cab, setCab]           = useState({ operador: '', conferente: profileNome, turno: '' })
+  const [grupos, setGrupos]     = useState([newGrupo()])
+  const [errCab, setErrCab]     = useState({})
+  const [gerando, setGerando]   = useState(false)
+  const [pdfUrl, setPdfUrl]     = useState(null)
+  const [pdfFilename, setPdfFn] = useState('')
 
   // Dados automáticos da viagem
   const placa     = tarefa.viagem?.carreta?.placa ?? tarefa.viagem?.cavalo?.placa ?? ''
@@ -301,14 +335,14 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
       if (error) throw error
 
       await supabase.from('nri_emissoes').insert({
-        tarefa_id:      tarefa.id,
-        numero_nf:      tarefa.numero_nf,
-        operador:       cab.operador.trim(),
-        conferente:     cab.conferente.trim(),
-        turno:          cab.turno,
-        total_nris:     totalNRIs,
+        tarefa_id:       tarefa.id,
+        numero_nf:       tarefa.numero_nf,
+        operador:        cab.operador.trim(),
+        conferente:      cab.conferente.trim(),
+        turno:           cab.turno,
+        total_nris:      totalNRIs,
         primeiro_numero: primeiro,
-        ultimo_numero:  primeiro + totalNRIs - 1,
+        ultimo_numero:   primeiro + totalNRIs - 1,
       })
 
       // Montar lista de todas as NRIs
@@ -318,23 +352,29 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
         const qtd = Number(gr.qtdePaletes)
         for (let p = 0; p < qtd; p++) {
           for (let n = 0; n < 3; n++) {
-            allNRIs.push({ numero: num++, descricao: gr.descricao, dataValidade: gr.dataValidade, curva: gr.curva ?? '' })
+            allNRIs.push({
+              numero:       num++,
+              codigo:       gr.codigo,
+              descricao:    gr.descricao,
+              dataValidade: gr.dataValidade,
+              curva:        gr.curva ?? '',
+            })
           }
         }
       }
 
-      const now           = new Date()
-      const horaEmissao   = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      const now             = new Date()
+      const horaEmissao     = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       const dataRecebimento = now.toLocaleDateString('pt-BR')
 
-      const doc      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const pageW    = 210
-      const pageH    = 297
-      const nriH     = pageH / 3   // 99mm
-      const marginX  = 3
-      const W        = pageW - 2 * marginX  // 204mm
+      const doc     = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW   = 210
+      const pageH   = 297
+      const nriH    = pageH / 3   // 99mm
+      const marginX = 3
+      const W       = pageW - 2 * marginX  // 204mm
 
-      const ctx = { marginX, W, dataRecebimento, horaEmissao, cabecalho: cab, placa, motorista, origem, logoDataUrl }
+      const ctx = { marginX, W, dataRecebimento, horaEmissao, cabecalho: cab, placa, motorista, origem }
 
       for (let i = 0; i < allNRIs.length; i++) {
         const posOnPage = i % 3
@@ -343,14 +383,14 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
         const yBase = posOnPage * nriH
         renderNRI(doc, { nri: allNRIs[i], yBase, ...ctx })
 
-        // Linha tracejada entre NRIs (não após a última da página e não após a última de todas)
+        // Linha tracejada entre NRIs (não após a última da página nem após a última de todas)
         const isLastOnPage = posOnPage === 2
         const isLastNRI    = i === allNRIs.length - 1
         if (!isLastOnPage && !isLastNRI) {
-          const dashY = yBase + nriH - 1
-          doc.setLineDashPattern([1.5, 1.5], 0)
-          doc.setDrawColor(160, 160, 160)
-          doc.setLineWidth(0.3)
+          const dashY = yBase + nriH - 0.5
+          doc.setLineDashPattern([2, 1.5], 0)
+          doc.setDrawColor(100, 100, 100)
+          doc.setLineWidth(0.4)
           doc.line(marginX, dashY, pageW - marginX, dashY)
           doc.setLineDashPattern([], 0)
         }
@@ -360,10 +400,10 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
       const filename = `NRI_${tarefa.numero_nf}_${dateStr}.pdf`
       setPdfFn(filename)
 
-      // Download automático (mais compatível entre browsers e mobile)
+      // Download automático
       doc.save(filename)
 
-      // Guarda blob URL para o botão Imprimir
+      // Guarda blob URL para botão Imprimir
       const blob = doc.output('blob')
       const url  = URL.createObjectURL(blob)
       setPdfUrl(url)
@@ -398,8 +438,8 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
     }
   }
 
-  const totalNRIs    = grupos.reduce((s, gr) => s + (Number(gr.qtdePaletes) > 0 ? Number(gr.qtdePaletes) * 3 : 0), 0)
-  const totalFolhas  = Math.ceil(totalNRIs / 3)
+  const totalNRIs   = grupos.reduce((s, gr) => s + (Number(gr.qtdePaletes) > 0 ? Number(gr.qtdePaletes) * 3 : 0), 0)
+  const totalFolhas = Math.ceil(totalNRIs / 3)
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -433,9 +473,9 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
             <div className="bg-white rounded-2xl border border-cobeb-border px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">Dados da Viagem</p>
               <div className="grid grid-cols-3 gap-3 text-xs">
-                {placa    && <div><p className="text-slate-400 text-[10px]">Placa</p><p className="text-cobeb-text font-semibold font-mono">{placa}</p></div>}
+                {placa     && <div><p className="text-slate-400 text-[10px]">Placa</p><p className="text-cobeb-text font-semibold font-mono">{placa}</p></div>}
                 {motorista && <div><p className="text-slate-400 text-[10px]">Motorista</p><p className="text-cobeb-text font-semibold truncate">{motorista}</p></div>}
-                {origem   && <div><p className="text-slate-400 text-[10px]">Origem</p><p className="text-cobeb-text font-semibold truncate">{origem}</p></div>}
+                {origem    && <div><p className="text-slate-400 text-[10px]">Origem</p><p className="text-cobeb-text font-semibold truncate">{origem}</p></div>}
               </div>
             </div>
           )}
@@ -508,7 +548,6 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
             <div className="space-y-4">
               {grupos.map((gr, idx) => (
                 <div key={gr._id} className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
-                  {/* Group header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-cobeb-border/60 bg-[#EBF5FF]/50">
                     <span className="text-[11px] font-semibold text-cobeb-navy">Produto {idx + 1}</span>
                     {grupos.length > 1 && (
@@ -562,7 +601,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
                       )}
                     </div>
 
-                    {/* Quantidade de paletes */}
+                    {/* Quantidade */}
                     <div>
                       <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 block mb-1.5">
                         Qtde de Paletes <span className="text-cobeb-yellow">*</span>
@@ -613,7 +652,6 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
               ))}
             </div>
 
-            {/* Adicionar produto */}
             <button
               onClick={() => setGrupos(g => [...g, newGrupo()])}
               className="mt-3 w-full border-2 border-dashed border-cobeb-border hover:border-cobeb-blue/40 text-slate-500 hover:text-cobeb-navy text-xs font-semibold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2"
@@ -622,7 +660,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
             </button>
           </section>
 
-          {/* Resultado do PDF */}
+          {/* Resultado */}
           {pdfUrl && (
             <section className="bg-green-500/10 border border-green-500/30 rounded-2xl px-4 py-4 space-y-3">
               <p className="text-green-400 text-xs font-semibold flex items-center gap-2">
@@ -645,7 +683,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
         </div>
       </main>
 
-      {/* Footer actions */}
+      {/* Footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cobeb-border px-4 py-3 z-30">
         <div className="max-w-lg mx-auto flex gap-3">
           <button onClick={onVoltar}
