@@ -1,9 +1,9 @@
 ﻿import { useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History, ClipboardCheck, Database, DoorOpen } from 'lucide-react'
+import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History, ClipboardCheck, Database, DoorOpen, LayoutGrid } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AdminLayout({ title, children }) {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, setModoVisao } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -59,13 +59,24 @@ export default function AdminLayout({ title, children }) {
           </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
-          title="Sair"
-        >
-          <LogOut size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          {isAdminTotal && (
+            <button
+              onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
+              className="text-cobeb-yellow hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+              title="Trocar Módulo"
+            >
+              <LayoutGrid size={18} />
+            </button>
+          )}
+          <button
+            onClick={handleLogout}
+            className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+            title="Sair"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto pb-20">
