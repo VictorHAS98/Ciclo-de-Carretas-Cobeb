@@ -360,6 +360,10 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
       const filename = `NRI_${tarefa.numero_nf}_${dateStr}.pdf`
       setPdfFn(filename)
 
+      // Download automático (mais compatível entre browsers e mobile)
+      doc.save(filename)
+
+      // Guarda blob URL para o botão Imprimir
       const blob = doc.output('blob')
       const url  = URL.createObjectURL(blob)
       setPdfUrl(url)
@@ -376,7 +380,9 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, onVoltar }) {
     const a = document.createElement('a')
     a.href = pdfUrl
     a.download = pdfFilename
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
   }
 
   function imprimirPdf() {
