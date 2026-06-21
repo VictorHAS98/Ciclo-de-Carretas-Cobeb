@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { ClipboardCheck, Search, X, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { ClipboardCheck, Search, X, ChevronDown, ChevronUp, RefreshCw, Download, FileText } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
+import { gerarNRIPdf } from '../lib/nriPdf'
 
 function ptDate(iso) {
   if (!iso) return '—'
@@ -34,14 +35,15 @@ const pillOn   = 'bg-cobeb-navy border-orange-500 text-white'
 const pillOff  = 'bg-transparent border-cobeb-border text-slate-500 hover:border-orange-500/50 hover:text-cobeb-text'
 
 export default function CheckRecebimento() {
-  const [grupos,      setGrupos]      = useState([])
-  const [unidades,    setUnidades]    = useState([])
-  const [loading,     setLoading]     = useState(true)
-  const [expanded,    setExpanded]    = useState(new Set())
-  const [filtData,    setFiltData]    = useState('')
-  const [filtUnidade, setFiltUnidade] = useState('')
-  const [filtFabrica, setFiltFabrica] = useState('')
-  const [search,      setSearch]      = useState('')
+  const [grupos,       setGrupos]      = useState([])
+  const [unidades,     setUnidades]    = useState([])
+  const [loading,      setLoading]     = useState(true)
+  const [expanded,     setExpanded]    = useState(new Set())
+  const [filtData,     setFiltData]    = useState('')
+  const [filtUnidade,  setFiltUnidade] = useState('')
+  const [filtFabrica,  setFiltFabrica] = useState('')
+  const [search,       setSearch]      = useState('')
+  const [baixandoNRI,  setBaixandoNRI] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -80,7 +82,7 @@ export default function CheckRecebimento() {
     const tarefaIds = lista.map(t => t.id)
     const viagemIds = [...new Set(lista.map(t => t.viagem_id).filter(Boolean))]
 
-    const [{ data: pedidos }, { data: itens }, { data: viagens }, { data: unis }] = await Promise.all([
+    const [{ data: pedidos }, { data: itens }, { data: viagens }, { data: unis }, { data: emissoes }] = await Promise.all([
       viagemIds.length
         ? supabase.from('pedidos')
             .select('id, cod_produto, descricao, embalagem, qtde_pallets, qtde_skus, fabrica, numero_pedido, viagem_id')
@@ -91,10 +93,14 @@ export default function CheckRecebimento() {
         .in('tarefa_id', tarefaIds),
       viagemIds.length
         ? supabase.from('viagens')
-            .select('id, dt_chegada_revenda, cavalo:cavalos(placa)')
+            .select('id, dt_chegada_revenda, carreta:carretas(placa), cavalo:cavalos(placa), motorista:profiles(nome)')
             .in('id', viagemIds)
         : { data: [] },
       supabase.from('unidades').select('id, nome, cidade, codigo').order('nome'),
+      supabase.from('nri_emissoes')
+        .select('*')
+        .in('tarefa_id', tarefaIds)
+        .order('created_at', { ascending: false }),
     ])
 
     // Mapas de lookup
@@ -112,6 +118,10 @@ export default function CheckRecebimento() {
 
     const viagemById = {}
     ;(viagens ?? []).forEach(v => { viagemById[v.id] = v })
+
+    // Mapa tarefa_id → emissão mais recente
+    const nriByTarefa = {}
+    ;(emissoes ?? []).forEach(e => { if (!nriByTarefa[e.tarefa_id]) nriByTarefa[e.tarefa_id] = e })
 
     const result = lista
       .filter(t => (pedsByViagem[t.viagem_id] ?? []).length > 0)
@@ -138,7 +148,10 @@ export default function CheckRecebimento() {
           status: t.status,
           unidade_id: t.unidade_id,
           unidade: t.unidade,
-          placa_cavalo: viagem?.cavalo?.placa ?? null,
+          viagem_id: t.viagem_id,
+          placa_carreta: viagem?.carreta?.placa ?? null,
+          placa_cavalo:  viagem?.cavalo?.placa  ?? null,
+          motorista:     viagem?.motorista?.nome ?? null,
           data,
           fabricas,
           produtos,
@@ -147,6 +160,7 @@ export default function CheckRecebimento() {
           conferidoCount,
           totalProd: peds.length,
           temDivergencia,
+          nriEmissao: nriByTarefa[t.id] ?? null,
         }
       })
 
@@ -176,6 +190,58 @@ export default function CheckRecebimento() {
       n.has(id) ? n.delete(id) : n.add(id)
       return n
     })
+  }
+
+  async function baixarNRI(g) {
+    const emissao = g.nriEmissao
+    if (!emissao) return
+    setBaixandoNRI(g.id)
+    try {
+      const { data: itens } = await supabase
+        .from('conferencia_itens')
+        .select('qtde_recebida, data_validade, pedido:pedidos(cod_produto, descricao, curva, fabrica)')
+        .eq('tarefa_id', g.id)
+        .gt('qtde_recebida', 0)
+
+      const allNRIs = []
+      let num = emissao.primeiro_numero
+      for (const item of (itens ?? [])) {
+        const qtd = Number(item.qtde_recebida)
+        for (let p = 0; p < qtd; p++) {
+          for (let n = 0; n < 3; n++) {
+            allNRIs.push({
+              numero:       num++,
+              codigo:       item.pedido?.cod_produto ?? '',
+              descricao:    item.pedido?.descricao   ?? '',
+              dataValidade: item.data_validade        ?? '',
+              curva:        item.pedido?.curva        ?? '',
+            })
+          }
+        }
+      }
+
+      const emissaoDate     = new Date(emissao.created_at)
+      const dataRecebimento = emissaoDate.toLocaleDateString('pt-BR')
+      const horaEmissao     = emissaoDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      const dateStr         = emissao.created_at.slice(0, 10).replace(/-/g, '')
+      const filename        = `NRI_${g.numero_nf}_${dateStr}.pdf`
+      const origem          = itens?.[0]?.pedido?.fabrica ?? ''
+
+      gerarNRIPdf({
+        allNRIs,
+        cabecalho:   { operador: emissao.operador, conferente: emissao.conferente, turno: emissao.turno },
+        placaCarreta: g.placa_carreta ?? '',
+        placaCavalo:  g.placa_cavalo  ?? '',
+        numeroNF:     g.numero_nf     ?? '',
+        motorista:    g.motorista     ?? '',
+        origem,
+        dataRecebimento,
+        horaEmissao,
+        filename,
+      })
+    } finally {
+      setBaixandoNRI(null)
+    }
   }
 
   const temFiltroAtivo = filtData || filtUnidade || filtFabrica || search
@@ -288,6 +354,15 @@ export default function CheckRecebimento() {
                             Divergência
                           </span>
                         )}
+                        {g.nriEmissao ? (
+                          <span className="text-[10px] font-semibold bg-cobeb-navy/10 text-cobeb-navy border border-cobeb-navy/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                            <FileText size={9} />NRI
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded-full shrink-0">
+                            Sem NRI
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-slate-500 text-[10px]">{ptDate(g.data)}</span>
@@ -391,6 +466,34 @@ export default function CheckRecebimento() {
                             Rec: {g.totalRecPal.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pal
                           </span>
                         </div>
+                      </div>
+
+                      {/* NRI */}
+                      <div className="px-4 py-3 border-t border-cobeb-border/40">
+                        {g.nriEmissao ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-semibold text-cobeb-navy">NRI emitida</p>
+                              <p className="text-slate-400 text-[10px]">
+                                {g.nriEmissao.total_nris} NRIs · Nº {g.nriEmissao.primeiro_numero}–{g.nriEmissao.ultimo_numero}
+                                {' · '}{new Date(g.nriEmissao.created_at).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => baixarNRI(g)}
+                              disabled={baixandoNRI === g.id}
+                              className="flex items-center gap-1.5 bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-[11px] font-semibold px-3 py-2 rounded-xl transition-colors shrink-0"
+                            >
+                              {baixandoNRI === g.id
+                                ? <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                                : <><Download size={12} />Baixar NRI</>}
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 text-[11px] flex items-center gap-1.5">
+                            <FileText size={11} />NRI não emitida
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
