@@ -32,10 +32,10 @@ export function renderNRI(doc, {
   const GRAY_BR = [185, 185, 185]
 
   const r1H = 11
-  const r2H = 20
-  const r3H = 33
-  const r4H = 22
-  const r5H = 11
+  const r2H = 28   // código 40pt + descrição 20pt
+  const r3H = 27
+  const r4H = 21
+  const r5H = 10
   const totalH = r1H + r2H + r3H + r4H + r5H  // 97mm
 
   const r1Y = yBase + 1
@@ -59,18 +59,22 @@ export function renderNRI(doc, {
   doc.text(String(nri.numero).padStart(12, '0'), x0 + W - 3, r1Y + 9, { align: 'right' })
   hline(r1Y + r1H)
 
-  // Row 2
-  doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLACK)
+  // Row 2 — Código 40pt (destaque) + Descrição 20pt
+  doc.setTextColor(...BLACK)
+
+  // Código — 40pt negrito, centralizado
+  doc.setFontSize(40); doc.setFont('helvetica', 'bold')
+  doc.text(`CÓD. ${nri.codigo || ''}`, x0 + W / 2, r2Y + 14, { align: 'center' })
+
+  // Descrição — 20pt negrito, centralizado
+  doc.setFontSize(20); doc.setFont('helvetica', 'bold')
   const descRaw   = (nri.descricao || '').toUpperCase()
   const descLines = doc.splitTextToSize(descRaw, W - 6)
-  const codeLine  = `CÓD. ${nri.codigo || ''}`
   if (descLines.length === 1) {
-    doc.text(codeLine,     x0 + W / 2, r2Y + 7,  { align: 'center' })
-    doc.text(descLines[0], x0 + W / 2, r2Y + 15, { align: 'center' })
+    doc.text(descLines[0], x0 + W / 2, r2Y + 24, { align: 'center' })
   } else {
-    doc.text(codeLine,     x0 + W / 2, r2Y + 5,  { align: 'center' })
-    doc.text(descLines[0], x0 + W / 2, r2Y + 11, { align: 'center' })
-    doc.text(descLines[1], x0 + W / 2, r2Y + 17, { align: 'center' })
+    doc.text(descLines[0], x0 + W / 2, r2Y + 22, { align: 'center' })
+    doc.text(descLines[1], x0 + W / 2, r2Y + 28, { align: 'center' })
   }
   hline(r2Y + r2H)
 
@@ -91,9 +95,9 @@ export function renderNRI(doc, {
 
   doc.setFillColor(...GRAY_LT); doc.rect(x0 + leftW, r3Y, rightW, halfH, 'F')
   doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY_TX)
-  doc.text('CURVA', x0 + leftW + rightW / 2, r3Y + 5, { align: 'center' })
-  doc.setFontSize(19); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLACK)
-  doc.text(nri.curva || '', x0 + leftW + rightW / 2, r3Y + 14, { align: 'center' })
+  doc.text('CURVA', x0 + leftW + rightW / 2, r3Y + 4.5, { align: 'center' })
+  doc.setFontSize(17); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLACK)
+  doc.text(nri.curva || '', x0 + leftW + rightW / 2, r3Y + 12, { align: 'center' })
 
   doc.setDrawColor(...GRAY_TX); doc.setLineWidth(0.2)
   doc.line(x0 + leftW, r3Y + halfH, x0 + W, r3Y + halfH)
