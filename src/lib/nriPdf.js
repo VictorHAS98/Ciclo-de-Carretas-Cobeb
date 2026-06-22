@@ -62,9 +62,9 @@ export function renderNRI(doc, {
   // Row 2 — Código 40pt (destaque) + Descrição 20pt
   doc.setTextColor(...BLACK)
 
-  // Código — 40pt negrito, centralizado
+  // Código — 40pt negrito, centralizado (só o número)
   doc.setFontSize(40); doc.setFont('helvetica', 'bold')
-  doc.text(`CÓD. ${nri.codigo || ''}`, x0 + W / 2, r2Y + 14, { align: 'center' })
+  doc.text(String(nri.codigo || ''), x0 + W / 2, r2Y + 14, { align: 'center' })
 
   // Descrição — 20pt negrito, centralizado
   doc.setFontSize(20); doc.setFont('helvetica', 'bold')
@@ -89,9 +89,12 @@ export function renderNRI(doc, {
   const dateStr = fmt2Y(nri.dataValidade)
   doc.setFont('helvetica', 'bold'); doc.setFontSize(40)
   const w40 = doc.getTextWidth(dateStr)
-  doc.setFontSize(Math.min(Math.floor(40 * (leftW - 6) / w40), 95))
+  // Limita pelo espaço disponível em largura E em altura (abaixo do label "VENCIMENTO")
+  const maxByWidth  = Math.floor(40 * (leftW - 6) / w40)
+  const maxByHeight = Math.floor(18 / (0.353 * 0.72))  // ~71pt — garante não sobrepor o label
+  doc.setFontSize(Math.min(maxByWidth, maxByHeight))
   doc.setTextColor(...WHITE)
-  doc.text(dateStr, x0 + leftW / 2, r3Y + r3H - 3, { align: 'center' })
+  doc.text(dateStr, x0 + leftW / 2, r3Y + r3H - 2, { align: 'center' })
 
   doc.setFillColor(...GRAY_LT); doc.rect(x0 + leftW, r3Y, rightW, halfH, 'F')
   doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY_TX)
