@@ -21,6 +21,7 @@ const PERFIL_ROTA = {
   motorista:  '/viagem',
   conferente: '/tarefas',
   portaria:   '/portaria',
+  empilheira: '/estoque',
 }
 
 const MODO_ROTA = {
@@ -28,6 +29,7 @@ const MODO_ROTA = {
   motorista:  '/viagem',
   conferente: '/tarefas',
   portaria:   '/portaria',
+  empilheira: '/estoque',
 }
 
 function Spinner() {
