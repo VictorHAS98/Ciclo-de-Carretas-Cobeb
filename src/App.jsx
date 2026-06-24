@@ -15,6 +15,7 @@ import PortariaPage from './pages/PortariaPage'
 import Importacao from './pages/Importacao'
 import PortariaAdmin from './pages/PortariaAdmin'
 import SeletorModulo from './pages/SeletorModulo'
+import EstoqueRealtime from './pages/EstoqueRealtime'
 
 const PERFIL_ROTA = {
   admin:      '/dashboard',
@@ -96,6 +97,9 @@ function AppRoutes() {
       />
       <Route path="/portaria-admin"
         element={<ProtectedRoute allowedRoles={['admin']}><PortariaAdmin /></ProtectedRoute>}
+      />
+      <Route path="/estoque"
+        element={<ProtectedRoute allowedRoles={['empilheira']}><EstoqueRealtime /></ProtectedRoute>}
       />
 
       <Route path="/"  element={<Navigate to={home} replace />} />
