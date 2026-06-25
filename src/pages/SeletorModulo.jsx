@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Truck, ClipboardList, Shield, LogOut } from 'lucide-react'
+import { LayoutDashboard, Truck, ClipboardList, Shield, Monitor, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const MODULOS = [
@@ -46,6 +46,17 @@ const MODULOS = [
     borda:  'border-cobeb-yellow/40',
     texto:  'text-yellow-700',
     fundo:  'bg-cobeb-yellow/5 hover:bg-cobeb-yellow/10',
+  },
+  {
+    key:    'empilheira',
+    rota:   '/estoque',
+    label:  'Painel Tempo Real',
+    desc:   'Monitoramento de veículos em tempo real',
+    Icon:   Monitor,
+    cor:    'bg-orange-500',
+    borda:  'border-orange-500/30',
+    texto:  'text-orange-600',
+    fundo:  'bg-orange-500/5 hover:bg-orange-500/10',
   },
 ]
 
