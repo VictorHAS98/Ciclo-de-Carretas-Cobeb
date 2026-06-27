@@ -47,7 +47,7 @@ const STEP_LABELS = ['Saída', 'Em Rota', 'Fábrica', 'Retorno', 'Chegou']
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export default function EstoqueRealtime() {
+export default function EstoqueRealtime({ adminMode = false }) {
   const { profile, signOut } = useAuth()
   const [viagens,    setViagens]    = useState([])
   const [loading,    setLoading]    = useState(true)
@@ -95,6 +95,50 @@ export default function EstoqueRealtime() {
 
   const urgentes = viagens.filter(v => v.status === 'retornando').length
 
+  const conteudo = (
+    <>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <div className="w-8 h-8 border-2 border-cobeb-navy border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 text-sm">Carregando veículos...</p>
+        </div>
+      ) : viagens.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="px-4 pt-4 space-y-3 max-w-lg mx-auto">
+          <div className="flex items-center justify-between">
+            <p className="text-cobeb-text font-semibold text-sm">
+              {viagens.length} veículo{viagens.length !== 1 ? 's' : ''} ativo{viagens.length !== 1 ? 's' : ''}
+            </p>
+            {urgentes > 0 && (
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-200 px-2.5 py-1 rounded-full">
+                <AlertTriangle size={11} />
+                {urgentes} retornando
+              </span>
+            )}
+            {lastUpdate && (
+              <span className="text-slate-400 text-[10px]">
+                {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+          {viagens.map(v => (
+            <ViagemCard
+              key={v.id}
+              viagem={v}
+              expanded={expanded.has(v.id)}
+              onToggle={() => toggleExpand(v.id)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+
+  if (adminMode) {
+    return <div className="pb-6">{conteudo}</div>
+  }
+
   return (
     <div className="min-h-dvh bg-[#EBF5FF] flex flex-col">
 
@@ -139,42 +183,8 @@ export default function EstoqueRealtime() {
         </div>
       </header>
 
-      {/* Conteúdo */}
       <main className="flex-1 overflow-y-auto pb-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <div className="w-8 h-8 border-2 border-cobeb-navy border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-500 text-sm">Carregando veículos...</p>
-          </div>
-        ) : viagens.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="px-4 pt-4 space-y-3 max-w-lg mx-auto">
-
-            {/* Resumo */}
-            <div className="flex items-center justify-between">
-              <p className="text-cobeb-text font-semibold text-sm">
-                {viagens.length} veículo{viagens.length !== 1 ? 's' : ''} ativo{viagens.length !== 1 ? 's' : ''}
-              </p>
-              {urgentes > 0 && (
-                <span className="flex items-center gap-1.5 text-[11px] font-bold text-yellow-600 bg-yellow-50 border border-yellow-200 px-2.5 py-1 rounded-full">
-                  <AlertTriangle size={11} />
-                  {urgentes} retornando
-                </span>
-              )}
-            </div>
-
-            {/* Cards */}
-            {viagens.map(v => (
-              <ViagemCard
-                key={v.id}
-                viagem={v}
-                expanded={expanded.has(v.id)}
-                onToggle={() => toggleExpand(v.id)}
-              />
-            ))}
-          </div>
-        )}
+        {conteudo}
       </main>
     </div>
   )

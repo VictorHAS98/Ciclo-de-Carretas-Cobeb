@@ -16,6 +16,7 @@ import Importacao from './pages/Importacao'
 import PortariaAdmin from './pages/PortariaAdmin'
 import SeletorModulo from './pages/SeletorModulo'
 import EstoqueRealtime from './pages/EstoqueRealtime'
+import AdminLayout from './components/AdminLayout'
 
 const PERFIL_ROTA = {
   admin:      '/dashboard',
@@ -100,6 +101,9 @@ function AppRoutes() {
       />
       <Route path="/estoque"
         element={<ProtectedRoute allowedRoles={['empilheira']}><EstoqueRealtime /></ProtectedRoute>}
+      />
+      <Route path="/painel-realtime"
+        element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout title="Painel Tempo Real"><EstoqueRealtime adminMode /></AdminLayout></ProtectedRoute>}
       />
 
       <Route path="/"  element={<Navigate to={home} replace />} />

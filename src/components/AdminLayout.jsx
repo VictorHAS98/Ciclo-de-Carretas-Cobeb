@@ -1,5 +1,5 @@
 ﻿import { useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History, ClipboardCheck, Database, DoorOpen, LayoutGrid } from 'lucide-react'
+import { LayoutDashboard, Users, LogOut, Package, AlertTriangle, History, ClipboardCheck, Database, DoorOpen, LayoutGrid, Monitor } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AdminLayout({ title, children }) {
@@ -21,6 +21,7 @@ export default function AdminLayout({ title, children }) {
     { path: '/portaria-admin',    icon: DoorOpen,        label: 'Portaria'  },
     { path: '/anomalias',         icon: AlertTriangle,   label: 'Anomalias' },
     { path: '/historico',         icon: History,         label: 'Histórico' },
+    { path: '/painel-realtime',   icon: Monitor,         label: 'Tempo Real' },
     ...(isAdminTotal ? [
       { path: '/importacao', icon: Database, label: 'Importar' },
       { path: '/cadastros',  icon: Users,    label: 'Cadastros' },
