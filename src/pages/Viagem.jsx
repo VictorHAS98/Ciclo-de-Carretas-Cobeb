@@ -116,7 +116,7 @@ export default function Viagem() {
 
   async function init() {
     const [{ data: c }, { data: ca }, { data: u }, { data: v }, { data: m }] = await Promise.all([
-      supabase.from('carretas').select('*').eq('ativo', true).order('placa'),
+      supabase.from('carretas').select('*').eq('ativo', true).eq('em_manutencao', false).order('placa'),
       supabase.from('cavalos').select('*').eq('ativo', true).order('placa'),
       supabase.from('unidades').select('*').order('nome'),
       supabase.from('viagens')
