@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -48,7 +49,8 @@ const STEP_LABELS = ['Saída', 'Em Rota', 'Fábrica', 'Retorno', 'Chegou']
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function EstoqueRealtime({ adminMode = false }) {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, setModoVisao } = useAuth()
+  const navigate = useNavigate()
   const [viagens,    setViagens]    = useState([])
   const [loading,    setLoading]    = useState(true)
   const [expanded,   setExpanded]   = useState(new Set())
@@ -173,6 +175,15 @@ export default function EstoqueRealtime({ adminMode = false }) {
           >
             <RefreshCw size={16} />
           </button>
+          {profile?.acesso_total && (
+            <button
+              onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
+              className="text-cobeb-yellow hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+              title="Trocar Módulo"
+            >
+              <LayoutGrid size={18} />
+            </button>
+          )}
           <button
             onClick={signOut}
             className="text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
