@@ -71,6 +71,7 @@ export default function Cavalos() {
   const [motivoMan, setMotivoMan] = useState('pneu')
   const [dtEntradaMan, setDtEntradaMan] = useState('')
   const [obsMan, setObsMan] = useState('')
+  const [furoMan, setFuroMan] = useState(false)
   const [salvandoMan, setSalvandoMan] = useState(false)
   const [erroMan, setErroMan] = useState('')
   const [confirmarBaixa, setConfirmarBaixa] = useState(null)
@@ -158,6 +159,7 @@ export default function Cavalos() {
     setMotivoMan('pneu')
     setDtEntradaMan(localNow())
     setObsMan('')
+    setFuroMan(false)
     setErroMan('')
     setModalMan(true)
   }
@@ -173,6 +175,7 @@ export default function Cavalos() {
       p_motivo:      motivoMan,
       p_observacoes: obsMan || null,
       p_dt_entrada:  new Date(dtEntradaMan).toISOString(),
+      p_furo_puxada: furoMan,
     })
     if (error) setErroMan(error.message)
     else { await carregar(); fecharModalMan() }
@@ -309,9 +312,16 @@ export default function Cavalos() {
                 {/* Detalhes da manutenção ativa */}
                 {c.em_manutencao && man && (
                   <div className="mt-3 pt-3 border-t border-amber-200 space-y-1">
-                    <p className="text-xs font-semibold text-amber-700 capitalize">
-                      {man.tipo} · {MOTIVOS_LABEL[man.motivo] ?? man.motivo}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-semibold text-amber-700 capitalize">
+                        {man.tipo} · {MOTIVOS_LABEL[man.motivo] ?? man.motivo}
+                      </p>
+                      {man.furo_puxada && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold border bg-red-500/10 text-red-500 border-red-400/30">
+                          Furo de Puxada
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 text-xs text-amber-600">
                       <Clock size={11} />
                       <span>Entrada: {formatDT(man.dt_entrada)}</span>
@@ -387,6 +397,12 @@ export default function Cavalos() {
                           <span className="font-semibold text-cobeb-text">
                             {duracaoTotal(h.dt_entrada, h.dt_retorno)}
                           </span>
+                        </p>
+                        <p className="text-[11px] col-span-2">
+                          <span className="text-slate-400">Furo de puxada: </span>
+                          {h.furo_puxada
+                            ? <span className="font-semibold text-red-500">Sim</span>
+                            : <span className="text-slate-500">Não</span>}
                         </p>
                         {h.responsavel?.nome && (
                           <p className="text-[11px] text-slate-500 col-span-2">
@@ -467,6 +483,26 @@ export default function Cavalos() {
               <textarea value={obsMan} onChange={e => setObsMan(e.target.value)}
                 rows={3} placeholder="Descreva o problema..."
                 className={`${inputClass} resize-none`} />
+            </Field>
+            <Field label="Impactou viagem no dia?" required>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setFuroMan(false)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                    !furoMan
+                      ? 'bg-cobeb-navy text-white border-cobeb-navy'
+                      : 'bg-[#F5F9FF] text-slate-500 border-cobeb-border'
+                  }`}>
+                  Não
+                </button>
+                <button type="button" onClick={() => setFuroMan(true)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                    furoMan
+                      ? 'bg-red-500 text-white border-red-500'
+                      : 'bg-[#F5F9FF] text-slate-500 border-cobeb-border'
+                  }`}>
+                  Sim — Furo de Puxada
+                </button>
+              </div>
             </Field>
             <Field label="Responsável pelo Registro">
               <input type="text" value={meProfile?.nome ?? ''} disabled
