@@ -21,7 +21,9 @@ export default function AdminLayout({ title, children }) {
     { path: '/portaria-admin',    icon: DoorOpen,        label: 'Portaria'  },
     { path: '/anomalias',         icon: AlertTriangle,   label: 'Anomalias' },
     { path: '/historico',         icon: History,         label: 'Histórico' },
-    { path: '/painel-realtime',   icon: Monitor,         label: 'Tempo Real' },
+    ...(!isAdminTotal ? [
+      { path: '/painel-realtime', icon: Monitor, label: 'Tempo Real' },
+    ] : []),
     ...(isAdminTotal ? [
       { path: '/importacao', icon: Database, label: 'Importar' },
       { path: '/cadastros',  icon: Users,    label: 'Cadastros' },
