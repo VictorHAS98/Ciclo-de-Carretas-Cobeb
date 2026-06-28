@@ -2,16 +2,16 @@ import { useRef, useEffect, useCallback } from 'react'
 import { registerPlugin } from '@capacitor/core'
 import { supabase } from '../lib/supabase'
 
-// Proxy para o plugin nativo — não importa o pacote npm (sem JS entry),
-// usa o bridge do Capacitor registrado pelo sync do Android.
-const BackgroundGeolocation = registerPlugin('BackgroundGeolocation')
+// Plugin nativo próprio do app — independente do WebView, com START_STICKY
+const CobebGps = registerPlugin('CobebGps')
 
-// ── Detecção de ambiente nativo ───────────────────────────────────────────────
+// Plugin de terceiro mantido apenas para callbacks JS de geofence (foreground)
+const BackgroundGeolocation = registerPlugin('BackgroundGeolocation')
 
 export const IS_NATIVE_APP =
   typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true
 
-// ── Haversine: distância em metros entre dois pontos GPS ──────────────────────
+// ── Haversine ─────────────────────────────────────────────────────────────────
 
 function distanciaMetros(lat1, lng1, lat2, lng2) {
   const R  = 6371000
@@ -25,37 +25,25 @@ function distanciaMetros(lat1, lng1, lat2, lng2) {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-/**
- * Gerencia rastreamento GPS em background (Capacitor) ou foreground (browser).
- *
- * @param {string|null}   viagemId      - ID da viagem ativa
- * @param {React.Ref}     statusRef     - Ref que aponta para o status atual da viagem
- * @param {Array}         fabricasAlvo  - Unidades tipo 'fabrica' com lat/lng/raio_geofence
- * @param {boolean}       isOnline      - Estado de conectividade
- * @param {Function}      onMudarStatus - Chamado com o objeto etapa ao detectar transição
- */
 export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, onMudarStatus }) {
-  const ativoRef        = useRef(false)
-  const watcherIdRef    = useRef(null)   // ID do watcher (nativo ou browser)
-  const syncTimerRef    = useRef(null)   // setInterval para sync de 30s
-  const posRef          = useRef(null)   // última posição conhecida
-  const dentroFabRef    = useRef(false)  // está dentro do geofence de alguma fábrica?
-  const callbackRef     = useRef(null)   // ref para onMudarStatus (evita stale closure)
-  const viagemIdRef     = useRef(null)   // ref para viagemId (evita stale closure)
-  const isOnlineRef     = useRef(isOnline)
+  const ativoRef     = useRef(false)
+  const watcherIdRef = useRef(null)
+  const syncTimerRef = useRef(null)
+  const posRef       = useRef(null)
+  const dentroFabRef = useRef(false)
+  const callbackRef  = useRef(null)
+  const viagemIdRef  = useRef(null)
+  const isOnlineRef  = useRef(isOnline)
 
-  // Mantém refs atualizadas a cada render
-  callbackRef.current  = onMudarStatus
-  viagemIdRef.current  = viagemId
-  isOnlineRef.current  = isOnline
+  callbackRef.current = onMudarStatus
+  viagemIdRef.current = viagemId
+  isOnlineRef.current = isOnline
 
-  // ── Inicializar estado de geofence com status atual ─────────────────────────
   useEffect(() => {
     dentroFabRef.current = statusRef.current === 'na_fabrica'
   }, [statusRef.current])
 
-  // ── Sync posição para Supabase ──────────────────────────────────────────────
-
+  // Sync JS — fallback para browser e sync imediata na abertura do app
   const sincronizar = useCallback(async () => {
     const pos = posRef.current
     const vid = viagemIdRef.current
@@ -70,11 +58,8 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
       .eq('id', vid)
   }, [])
 
-  // ── Lógica de geofence ──────────────────────────────────────────────────────
-
   function processarPosicao(lat, lng) {
     posRef.current = { lat, lng }
-
     const status = statusRef.current
     if (!fabricasAlvo?.length) return
 
@@ -84,43 +69,41 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
              <= (f.raio_geofence || 100)
     })
 
-    // Entrou na fábrica
     if (dentroAgora && !dentroFabRef.current && status === 'em_transito') {
       dentroFabRef.current = true
       callbackRef.current?.({
-        key:        'chegada_fabrica',
-        field:      'dt_chegada_fabrica',
-        nextStatus: 'na_fabrica',
-        requireNF:  false,
-        closeCycle: false,
+        key: 'chegada_fabrica', field: 'dt_chegada_fabrica',
+        nextStatus: 'na_fabrica', requireNF: false, closeCycle: false,
       })
     }
-
-    // Saiu da fábrica
     if (!dentroAgora && dentroFabRef.current && status === 'na_fabrica') {
       dentroFabRef.current = false
       callbackRef.current?.({
-        key:        'saida_fabrica',
-        field:      'dt_saida_fabrica',
-        nextStatus: 'retornando',
-        requireNF:  false,
-        closeCycle: false,
+        key: 'saida_fabrica', field: 'dt_saida_fabrica',
+        nextStatus: 'retornando', requireNF: false, closeCycle: false,
       })
     }
   }
-
-  // ── Iniciar rastreamento ────────────────────────────────────────────────────
 
   async function iniciar() {
     if (ativoRef.current) return
     ativoRef.current = true
 
-    // Sync imediata + timer de 30s
-    sincronizar()
-    syncTimerRef.current = setInterval(sincronizar, 30000)
-
     if (IS_NATIVE_APP) {
-      // ── Background via Capacitor bridge ────────────────────────────────────
+      // 1. Serviço nativo próprio — rastreia e sincroniza com Supabase independente
+      //    do WebView, com START_STICKY, WakeLock e timer de 30s próprios.
+      try {
+        await CobebGps.startTracking({
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+          supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          viagemId:    viagemIdRef.current,
+        })
+      } catch (err) {
+        console.error('[Rastreamento] Erro ao iniciar CobebGpsService:', err)
+      }
+
+      // 2. Watcher do plugin de terceiro — apenas para callbacks JS de geofence
+      //    enquanto o app está em foreground (tela ligada).
       try {
         const id = await BackgroundGeolocation.addWatcher(
           {
@@ -129,46 +112,34 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
             requestPermissions: true,
             stale:              false,
             distanceFilter:     20,
-            // Credenciais passadas ao service nativo para sync direto via HTTP,
-            // sem depender do WebView/JS (que fica suspenso com tela apagada).
-            supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-            supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            viagemId:    viagemIdRef.current,
           },
           (location, error) => {
             if (error) {
               if (error.code === 'NOT_AUTHORIZED') BackgroundGeolocation.openSettings()
               return
             }
-            if (location) {
-              processarPosicao(location.latitude, location.longitude)
-              // Sync direto no callback nativo — garante envio mesmo com tela apagada,
-              // pois o setInterval JS pode ser suspenso pelo Android em background.
-              sincronizar()
-            }
+            if (location) processarPosicao(location.latitude, location.longitude)
           }
         )
-
         watcherIdRef.current = { type: 'capacitor', id }
       } catch (err) {
-        console.error('[Rastreamento] Erro ao iniciar plugin nativo:', err)
+        console.error('[Rastreamento] Erro ao registrar watcher de geofence:', err)
       }
 
     } else {
-      // ── Fallback browser (foreground only, para testes) ─────────────────────
-      if (!navigator.geolocation) return
+      // Browser: sync JS periódico + watchPosition para geofence
+      sincronizar()
+      syncTimerRef.current = setInterval(sincronizar, 30000)
 
+      if (!navigator.geolocation) return
       const watchId = navigator.geolocation.watchPosition(
-        pos => processarPosicao(pos.coords.latitude, pos.coords.longitude),
+        pos => { processarPosicao(pos.coords.latitude, pos.coords.longitude); sincronizar() },
         err => console.warn('[Rastreamento] Erro GPS:', err),
         { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
       )
-
       watcherIdRef.current = { type: 'browser', id: watchId }
     }
   }
-
-  // ── Parar rastreamento ──────────────────────────────────────────────────────
 
   async function parar() {
     if (!ativoRef.current) return
@@ -177,35 +148,30 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
     clearInterval(syncTimerRef.current)
     syncTimerRef.current = null
 
-    await sincronizar() // sync final antes de parar
-
-    const w = watcherIdRef.current
-    if (!w) return
-
-    if (w.type === 'capacitor' && w.id) {
-      try { await BackgroundGeolocation.removeWatcher({ id: w.id }) } catch {}
-    } else if (w.type === 'browser') {
-      navigator.geolocation.clearWatch(w.id)
+    if (IS_NATIVE_APP) {
+      try { await CobebGps.stopTracking() } catch {}
+      const w = watcherIdRef.current
+      if (w?.type === 'capacitor' && w.id) {
+        try { await BackgroundGeolocation.removeWatcher({ id: w.id }) } catch {}
+      }
+    } else {
+      await sincronizar()
+      const w = watcherIdRef.current
+      if (w?.type === 'browser') navigator.geolocation.clearWatch(w.id)
     }
 
     watcherIdRef.current = null
 
-    // Limpa posição no Supabase ao encerrar viagem
     const vid = viagemIdRef.current
     if (vid && isOnlineRef.current) {
       await supabase.from('viagens').update({
-        motorista_lat:          null,
-        motorista_lng:          null,
-        motorista_last_seen_at: null,
+        motorista_lat: null, motorista_lng: null, motorista_last_seen_at: null,
       }).eq('id', vid)
     }
   }
 
-  // Cleanup ao desmontar componente
   useEffect(() => {
-    return () => {
-      if (ativoRef.current) parar()
-    }
+    return () => { if (ativoRef.current) parar() }
   }, [])
 
   return { iniciar, parar }

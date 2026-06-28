@@ -25,6 +25,14 @@
 
         </activity>
 
+        <!-- Serviço nativo de GPS — independente do WebView, reinicia com START_STICKY -->
+        <service
+            android:name=".CobebGpsService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="location" />
+
         <!-- Override da declaração do plugin para adicionar stopWithTask=false:
              sem isso o Android encerra o service quando o app é removido dos recentes,
              antes que onTaskRemoved() possa fazer a limpeza. -->
