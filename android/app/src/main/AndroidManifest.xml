@@ -34,12 +34,6 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- Serviço de foreground para rastreamento GPS em background -->
-        <service
-            android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
     </application>
 
     <!-- Permissions -->
