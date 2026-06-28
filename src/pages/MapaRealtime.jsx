@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, Fragment } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { ChevronLeft, ChevronDown, ChevronUp, Truck, AlertTriangle, Navigation } from 'lucide-react'
+import { ChevronLeft, ChevronDown, ChevronUp, Truck, AlertTriangle, Navigation, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+
+const ORS_KEY = import.meta.env.VITE_ORS_API_KEY ?? null
 
 // ── Configuração de status (espelha EstoqueRealtime) ─────────────────────────
 
@@ -45,6 +47,46 @@ function criarIcone(tipo) {
   })
 }
 
+// ── Ícone de caminhão ─────────────────────────────────────────────────────────
+
+function criarIconeCaminhao(status) {
+  const urgente = status === 'retornando'
+  const cor     = urgente ? '#F97316' : '#FFB81C'
+  return L.divIcon({
+    html: `<div style="
+      width:40px;height:40px;
+      background:${cor};
+      border:3px solid white;
+      border-radius:12px;
+      box-shadow:0 3px 12px rgba(0,0,0,0.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:20px;
+    ">🚛</div>`,
+    className:   '',
+    iconSize:    [40, 40],
+    iconAnchor:  [20, 20],
+    popupAnchor: [0, -24],
+  })
+}
+
+// ── Busca rota no OpenRouteService ────────────────────────────────────────────
+
+async function buscarRota(fromLat, fromLng, toLat, toLng) {
+  if (!ORS_KEY) return null
+  try {
+    const resp = await fetch(
+      `https://api.openrouteservice.org/v2/directions/driving-hgv?api_key=${ORS_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`,
+      { headers: { Accept: 'application/geo+json' } }
+    )
+    const data = await resp.json()
+    const coords = data?.features?.[0]?.geometry?.coordinates
+    if (!coords) return null
+    return coords.map(([lng, lat]) => [lat, lng]) // ORS retorna [lng, lat]
+  } catch {
+    return null
+  }
+}
+
 // ── Ajusta o mapa para mostrar todos os marcadores ───────────────────────────
 
 function FitBounds({ positions }) {
@@ -63,10 +105,12 @@ function FitBounds({ positions }) {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function MapaRealtime({ onVoltar }) {
-  const [unidades,     setUnidades]     = useState([])
-  const [viagens,      setViagens]      = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [painelAberto, setPainelAberto] = useState(false)
+  const [unidades,        setUnidades]        = useState([])
+  const [viagens,         setViagens]         = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [painelAberto,    setPainelAberto]    = useState(false)
+  const [viagemSelecionada, setViagemSelecionada] = useState(null) // { id, rota }
+  const [buscandoRota,    setBuscandoRota]    = useState(false)
 
   useEffect(() => {
     carregar()
@@ -93,13 +137,36 @@ export default function MapaRealtime({ onVoltar }) {
     if (data) setViagens(data)
   }
 
+  // Abre/fecha rota ao clicar no marcador de caminhão
+  async function selecionarViagem(viagem) {
+    if (viagemSelecionada?.id === viagem.id) {
+      setViagemSelecionada(null)
+      return
+    }
+    setViagemSelecionada({ id: viagem.id, rota: null })
+    if (viagem.motorista_lat && viagem.fab_lat && ORS_KEY) {
+      setBuscandoRota(true)
+      const pontos = await buscarRota(
+        parseFloat(viagem.motorista_lat), parseFloat(viagem.motorista_lng),
+        parseFloat(viagem.fab_lat),       parseFloat(viagem.fab_lng)
+      )
+      setViagemSelecionada({ id: viagem.id, rota: pontos })
+      setBuscandoRota(false)
+    }
+  }
+
   const { centro, posicoes } = useMemo(() => {
-    if (!unidades.length) return { centro: [-19.88, -44.61], posicoes: [] }
-    const pos = unidades.map(u => [parseFloat(u.latitude), parseFloat(u.longitude)])
-    const lat  = pos.reduce((s, p) => s + p[0], 0) / pos.length
-    const lng  = pos.reduce((s, p) => s + p[1], 0) / pos.length
-    return { centro: [lat, lng], posicoes: pos }
-  }, [unidades])
+    const pts = [
+      ...unidades.map(u => [parseFloat(u.latitude), parseFloat(u.longitude)]),
+      ...viagens
+        .filter(v => v.motorista_lat && v.motorista_lng)
+        .map(v => [parseFloat(v.motorista_lat), parseFloat(v.motorista_lng)]),
+    ]
+    if (!pts.length) return { centro: [-19.88, -44.61], posicoes: [] }
+    const lat = pts.reduce((s, p) => s + p[0], 0) / pts.length
+    const lng = pts.reduce((s, p) => s + p[1], 0) / pts.length
+    return { centro: [lat, lng], posicoes: pts }
+  }, [unidades, viagens])
 
   const urgentes = viagens.filter(v => v.status === 'retornando').length
 
@@ -127,6 +194,66 @@ export default function MapaRealtime({ onVoltar }) {
         />
         {posicoes.length > 0 && <FitBounds positions={posicoes} />}
 
+        {/* ── Rota do caminhão selecionado ──────────────────────────────── */}
+        {viagemSelecionada?.rota && (
+          <Polyline
+            positions={viagemSelecionada.rota}
+            pathOptions={{ color: '#F97316', weight: 5, opacity: 0.85, dashArray: '10 6' }}
+          />
+        )}
+
+        {/* ── Marcadores de caminhão (viagens com GPS ativo) ───────────── */}
+        {viagens
+          .filter(v => v.motorista_lat && v.motorista_lng)
+          .map(v => (
+            <Marker
+              key={`cam-${v.id}`}
+              position={[parseFloat(v.motorista_lat), parseFloat(v.motorista_lng)]}
+              icon={criarIconeCaminhao(v.status)}
+              eventHandlers={{ click: () => selecionarViagem(v) }}
+            >
+              <Popup>
+                <div style={{ minWidth: 190, fontFamily: 'system-ui, sans-serif' }}>
+                  <p style={{ fontWeight: 700, color: '#1E3A6E', fontSize: 13, marginBottom: 4 }}>
+                    {v.placa_cavalo ?? '—'}
+                    {v.placa_carreta ? ` · ${v.placa_carreta}` : ''}
+                  </p>
+                  {v.motorista_nome && (
+                    <p style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{v.motorista_nome}</p>
+                  )}
+                  <p style={{
+                    fontSize: 11, fontWeight: 600, marginBottom: 6,
+                    color: v.status === 'retornando' ? '#F97316' : '#003DA5',
+                  }}>
+                    {STATUS_LABEL[v.status] ?? v.status}
+                  </p>
+                  {v.fab_nome && (
+                    <p style={{ fontSize: 10, color: '#94a3b8' }}>Destino: {v.fab_nome}</p>
+                  )}
+                  {v.motorista_last_seen_at && (
+                    <p style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                      Atualizado: {new Date(v.motorista_last_seen_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                  {ORS_KEY && v.fab_lat && (
+                    <button
+                      onClick={() => selecionarViagem(v)}
+                      style={{
+                        marginTop: 8, width: '100%', background: '#003DA5', color: 'white',
+                        border: 'none', borderRadius: 8, padding: '6px 10px',
+                        fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      {viagemSelecionada?.id === v.id ? '✕ Fechar rota' : '🗺 Ver rota até a fábrica'}
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))
+        }
+
+        {/* ── Marcadores de unidades (fábricas e revendas) ─────────────── */}
         {unidades.map(u => (
           <Fragment key={u.id}>
             <Circle
@@ -190,6 +317,10 @@ export default function MapaRealtime({ onVoltar }) {
           <div className="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-sm shrink-0" />
           <span className="text-[11px] text-cobeb-text font-semibold">Fábrica</span>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm leading-none">🚛</span>
+          <span className="text-[11px] text-cobeb-text font-semibold">Caminhão</span>
+        </div>
         <div className="border-t border-cobeb-border/50 pt-1.5 flex items-center gap-2">
           <Truck size={11} className="text-cobeb-navy shrink-0" />
           <span className="text-[11px] text-slate-500">{viagens.length} ativo{viagens.length !== 1 ? 's' : ''}</span>
@@ -198,6 +329,24 @@ export default function MapaRealtime({ onVoltar }) {
           )}
         </div>
       </div>
+
+      {/* Badge "buscando rota" */}
+      {buscandoRota && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[999] bg-cobeb-navy text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          Calculando rota…
+        </div>
+      )}
+
+      {/* Badge "rota ativa" com botão de fechar */}
+      {viagemSelecionada?.rota && !buscandoRota && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[999] bg-orange-500 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <span>Rota traçada até a fábrica</span>
+          <button onClick={() => setViagemSelecionada(null)} className="hover:opacity-70">
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Painel de viagens — barra inferior */}
       <div className="absolute bottom-0 left-0 right-0 z-[999]">

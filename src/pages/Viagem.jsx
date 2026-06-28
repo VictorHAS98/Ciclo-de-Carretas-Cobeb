@@ -2,9 +2,9 @@
 import { useNavigate } from 'react-router-dom'
 import {
   Truck, ChevronLeft, ChevronRight, Plus, Trash2,
-  CheckCircle, Clock, MapPin, Factory, Home, Search,
+  CheckCircle, Clock, MapPin, Home, Search,
   AlertCircle, WifiOff, RefreshCw, LogOut, Package,
-  AlertTriangle, User, LayoutGrid,
+  AlertTriangle, User, LayoutGrid, Navigation,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,13 +12,13 @@ import {
   saveOfflineAction, getOfflineQueue, clearOfflineQueue,
   hasOfflineActions, cacheViagem, getCachedViagem,
 } from '../lib/offline'
+import { useRastreamento, IS_NATIVE_APP } from '../hooks/useRastreamento'
+import InstalarApp from './InstalarApp'
 
-// ── Etapas ────────────────────────────────────────────────────────────────────
+// ── Etapas manuais (aparecem na UI) ──────────────────────────────────────────
 
 const ETAPAS = [
   { key: 'saida_revenda',   label: 'Saída da Revenda',   field: 'dt_saida_revenda',   nextStatus: 'em_transito',            Icon: MapPin,      requireNF: false, closeCycle: false },
-  { key: 'chegada_fabrica', label: 'Chegada na Fábrica', field: 'dt_chegada_fabrica', nextStatus: 'na_fabrica',             Icon: Factory,     requireNF: false, closeCycle: false },
-  { key: 'saida_fabrica',   label: 'Saída da Fábrica',   field: 'dt_saida_fabrica',   nextStatus: 'retornando',             Icon: Truck,       requireNF: false, closeCycle: false },
   { key: 'chegada_revenda', label: 'Chegada na Revenda', field: 'dt_chegada_revenda', nextStatus: 'aguardando_conferencia', Icon: Home,        requireNF: true,  closeCycle: false },
   { key: 'saida_entrega',   label: 'Finalizar Viagem',   field: 'dt_saida_entrega',   nextStatus: 'concluida',              Icon: CheckCircle, requireNF: false, closeCycle: true  },
 ]
@@ -71,6 +71,11 @@ export default function Viagem() {
   const [showNF, setShowNF]           = useState(false)
   const [numeroNF, setNumeroNF]       = useState('')
 
+  // rastreamento
+  const [fabricasAlvo,     setFabricasAlvo]     = useState([])
+  const [aceitouNavegador, setAceitouNavegador] = useState(false)
+  const statusRef = useRef(null)
+
   // módulo 6
   const [tarefaStatus,   setTarefaStatus]   = useState(null) // null | 'pendente' | 'em_andamento' | 'concluida'
   const [portariaStatus, setPortariaStatus] = useState(null) // null | 'aguardando' | 'em_atendimento' | 'concluido'
@@ -81,6 +86,30 @@ export default function Viagem() {
   const [isOnline, setIsOnline]       = useState(navigator.onLine)
   const [pendingSync, setPendingSync] = useState(hasOfflineActions)
   const [syncing, setSyncing]         = useState(false)
+
+  // Mantém statusRef sincronizado com o estado atual da viagem
+  useEffect(() => { statusRef.current = viagemAtiva?.status ?? null }, [viagemAtiva?.status])
+
+  // Hook de rastreamento GPS (deve ser chamado antes dos demais useEffects)
+  const rastreamento = useRastreamento({
+    viagemId:     viagemAtiva?.id ?? null,
+    statusRef,
+    fabricasAlvo,
+    isOnline,
+    onMudarStatus: async (etapaAuto) => {
+      setRegistrando(true)
+      await registrarEtapa(etapaAuto, null)
+      setRegistrando(false)
+    },
+  })
+
+  // Re-inicia GPS se viagem já estava em trânsito quando o app foi aberto
+  useEffect(() => {
+    const emTransito = ['em_transito', 'na_fabrica', 'retornando']
+    if (viagemAtiva && fabricasAlvo.length > 0 && emTransito.includes(viagemAtiva.status)) {
+      rastreamento.iniciar()
+    }
+  }, [viagemAtiva?.id, fabricasAlvo.length])
 
   // ── lifecycle ─────────────────────────────────────────────────────────────
 
@@ -135,6 +164,18 @@ export default function Viagem() {
       setViagemAtiva(v); cacheViagem(v)
       const { data: peds } = await supabase.from('pedidos').select('*').eq('viagem_id', v.id)
       setPedidosDaViagem(peds ?? [])
+
+      // Carrega fábricas-alvo para geofence automático
+      const codigosFab = [...new Set((peds ?? []).map(p => p.codigo_fabrica).filter(Boolean))]
+      if (codigosFab.length) {
+        const { data: fabs } = await supabase
+          .from('unidades')
+          .select('id, nome, latitude, longitude, raio_geofence, codigo_ambev')
+          .eq('tipo', 'fabrica')
+          .in('codigo_ambev', codigosFab)
+        setFabricasAlvo(fabs ?? [])
+      }
+
       setView('active')
     } else {
       const cached = getCachedViagem()
@@ -260,6 +301,13 @@ export default function Viagem() {
       setViagemAtiva(updated); cacheViagem(updated); setPendingSync(true)
     }
 
+    // ── Controle de GPS: inicia na saída, para na chegada final ───────────────
+    if (etapa.nextStatus === 'em_transito') {
+      rastreamento.iniciar()
+    } else if (etapa.nextStatus === 'aguardando_conferencia' || etapa.closeCycle) {
+      rastreamento.parar()
+    }
+
     if (etapa.requireNF) {
       const tarefa = { viagem_id: viagemAtiva.id, unidade_id: viagemAtiva.unidade_descarga_id, numero_nf: nf }
       const portariaAtend = {
@@ -327,6 +375,11 @@ export default function Viagem() {
   }
 
   // ── render ────────────────────────────────────────────────────────────────
+
+  // ── Tela de instalação do APK (motorista no navegador sem app nativo) ────────
+  if (!IS_NATIVE_APP && !aceitouNavegador) {
+    return <InstalarApp onContinuar={() => setAceitouNavegador(true)} />
+  }
 
   if (view === 'loading') return (
     <div className="min-h-screen bg-[#EBF5FF] flex items-center justify-center">
@@ -731,6 +784,13 @@ function BotoesPasso({ onVoltar, onProximo, podeProximo }) {
 // Viagem Ativa
 // ─────────────────────────────────────────────────────────────────────────────
 
+const STATUS_GPS = ['em_transito', 'na_fabrica', 'retornando']
+const STATUS_GPS_LABEL = {
+  em_transito: 'Rastreando — a caminho da fábrica',
+  na_fabrica:  'Rastreando — na fábrica',
+  retornando:  'Rastreando — retornando à revenda',
+}
+
 function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa }) {
   const numerosUnicos = [...new Set(pedidos.map(p => p.numero_pedido))]
   const totalPallets  = pedidos.reduce((s, p) => s + (Number(p.qtde_pallets) || 0), 0)
@@ -747,7 +807,7 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
   async function confirmarNF() {
     if (!numeroNF.trim()) return
     setShowNF(false); setRegistrando(true)
-    await registrarEtapa(ETAPAS[3], numeroNF.trim())
+    await registrarEtapa(ETAPAS.find(e => e.key === 'chegada_revenda'), numeroNF.trim())
     setRegistrando(false); setNumeroNF('')
   }
 
@@ -784,6 +844,16 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
         </div>
       </div>
 
+
+      {/* Banner GPS ativo */}
+      {STATUS_GPS.includes(viagem?.status) && (
+        <div className="flex items-center gap-2.5 bg-cobeb-navy/10 border border-cobeb-blue/30 rounded-2xl px-4 py-3">
+          <Navigation size={13} className="text-cobeb-navy shrink-0 animate-pulse" />
+          <p className="text-cobeb-navy text-xs font-semibold">
+            {STATUS_GPS_LABEL[viagem.status]}
+          </p>
+        </div>
+      )}
 
       {/* Stages */}
       <div className="space-y-2">
