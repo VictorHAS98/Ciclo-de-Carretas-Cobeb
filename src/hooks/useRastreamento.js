@@ -135,7 +135,12 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
               if (error.code === 'NOT_AUTHORIZED') BackgroundGeolocation.openSettings()
               return
             }
-            if (location) processarPosicao(location.latitude, location.longitude)
+            if (location) {
+              processarPosicao(location.latitude, location.longitude)
+              // Sync direto no callback nativo — garante envio mesmo com tela apagada,
+              // pois o setInterval JS pode ser suspenso pelo Android em background.
+              sincronizar()
+            }
           }
         )
 
