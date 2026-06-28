@@ -156,6 +156,27 @@ export default function EstoqueRealtime({ adminMode = false }) {
     )
   }
 
+  if (view === 'mapa') {
+    return (
+      <div className="min-h-dvh bg-[#EBF5FF] flex flex-col">
+        <header className="bg-cobeb-navy px-5 py-3.5 flex items-center justify-between shadow-md shadow-cobeb-navy/20 shrink-0">
+          <button
+            onClick={() => setView('lista')}
+            className="flex items-center gap-2 text-blue-300/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+          >
+            <ChevronLeft size={18} />
+            <span className="text-sm font-medium">Voltar</span>
+          </button>
+          <p className="text-white text-sm font-semibold">Mapa em Tempo Real</p>
+          <div className="w-20" />
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          <MapaConstrucao onVoltar={() => setView('lista')} standalone />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-dvh bg-[#EBF5FF] flex flex-col">
 
@@ -190,6 +211,15 @@ export default function EstoqueRealtime({ adminMode = false }) {
           >
             <RefreshCw size={16} />
           </button>
+          {profile?.perfil === 'admin' && (
+            <button
+              onClick={() => setView('mapa')}
+              className="text-blue-300/70 hover:text-cobeb-yellow transition-colors p-1.5 rounded-lg hover:bg-white/10"
+              title="Mapa em Tempo Real"
+            >
+              <Map size={18} />
+            </button>
+          )}
           {profile?.acesso_total && (
             <button
               onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
@@ -371,18 +401,20 @@ function StepIndicator({ step }) {
 
 // ── Mapa em construção ────────────────────────────────────────────────────────
 
-function MapaConstrucao({ onVoltar }) {
+function MapaConstrucao({ onVoltar, standalone = false }) {
   return (
     <div className="min-h-[60vh] flex flex-col">
-      <div className="px-4 pt-4 max-w-lg mx-auto w-full">
-        <button
-          onClick={onVoltar}
-          className="flex items-center gap-1.5 text-slate-500 hover:text-cobeb-navy text-sm font-medium transition-colors mb-6"
-        >
-          <ChevronLeft size={16} />
-          Voltar ao painel
-        </button>
-      </div>
+      {!standalone && (
+        <div className="px-4 pt-4 max-w-lg mx-auto w-full">
+          <button
+            onClick={onVoltar}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-cobeb-navy text-sm font-medium transition-colors mb-6"
+          >
+            <ChevronLeft size={16} />
+            Voltar ao painel
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5">
         <div className="w-24 h-24 rounded-3xl bg-cobeb-navy/10 border-2 border-cobeb-navy/20 flex items-center justify-center">
