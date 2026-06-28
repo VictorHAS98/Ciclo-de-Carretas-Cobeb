@@ -1,0 +1,4 @@
+{
+  "java.import.exclusions": ["**/android/**"],
+  "gradle.nestedProjects": false
+}
