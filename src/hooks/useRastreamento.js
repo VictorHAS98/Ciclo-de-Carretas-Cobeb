@@ -129,6 +129,11 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
             requestPermissions: true,
             stale:              false,
             distanceFilter:     20,
+            // Credenciais passadas ao service nativo para sync direto via HTTP,
+            // sem depender do WebView/JS (que fica suspenso com tela apagada).
+            supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+            supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            viagemId:    viagemIdRef.current,
           },
           (location, error) => {
             if (error) {

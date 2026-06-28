@@ -1,8 +1,788 @@
+diff --git a/node_modules/@capacitor-community/background-geolocation/android/.classpath b/node_modules/@capacitor-community/background-geolocation/android/.classpath
+new file mode 100644
+index 0000000..c7c9c1f
+--- /dev/null
++++ b/node_modules/@capacitor-community/background-geolocation/android/.classpath
+@@ -0,0 +1,562 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<classpath>
++	<classpathentry kind="src" output="build/intermediates/java_res/releaseUnitTest/processReleaseUnitTestJavaRes/out" path="src/testRelease/resources">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/releaseUnitTest/compileReleaseUnitTestJavaWithJavac/classes" path="src/testRelease/java">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debugUnitTest/processDebugUnitTestJavaRes/out" path="src/testDebug/resources">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes" path="src/testDebug/java">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/releaseUnitTest/processReleaseUnitTestJavaRes/out" path="src/test/resources">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/releaseUnitTest/compileReleaseUnitTestJavaWithJavac/classes" path="src/test/java">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/release/processReleaseJavaRes/out" path="src/release/resources">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/release/processReleaseJavaRes/out" path="src/release/res">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/release/compileReleaseJavaWithJavac/classes" path="src/release/java">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debug/processDebugJavaRes/out" path="src/main/resources">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debug/processDebugJavaRes/out" path="src/main/res">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" path="src/main/java">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debug/processDebugJavaRes/out" path="src/debug/resources">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debug/processDebugJavaRes/out" path="src/debug/res">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" path="src/debug/java">
++		<attributes>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debugAndroidTest/processDebugAndroidTestJavaRes/out" path="src/androidTestDebug/resources">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debugAndroidTest/processDebugAndroidTestJavaRes/out" path="src/androidTestDebug/res">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/debugAndroidTest/compileDebugAndroidTestJavaWithJavac/classes" path="src/androidTestDebug/java">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debugAndroidTest/processDebugAndroidTestJavaRes/out" path="src/androidTest/resources">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/java_res/debugAndroidTest/processDebugAndroidTestJavaRes/out" path="src/androidTest/res">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="resource" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="src" output="build/intermediates/javac/debugAndroidTest/compileDebugAndroidTestJavaWithJavac/classes" path="src/androidTest/java">
++		<attributes>
++			<attribute name="test" value="true"/>
++			<attribute name="optional" value="true"/>
++			<attribute name="gradle.buildServer" value="true"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.vectordrawable/vectordrawable-animated/1.1.0/fcda1161354501471c30a4e077af6b5c4d4eddc6/vectordrawable-animated-1.1.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.vectordrawable/vectordrawable-animated/1.1.0/871a7705cd03bc246947638c712cdd11378233ff/vectordrawable-animated-1.1.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.vectordrawable"/>
++			<attribute name="artifactId" value="vectordrawable-animated"/>
++			<attribute name="version" value="1.1.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.versionedparcelable/versionedparcelable/1.1.1/18e18071e7715679e0593c570217edeb5ca48b9e/versionedparcelable-1.1.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.versionedparcelable/versionedparcelable/1.1.1/d9085927216387af679d18b6f472bc0fc5c7cc81/versionedparcelable-1.1.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.versionedparcelable"/>
++			<attribute name="artifactId" value="versionedparcelable"/>
++			<attribute name="version" value="1.1.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-livedata/2.6.2/e7f6d9e232bf035af69c030917c1ccda8e840b57/lifecycle-livedata-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-livedata/2.6.2/7ee67be9804a0951093b89b1115f95facb1d823/lifecycle-livedata-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-livedata"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.webkit/webkit/1.14.0/14e62c02878c853523a4e466bd3231684efc79bd/webkit-1.14.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.webkit/webkit/1.14.0/bdf2e9d3510ffc7bd85bcbbd944a4a6f031d11a4/webkit-1.14.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.webkit"/>
++			<attribute name="artifactId" value="webkit"/>
++			<attribute name="version" value="1.14.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.emoji2/emoji2/1.3.0/37ed42991ddf77924510472dba632314aab1c9d9/emoji2-1.3.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.emoji2/emoji2/1.3.0/788179fcab96cd6ec9a3e284e2a509545dc0fb8d/emoji2-1.3.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.emoji2"/>
++			<attribute name="artifactId" value="emoji2"/>
++			<attribute name="version" value="1.3.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.arch.core/core-runtime/2.2.0/39705982680d78556b679ef9d5400d4f17509b0b/core-runtime-2.2.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.arch.core/core-runtime/2.2.0/48630ad88f438e5a603ae74cf4858203d1a595c5/core-runtime-2.2.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.arch.core"/>
++			<attribute name="artifactId" value="core-runtime"/>
++			<attribute name="version" value="2.2.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.loader/loader/1.0.0/8af8b6cec0da85c207d03e15840e0722cbc71e70/loader-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.loader/loader/1.0.0/b9ef587f3e46c7fe5b00264989764e43ff45cada/loader-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.loader"/>
++			<attribute name="artifactId" value="loader"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.localbroadcastmanager/localbroadcastmanager/1.0.0/2734f31c8321e83ce6b60570d14777fc33cc2ece/localbroadcastmanager-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.localbroadcastmanager/localbroadcastmanager/1.0.0/3930e99159fd6b7f1d2e7d5fe9af0924ca1faf9/localbroadcastmanager-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.localbroadcastmanager"/>
++			<attribute name="artifactId" value="localbroadcastmanager"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.drawerlayout/drawerlayout/1.0.0/dd02c7e207136e1272b33815cc61e57676ed13a2/drawerlayout-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.drawerlayout/drawerlayout/1.0.0/9ecd4ecb7da215ba4c5c3e00bf8d290dad6f2bc5/drawerlayout-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.drawerlayout"/>
++			<attribute name="artifactId" value="drawerlayout"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.savedstate/savedstate/1.2.1/e364fc9dec32aa569d855f85864e50250318a093/savedstate-1.2.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.savedstate/savedstate/1.2.1/58d4c9fd35e826d3bce813974006451ee9ba4344/savedstate-1.2.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.savedstate"/>
++			<attribute name="artifactId" value="savedstate"/>
++			<attribute name="version" value="1.2.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/com.google.guava/listenablefuture/1.0/c949a840a6acbc5268d088e47b04177bf90b3cad/listenablefuture-1.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/com.google.guava/listenablefuture/1.0/be1234988ac73d61e52e35a912169b06020caa7/listenablefuture-1.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="com.google.guava"/>
++			<attribute name="artifactId" value="listenablefuture"/>
++			<attribute name="version" value="1.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.cursoradapter/cursoradapter/1.0.0/74014983a86b83cbce534dec4e7aa9312f5f5d82/cursoradapter-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.cursoradapter/cursoradapter/1.0.0/1e323083b41c31fd4d45510dfce50614963c3c6c/cursoradapter-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.cursoradapter"/>
++			<attribute name="artifactId" value="cursoradapter"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.customview/customview/1.0.0/30f5ff6075d112f8076e733b24410e68159735b6/customview-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.customview/customview/1.0.0/61f6a717d144dff3a6bda413d9abeeb2bca71581/customview-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.customview"/>
++			<attribute name="artifactId" value="customview"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime/2.6.2/f0ef27053faa89b3ec06c4f118cea0a15edde35b/lifecycle-runtime-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime/2.6.2/f653a171fc041d7062a83c81458c12f0201bcd6f/lifecycle-runtime-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-runtime"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.arch.core/core-common/2.2.0/5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3/core-common-2.2.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.arch.core/core-common/2.2.0/f3ac1460fc6844d5441595a34591af7fc04fd2e5/core-common-2.2.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.arch.core"/>
++			<attribute name="artifactId" value="core-common"/>
++			<attribute name="version" value="2.2.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel/2.6.2/fa35bfdbbe0e7df1573e377cbdd15de35176141d/lifecycle-viewmodel-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel/2.6.2/dc2aa94a7174f4b67e6923496dc195cbf726a63b/lifecycle-viewmodel-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-viewmodel"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-livedata-core/2.6.2/23f66885a260f0a2cd6540927ea8795484afd2da/lifecycle-livedata-core-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-livedata-core/2.6.2/3b4141d2e2e1ff6ddfd8f1990283d579d2e2f7a4/lifecycle-livedata-core-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-livedata-core"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.viewpager/viewpager/1.0.0/1f90e13820f96c2fb868f9674079a551678d68b2/viewpager-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.viewpager/viewpager/1.0.0/db045f92188b9d247d5f556866f8861ab68528f0/viewpager-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.viewpager"/>
++			<attribute name="artifactId" value="viewpager"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-savedstate/2.6.2/483115c35b2926c3780dfdaf3f5d0342855e73b1/lifecycle-viewmodel-savedstate-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-savedstate/2.6.2/2d3519967d6ad4b68af5219e6a2bf015c1ed6287/lifecycle-viewmodel-savedstate-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-viewmodel-savedstate"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.emoji2/emoji2-views-helper/1.3.0/7bef7c1117bb40ef41ee0641cd1d2d605e2d607c/emoji2-views-helper-1.3.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.emoji2/emoji2-views-helper/1.3.0/70bc75b8c5681fc8d0a4026648950c1cfd90a72/emoji2-views-helper-1.3.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.emoji2"/>
++			<attribute name="artifactId" value="emoji2-views-helper"/>
++			<attribute name="version" value="1.3.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.coordinatorlayout/coordinatorlayout/1.3.0/a82c29c04c8dfc905b2431c065fd7ecd42d3f541/coordinatorlayout-1.3.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.coordinatorlayout/coordinatorlayout/1.3.0/6000f80aa5d91c737e9588fad7925c1f7f99140/coordinatorlayout-1.3.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.coordinatorlayout"/>
++			<attribute name="artifactId" value="coordinatorlayout"/>
++			<attribute name="version" value="1.3.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.fragment/fragment/1.8.9/4e56c58068ca1c53f37e2081cc0b7ff0f1aa1ca9/fragment-1.8.9.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.fragment/fragment/1.8.9/bd102594edff426379e059006222d5424f9360c7/fragment-1.8.9-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.fragment"/>
++			<attribute name="artifactId" value="fragment"/>
++			<attribute name="version" value="1.8.9"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-common/2.6.2/10f354fdb64868baecd67128560c5a0d6312c495/lifecycle-common-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-common/2.6.2/a2a417e26f5d4c961d9621d0540014e1706d0c52/lifecycle-common-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-common"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.0.21/618b539767b4899b4660a83006e052b63f1db551/kotlin-stdlib-2.0.21.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.0.21/4789c95c3f2037f6689c0786baf1684275734ad3/kotlin-stdlib-2.0.21-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="org.jetbrains.kotlin"/>
++			<attribute name="artifactId" value="kotlin-stdlib"/>
++			<attribute name="version" value="2.0.21"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/23.0.0/8cc20c07506ec18e0834947b84a864bfc094484e/annotations-23.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/23.0.0/ca5088d615accaabd2aa956b10b236a4e75cfccb/annotations-23.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="org.jetbrains"/>
++			<attribute name="artifactId" value="annotations"/>
++			<attribute name="version" value="23.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.activity/activity/1.11.0/e190d032356d2f9781c92e12e100559042c630f7/activity-1.11.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.activity/activity/1.11.0/c9fc7213cc8c55a380da385f4be2d2431617ac0a/activity-1.11.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.activity"/>
++			<attribute name="artifactId" value="activity"/>
++			<attribute name="version" value="1.11.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.apache.cordova/framework/14.0.1/4112ec6b3f3784cefce81a6467a7beb96297d8bc/framework-14.0.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.apache.cordova/framework/14.0.1/5e08ad6ed43404944f78113b86af9b62a25632d1/framework-14.0.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="org.apache.cordova"/>
++			<attribute name="artifactId" value="framework"/>
++			<attribute name="version" value="14.0.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.8.1/bb0e192bd7c2b6b8217440d36e9758e377e450/kotlinx-coroutines-core-jvm-1.8.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.8.1/de8e46286026b0249acd5db040effcae1188c6e9/kotlinx-coroutines-core-jvm-1.8.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="org.jetbrains.kotlinx"/>
++			<attribute name="artifactId" value="kotlinx-coroutines-core-jvm"/>
++			<attribute name="version" value="1.8.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.appcompat/appcompat-resources/1.7.1/a0696fa573503263c7d5570ecd5e6032d397a287/appcompat-resources-1.7.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.appcompat/appcompat-resources/1.7.1/cb084bf039d2b49e02cb58e0da0044fed264a4fb/appcompat-resources-1.7.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.appcompat"/>
++			<attribute name="artifactId" value="appcompat-resources"/>
++			<attribute name="version" value="1.7.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.profileinstaller/profileinstaller/1.4.0/6b6262e9ca50d1f75a496f3b64ebeb092a9d42eb/profileinstaller-1.4.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.profileinstaller/profileinstaller/1.4.0/d126d45c480aa74f73ba5bee34a7217f6382c44a/profileinstaller-1.4.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.profileinstaller"/>
++			<attribute name="artifactId" value="profileinstaller"/>
++			<attribute name="version" value="1.4.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.vectordrawable/vectordrawable/1.1.0/eac7a364fff534035a2a6cb17770a1288315f69f/vectordrawable-1.1.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.vectordrawable/vectordrawable/1.1.0/1e0694477eed874c50c54b547cc3e5a62a57a62b/vectordrawable-1.1.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.vectordrawable"/>
++			<attribute name="artifactId" value="vectordrawable"/>
++			<attribute name="version" value="1.1.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core-splashscreen/1.0.1/fadbb3c79d38f185997886b932b93278a4d8c2c1/core-splashscreen-1.0.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core-splashscreen/1.0.1/e033216357e9111d8d520996527bbd098bd81a66/core-splashscreen-1.0.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.core"/>
++			<attribute name="artifactId" value="core-splashscreen"/>
++			<attribute name="version" value="1.0.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.collection/collection-jvm/1.4.2/bc60b5568a66d765a9fe8e266fd0c6c727e0b50b/collection-jvm-1.4.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.collection/collection-jvm/1.4.2/1391e2d73ea1c99d7b1350fce136ea1fcd32a893/collection-jvm-1.4.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.collection"/>
++			<attribute name="artifactId" value="collection-jvm"/>
++			<attribute name="version" value="1.4.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-android/1.8.1/73e2acdd18df99dd4849d99f188dff529fc0afe0/kotlinx-coroutines-android-1.8.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-android/1.8.1/c1c2926cbeef5637a60c67ae911b20e6adbbab34/kotlinx-coroutines-android-1.8.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="org.jetbrains.kotlinx"/>
++			<attribute name="artifactId" value="kotlinx-coroutines-android"/>
++			<attribute name="version" value="1.8.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.appcompat/appcompat/1.7.1/6c5b56046c7b08e7bf94b6dd14cb616453e6be11/appcompat-1.7.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.appcompat/appcompat/1.7.1/91fc2664fc6ba15f6c431072b24c2133f601383/appcompat-1.7.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.appcompat"/>
++			<attribute name="artifactId" value="appcompat"/>
++			<attribute name="version" value="1.7.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.concurrent/concurrent-futures/1.1.0/50b7fb98350d5f42a4e49704b03278542293ba48/concurrent-futures-1.1.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.concurrent/concurrent-futures/1.1.0/a27842adf6c42f3d80893bd46e1de4ac024218e7/concurrent-futures-1.1.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.concurrent"/>
++			<attribute name="artifactId" value="concurrent-futures"/>
++			<attribute name="version" value="1.1.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core-ktx/1.17.0/77d65388760e55bd6336907eec271607afb6c62f/core-ktx-1.17.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core-ktx/1.17.0/27d867966b96683f0d9e31f66ce322f2631b77f5/core-ktx-1.17.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.core"/>
++			<attribute name="artifactId" value="core-ktx"/>
++			<attribute name="version" value="1.17.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-experimental/1.4.1/7851235e2a16ce50270a74b555edaf9209b42864/annotation-experimental-1.4.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-experimental/1.4.1/4dc003cb3c5ff16a1c3d09f3d1f7ae7b2d14a9c4/annotation-experimental-1.4.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.annotation"/>
++			<attribute name="artifactId" value="annotation-experimental"/>
++			<attribute name="version" value="1.4.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.interpolator/interpolator/1.0.0/8a01fa254a23b9388571eb6334b03707c7d122d7/interpolator-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.interpolator/interpolator/1.0.0/fefd5e3cbc479b6b4a9532d05688a1e659e8d3d2/interpolator-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.interpolator"/>
++			<attribute name="artifactId" value="interpolator"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-process/2.6.2/1cda99630dfe13ea65f63d05821187bfe87a5967/lifecycle-process-2.6.2.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-process/2.6.2/dd039c5f2bbb7b39abdef48c2144039069b7bd7/lifecycle-process-2.6.2-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.lifecycle"/>
++			<attribute name="artifactId" value="lifecycle-process"/>
++			<attribute name="version" value="2.6.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core-viewtree/1.0.0/449ba4f495b4d10d18edd01f32f9328be40d5749/core-viewtree-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core-viewtree/1.0.0/479ee017137f7dbb52f0402e14b0f216e6b02bc6/core-viewtree-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.core"/>
++			<attribute name="artifactId" value="core-viewtree"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/7425a601c1c7ec76645a78d22b8c6a627edee507/jspecify-1.0.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/f1a67bbcf2f9f282baf3821046563983f16ca9b2/jspecify-1.0.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="org.jspecify"/>
++			<attribute name="artifactId" value="jspecify"/>
++			<attribute name="version" value="1.0.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/com.google.android.gms/play-services-location/21.0.1/eb370fc9d8ac0472e8e17aa791121c7fde632ab9/play-services-location-21.0.1.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="com.google.android.gms"/>
++			<attribute name="artifactId" value="play-services-location"/>
++			<attribute name="version" value="21.0.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.resourceinspection/resourceinspection-annotation/1.0.1/8c21f8ff5d96d5d52c948707f7e4d6ca6773feef/resourceinspection-annotation-1.0.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.resourceinspection/resourceinspection-annotation/1.0.1/a1c91a3cf63fd51a8e755747186d97585f955ae3/resourceinspection-annotation-1.0.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.resourceinspection"/>
++			<attribute name="artifactId" value="resourceinspection-annotation"/>
++			<attribute name="version" value="1.0.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.startup/startup-runtime/1.1.1/9d4ba67056aff98b69eadc1477c19a1e67cb9470/startup-runtime-1.1.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.startup/startup-runtime/1.1.1/714974d4ab4858eab9395d3b048002108b62cf0a/startup-runtime-1.1.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.startup"/>
++			<attribute name="artifactId" value="startup-runtime"/>
++			<attribute name="version" value="1.1.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/com.google.android.gms/play-services-base/18.1.0/2939711b0f56683f9acda65cc8797608055aa902/play-services-base-18.1.0.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="com.google.android.gms"/>
++			<attribute name="artifactId" value="play-services-base"/>
++			<attribute name="version" value="18.1.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/com.google.android.gms/play-services-basement/18.1.0/e2accf5782dedb91dddef0e86cb960cc0961ac2f/play-services-basement-18.1.0.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="com.google.android.gms"/>
++			<attribute name="artifactId" value="play-services-basement"/>
++			<attribute name="version" value="18.1.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/com.google.android.gms/play-services-tasks/18.0.2/7742ff703c42a8e78e4b1b548c8abf0f2020170/play-services-tasks-18.0.2.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="com.google.android.gms"/>
++			<attribute name="artifactId" value="play-services-tasks"/>
++			<attribute name="version" value="18.0.2"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-jvm/1.8.1/b8a16fe526014b7941c1debaccaf9c5153692dbb/annotation-jvm-1.8.1.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-jvm/1.8.1/38ef8b544da94401882fb3abac556f26f46bc046/annotation-jvm-1.8.1-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.annotation"/>
++			<attribute name="artifactId" value="annotation-jvm"/>
++			<attribute name="version" value="1.8.1"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.tracing/tracing/1.2.0/a6ac2cc501278fdc99c56b428548e0cd1e9300f7/tracing-1.2.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.tracing/tracing/1.2.0/7a8da514613e34b2f3cc6f1d9dc805295d9838a7/tracing-1.2.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.tracing"/>
++			<attribute name="artifactId" value="tracing"/>
++			<attribute name="version" value="1.2.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="lib" path="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core/1.17.0/1eb461d3499f5bb832dd45edd3982471a11a3f95/core-1.17.0.jar" sourcepath="C:/Users/victo/.gradle/caches/modules-2/files-2.1/androidx.core/core/1.17.0/3f3bdf4e06b0624824a66cd420fc0ec50dbc6736/core-1.17.0-sources.jar">
++		<attributes>
++			<attribute name="gradle.buildServer" value="true"/>
++			<attribute name="groupId" value="androidx.core"/>
++			<attribute name="artifactId" value="core"/>
++			<attribute name="version" value="1.17.0"/>
++		</attributes>
++	</classpathentry>
++	<classpathentry kind="output" path="bin"/>
++</classpath>
+diff --git a/node_modules/@capacitor-community/background-geolocation/android/.project b/node_modules/@capacitor-community/background-geolocation/android/.project
+new file mode 100644
+index 0000000..480f107
+--- /dev/null
++++ b/node_modules/@capacitor-community/background-geolocation/android/.project
+@@ -0,0 +1,41 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<projectDescription>
++	<name>background-geolocation-android</name>
++	<comment></comment>
++	<projects>
++	</projects>
++	<buildSpec>
++		<buildCommand>
++			<name>java.bs.JavaProblemChecker</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
++		<buildCommand>
++			<name>com.microsoft.gradle.bs.importer.builder.BuildServerBuilder</name>
++			<triggers>full,incremental,</triggers>
++			<arguments>
++			</arguments>
++		</buildCommand>
++	</buildSpec>
++	<natures>
++		<nature>org.eclipse.jdt.core.javanature</nature>
++		<nature>com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature</nature>
++	</natures>
++	<filteredResources>
++		<filter>
++			<id>1782674559016</id>
++			<name></name>
++			<type>30</type>
++			<matcher>
++				<id>org.eclipse.core.resources.regexFilterMatcher</id>
++				<arguments>node_modules|\.git|__CREATED_BY_JAVA_LANGUAGE_SERVER__</arguments>
++			</matcher>
++		</filter>
++	</filteredResources>
++	<variableList>
++		<variable>
++			<name>bspSchemaVersion</name>
++			<value>0.1.0</value>
++		</variable>
++	</variableList>
++</projectDescription>
+diff --git a/node_modules/@capacitor-community/background-geolocation/android/.settings/org.eclipse.jdt.core.prefs b/node_modules/@capacitor-community/background-geolocation/android/.settings/org.eclipse.jdt.core.prefs
+new file mode 100644
+index 0000000..1fc7135
+--- /dev/null
++++ b/node_modules/@capacitor-community/background-geolocation/android/.settings/org.eclipse.jdt.core.prefs
+@@ -0,0 +1,12 @@
++eclipse.preferences.version=1
++org.eclipse.jdt.core.classpath.outputOverlappingAnotherSource=ignore
++org.eclipse.jdt.core.compiler.annotation.missingNonNullByDefaultAnnotation=ignore
++org.eclipse.jdt.core.compiler.annotation.nonnull=org.jspecify.annotations.NonNull
++org.eclipse.jdt.core.compiler.annotation.nonnullbydefault=org.jspecify.annotations.NullMarked
++org.eclipse.jdt.core.compiler.annotation.nullable=org.jspecify.annotations.Nullable
++org.eclipse.jdt.core.compiler.annotation.nullanalysis=enabled
++org.eclipse.jdt.core.compiler.problem.nullAnnotationInferenceConflict=warning
++org.eclipse.jdt.core.compiler.problem.nullReference=warning
++org.eclipse.jdt.core.compiler.problem.nullSpecViolation=warning
++org.eclipse.jdt.core.compiler.problem.potentialNullReference=warning
++org.eclipse.jdt.core.compiler.problem.syntacticNullAnalysisForFields=enabled
+diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
+index a92fcf9..30cd85a 100644
+--- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
++++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
+@@ -159,7 +159,10 @@ public class BackgroundGeolocation extends Plugin {
+         service.addWatcher(
+                 call.getCallbackId(),
+                 backgroundNotification,
+-                call.getFloat("distanceFilter", 0f)
++                call.getFloat("distanceFilter", 0f),
++                call.getString("supabaseUrl"),
++                call.getString("supabaseKey"),
++                call.getString("viagemId")
+         );
+     }
+ 
 diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
-index fafbb86..e3dce03 100644
+index fafbb86..a01adcd 100644
 --- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
 +++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
-@@ -132,10 +132,15 @@ public class BackgroundGeolocationService extends Service {
+@@ -17,7 +17,15 @@ import com.google.android.gms.location.LocationRequest;
+ import com.google.android.gms.location.LocationResult;
+ import com.google.android.gms.location.LocationServices;
+ 
++import java.io.OutputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.nio.charset.StandardCharsets;
++import java.text.SimpleDateFormat;
++import java.util.Date;
+ import java.util.HashSet;
++import java.util.Locale;
++import java.util.TimeZone;
+ 
+ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+ 
+@@ -39,6 +47,10 @@ public class BackgroundGeolocationService extends Service {
+         public LocationRequest locationRequest;
+         public LocationCallback locationCallback;
+         public Notification backgroundNotification;
++        // Supabase sync — feito nativamente para funcionar com WebView suspenso (tela apagada)
++        public String supabaseUrl;
++        public String supabaseKey;
++        public String viagemId;
+     }
+     private HashSet<Watcher> watchers = new HashSet<Watcher>();
+ 
+@@ -70,12 +82,54 @@ public class BackgroundGeolocationService extends Service {
+         return null;
+     }
+ 
++    // Envia PATCH para o Supabase em thread separada, sem depender do WebView/JS.
++    private void syncToSupabase(String supabaseUrl, String supabaseKey, String viagemId,
++                                double lat, double lng) {
++        new Thread(() -> {
++            try {
++                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
++                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
++                String ts = sdf.format(new Date());
++
++                URL url = new URL(supabaseUrl + "/rest/v1/viagens?id=eq." + viagemId);
++                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
++                conn.setRequestMethod("PATCH");
++                conn.setRequestProperty("apikey", supabaseKey);
++                conn.setRequestProperty("Authorization", "Bearer " + supabaseKey);
++                conn.setRequestProperty("Content-Type", "application/json");
++                conn.setRequestProperty("Prefer", "return=minimal");
++                conn.setDoOutput(true);
++                conn.setConnectTimeout(10000);
++                conn.setReadTimeout(10000);
++
++                String body = String.format(Locale.US,
++                        "{\"motorista_lat\":%f,\"motorista_lng\":%f,\"motorista_last_seen_at\":\"%s\"}",
++                        lat, lng, ts);
++                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
++                conn.setFixedLengthStreamingMode(bytes.length);
++                try (OutputStream os = conn.getOutputStream()) {
++                    os.write(bytes);
++                }
++                int code = conn.getResponseCode();
++                if (code < 200 || code >= 300) {
++                    Logger.warn("Supabase sync returned HTTP " + code);
++                }
++                conn.disconnect();
++            } catch (Exception e) {
++                Logger.error("Failed to sync location to Supabase", e);
++            }
++        }).start();
++    }
++
+     // Handles requests from the activity.
+     public class LocalBinder extends Binder {
+         void addWatcher(
+                 final String id,
+                 Notification backgroundNotification,
+-                float distanceFilter
++                float distanceFilter,
++                String supabaseUrl,
++                String supabaseKey,
++                String viagemId
+         ) {
+             FusedLocationProviderClient client = LocationServices.getFusedLocationProviderClient(
+                     BackgroundGeolocationService.this
+@@ -86,16 +140,34 @@ public class BackgroundGeolocationService extends Service {
+             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+             locationRequest.setSmallestDisplacement(distanceFilter);
+ 
++            Watcher watcher = new Watcher();
++            watcher.id = id;
++            watcher.client = client;
++            watcher.locationRequest = locationRequest;
++            watcher.backgroundNotification = backgroundNotification;
++            watcher.supabaseUrl = supabaseUrl;
++            watcher.supabaseKey = supabaseKey;
++            watcher.viagemId = viagemId;
++
+             LocationCallback callback = new LocationCallback(){
+                 @Override
+                 public void onLocationResult(LocationResult locationResult) {
+                     Location location = locationResult.getLastLocation();
++
++                    // Broadcast para o JS (pode não executar com tela apagada, mas tenta)
+                     Intent intent = new Intent(ACTION_BROADCAST);
+                     intent.putExtra("location", location);
+                     intent.putExtra("id", id);
+                     LocalBroadcastManager.getInstance(
+                             getApplicationContext()
+                     ).sendBroadcast(intent);
++
++                    // Sync nativo direto para o Supabase — garante envio mesmo com WebView suspenso
++                    if (watcher.supabaseUrl != null && watcher.supabaseKey != null
++                            && watcher.viagemId != null) {
++                        syncToSupabase(watcher.supabaseUrl, watcher.supabaseKey, watcher.viagemId,
++                                location.getLatitude(), location.getLongitude());
++                    }
+                 }
+                 @Override
+                 public void onLocationAvailability(LocationAvailability availability) {
+@@ -105,12 +177,7 @@ public class BackgroundGeolocationService extends Service {
+                 }
+             };
+ 
+-            Watcher watcher = new Watcher();
+-            watcher.id = id;
+-            watcher.client = client;
+-            watcher.locationRequest = locationRequest;
+             watcher.locationCallback = callback;
+-            watcher.backgroundNotification = backgroundNotification;
+             watchers.add(watcher);
+ 
+             // According to Android Studio, this method can throw a Security Exception if
+@@ -132,10 +199,15 @@ public class BackgroundGeolocationService extends Service {
              // each time a background watcher is added.
              if (backgroundNotification != null) {
                  try {
