@@ -79,7 +79,7 @@ export default function Importacao() {
     setLoading(true)
     const [{ data: peds }, { data: unis }, { data: prods }] = await Promise.all([
       supabase.from('pedidos').select('arquivo_origem, data_puxada, viagem_id, importado_em'),
-      supabase.from('unidades').select('id, nome, codigo, codigo_ambev, cidade').order('nome'),
+      supabase.from('unidades').select('id, nome, codigo, codigo_ambev, cidade, tipo').order('nome'),
       supabase.from('produtos_catalogo').select('arquivo_origem, importado_em'),
     ])
 
@@ -267,6 +267,18 @@ export default function Importacao() {
         )
       }
 
+      // Detecta fábricas do arquivo que não têm entrada em unidades
+      const fabricasCadastradas = new Set(
+        unidades.filter(u => u.tipo === 'fabrica').map(u => u.codigo_ambev).filter(Boolean)
+      )
+      const novasFabricasMap = {}
+      newRecords.forEach(r => {
+        if (r.codigo_fabrica && !fabricasCadastradas.has(r.codigo_fabrica)) {
+          novasFabricasMap[r.codigo_fabrica] = r.fabrica
+        }
+      })
+      const novasFabricas = Object.entries(novasFabricasMap).map(([codigo, nome]) => ({ codigo, nome }))
+
       setImportResult({
         ok: true,
         inseridos:       toInsert.length,
@@ -274,6 +286,7 @@ export default function Importacao() {
         ignorados:       ignoradosCount,
         deletados:       toDelete.length,
         viagensAlteradas,
+        novasFabricas,
       })
       setPendingFile(null)
       await carregar()
@@ -445,6 +458,15 @@ export default function Importacao() {
                     )}
                     {importResult.viagensAlteradas?.length > 0 && (
                       <p className="text-blue-400 mt-1">✎ Viagens alteradas: {importResult.viagensAlteradas.join(', ')}</p>
+                    )}
+                    {importResult.novasFabricas?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-amber-500/20">
+                        <p className="text-amber-400 font-semibold mb-1">⚠ Nova{importResult.novasFabricas.length > 1 ? 's' : ''} fábrica{importResult.novasFabricas.length > 1 ? 's' : ''} detectada{importResult.novasFabricas.length > 1 ? 's' : ''}:</p>
+                        {importResult.novasFabricas.map(f => (
+                          <p key={f.codigo} className="text-amber-300 text-[11px]">· {f.nome} (código {f.codigo})</p>
+                        ))}
+                        <p className="text-slate-400 text-[11px] mt-1">Cadastre em Cadastros → Unidades para habilitar no mapa.</p>
+                      </div>
                     )}
                   </div>
                 ) : (
