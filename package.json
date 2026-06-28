@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:android": "cross-env VITE_BUILD_TARGET=android vite build && npx cap sync android",
+    "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.26",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/geolocation": "^8.2.0",
     "@supabase/supabase-js": "^2.39.7",
     "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
@@ -21,10 +28,12 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
+    "cross-env": "^10.1.0",
     "pg": "^8.21.0",
     "playwright": "^1.61.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
+    "typescript": "^6.0.3",
     "vite": "^5.1.4",
     "xlsx": "^0.18.5"
   }
