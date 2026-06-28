@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Truck, ClipboardList, Shield, Monitor, LogOut } from 'lucide-react'
+import { LayoutDashboard, Truck, ClipboardList, Shield, Monitor, LogOut, Wifi } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const MODULOS = [
   {
@@ -60,9 +62,35 @@ const MODULOS = [
   },
 ]
 
+function sinalGPS(lastSeen) {
+  if (!lastSeen) return { cor: 'text-slate-400', label: 'Sem sinal GPS' }
+  const mins = (Date.now() - new Date(lastSeen)) / 60000
+  if (mins <= 5)  return { cor: 'text-green-500',  label: 'GPS ativo' }
+  if (mins <= 30) return { cor: 'text-orange-500', label: `${Math.round(mins)}min sem atualizar` }
+  return { cor: 'text-red-500', label: `${Math.round(mins)}min sem sinal` }
+}
+
 export default function SeletorModulo() {
   const { user, profile, loading, modoVisao, setModoVisao, signOut } = useAuth()
   const navigate = useNavigate()
+  const [sinalLastSeen, setSinalLastSeen] = useState(undefined)
+
+  useEffect(() => {
+    async function fetchSinal() {
+      const { data } = await supabase
+        .from('viagens')
+        .select('motorista_last_seen_at')
+        .neq('status', 'concluida')
+        .not('motorista_last_seen_at', 'is', null)
+        .order('motorista_last_seen_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setSinalLastSeen(data?.motorista_last_seen_at ?? null)
+    }
+    fetchSinal()
+    const timer = setInterval(fetchSinal, 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   if (loading) {
     return (
@@ -124,6 +152,8 @@ export default function SeletorModulo() {
           <div className="grid grid-cols-2 gap-3">
             {MODULOS.map(mod => {
               const { Icon } = mod
+              const isRealtime = mod.key === 'empilheira'
+              const sinal = isRealtime && sinalLastSeen !== undefined ? sinalGPS(sinalLastSeen) : null
               return (
                 <button
                   key={mod.key}
@@ -137,6 +167,12 @@ export default function SeletorModulo() {
                     <p className={`text-sm font-bold ${mod.texto}`}>{mod.label}</p>
                     <p className="text-slate-500 text-[10px] leading-snug mt-0.5">{mod.desc}</p>
                   </div>
+                  {isRealtime && sinal && (
+                    <div className={`flex items-center gap-1.5 border-t border-orange-500/20 pt-2 -mt-1`}>
+                      <Wifi size={12} className={sinal.cor} />
+                      <span className={`text-[10px] font-semibold ${sinal.cor}`}>{sinal.label}</span>
+                    </div>
+                  )}
                 </button>
               )
             })}

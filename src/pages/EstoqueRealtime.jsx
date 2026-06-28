@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid, Map } from 'lucide-react'
+import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid, Map, Wifi } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import MapaRealtime from './MapaRealtime'
@@ -319,6 +319,19 @@ function ViagemCard({ viagem, expanded, onToggle }) {
 
         {/* Indicador de etapas */}
         <StepIndicator step={cfg.step} />
+
+        {/* Sinal GPS */}
+        {['em_transito', 'na_fabrica', 'retornando'].includes(viagem.status) && (() => {
+          const sinal = sinalGPS(viagem.motorista_last_seen_at)
+          return (
+            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-cobeb-border/30">
+              <Wifi size={11} className={sinal ? sinal.cor : 'text-slate-300'} />
+              <span className={`text-[10px] font-medium ${sinal ? sinal.cor : 'text-slate-400'}`}>
+                {sinal ? sinal.label : 'Aguardando GPS…'}
+              </span>
+            </div>
+          )
+        })()}
       </button>
 
       {/* Produtos (expandido) */}
@@ -361,6 +374,16 @@ function ViagemCard({ viagem, expanded, onToggle }) {
       )}
     </div>
   )
+}
+
+// ── Sinal GPS ────────────────────────────────────────────────────────────────
+
+function sinalGPS(lastSeen) {
+  if (!lastSeen) return null
+  const mins = (Date.now() - new Date(lastSeen)) / 60000
+  if (mins <= 5)  return { cor: 'text-green-500',  label: 'GPS ativo' }
+  if (mins <= 30) return { cor: 'text-orange-500', label: `${Math.round(mins)}min sem atualizar` }
+  return { cor: 'text-red-500', label: `${Math.round(mins)}min sem sinal` }
 }
 
 // ── Indicador de etapas ───────────────────────────────────────────────────────
