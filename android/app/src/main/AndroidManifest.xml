@@ -47,4 +47,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Android 13+ exige POST_NOTIFICATIONS para exibir a notificação do foreground service -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

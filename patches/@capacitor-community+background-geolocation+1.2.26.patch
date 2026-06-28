@@ -1,0 +1,24 @@
+diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
+index fafbb86..e3dce03 100644
+--- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
++++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
+@@ -132,10 +132,15 @@ public class BackgroundGeolocationService extends Service {
+             // each time a background watcher is added.
+             if (backgroundNotification != null) {
+                 try {
+-                    // This method has been known to fail due to weird
+-                    // permission bugs, so we prevent any exceptions from
+-                    // crashing the app. See issue #86.
+-                    startForeground(NOTIFICATION_ID, backgroundNotification);
++                    // Android 10+ (API 29) requires the service type to be passed to
++                    // startForeground when the manifest declares foregroundServiceType="location".
++                    // On Android 14+ (targetSdk 34+) omitting it throws InvalidForegroundServiceTypeException
++                    // which was previously swallowed silently, preventing background GPS from working.
++                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
++                        startForeground(NOTIFICATION_ID, backgroundNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
++                    } else {
++                        startForeground(NOTIFICATION_ID, backgroundNotification);
++                    }
+                 } catch (Exception exception) {
+                     Logger.error("Failed to foreground service", exception);
+                 }
