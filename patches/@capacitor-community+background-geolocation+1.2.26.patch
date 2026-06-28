@@ -632,13 +632,35 @@ index 0000000..1fc7135
 +org.eclipse.jdt.core.compiler.problem.potentialNullReference=warning
 +org.eclipse.jdt.core.compiler.problem.syntacticNullAnalysisForFields=enabled
 diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
-index a92fcf9..89b5dbd 100644
+index a92fcf9..4337db2 100644
 --- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
 +++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
-@@ -156,10 +156,23 @@ public class BackgroundGeolocation extends Plugin {
+@@ -18,6 +18,7 @@ import android.location.LocationManager;
+ import android.net.Uri;
+ import android.os.Build;
+ import android.os.IBinder;
++import android.os.PowerManager;
+ import android.provider.Settings;
+ 
+ import com.getcapacitor.JSObject;
+@@ -156,10 +157,37 @@ public class BackgroundGeolocation extends Plugin {
  
              backgroundNotification = builder.build();
          }
++        // Solicita isenção de otimização de bateria — sem isso o Android pode matar
++        // o processo mesmo com foreground service ativo (especialmente Samsung/Xiaomi).
++        PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
++        if (pm != null && !pm.isIgnoringBatteryOptimizations(getContext().getPackageName())) {
++            try {
++                Intent batteryIntent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
++                batteryIntent.setData(Uri.parse("package:" + getContext().getPackageName()));
++                batteryIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++                getContext().startActivity(batteryIntent);
++            } catch (Exception e) {
++                Logger.warn("Could not request battery optimization exemption: " + e.getMessage());
++            }
++        }
++
 +        // Inicia o service explicitamente para que ele sobreviva ao unbind do WebView.
 +        // Sem isso o service é apenas "bound" e o onUnbind() o encerra quando o app vai
 +        // para segundo plano por tempo suficiente.
@@ -660,6 +682,18 @@ index a92fcf9..89b5dbd 100644
          );
      }
  
+@@ -339,9 +367,8 @@ public class BackgroundGeolocation extends Plugin {
+ 
+     @Override
+     protected void handleOnDestroy() {
+-        if (service != null) {
+-            service.stopService();
+-        }
++        // Não para o service aqui: a Activity pode ser destruída pelo Android em background
++        // sem que o usuário tenha encerrado o app. O service continua via onTaskRemoved().
+         super.handleOnDestroy();
+     }
+ }
 diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
 index fafbb86..d10c66c 100644
 --- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java

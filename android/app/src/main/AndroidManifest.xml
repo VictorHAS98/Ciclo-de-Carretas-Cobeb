@@ -61,4 +61,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Android 13+ exige POST_NOTIFICATIONS para exibir a notificação do foreground service -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Permite solicitar isenção de otimização de bateria via diálogo do sistema -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 </manifest>
