@@ -118,7 +118,7 @@ export default function Viagem() {
     const [{ data: c }, { data: ca }, { data: u }, { data: v }, { data: m }] = await Promise.all([
       supabase.from('carretas').select('*').eq('ativo', true).eq('em_manutencao', false).order('placa'),
       supabase.from('cavalos').select('*').eq('ativo', true).eq('em_manutencao', false).order('placa'),
-      supabase.from('unidades').select('*').order('nome'),
+      supabase.from('unidades').select('*').eq('tipo', 'revenda').order('nome'),
       supabase.from('viagens')
         .select('*, unidade:unidades(*), carreta:carretas(*), cavalo:cavalos(*)')
         .eq('motorista_id', profile.id)

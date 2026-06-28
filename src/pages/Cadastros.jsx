@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Truck, Users, ClipboardList, Tractor, Shield, DoorOpen, Forklift } from 'lucide-react'
+import { Truck, Users, ClipboardList, Tractor, Shield, DoorOpen, Forklift, Building2 } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { useAuth } from '../contexts/AuthContext'
 import Motoristas from './cadastros/Motoristas'
 import Conferentes from './cadastros/Conferentes'
 import Portaria from './cadastros/Portaria'
@@ -9,18 +10,23 @@ import Empilhadeiras from './cadastros/Empilhadeiras'
 import Carretas from './cadastros/Carretas'
 import Cavalos from './cadastros/Cavalos'
 import Admins from './cadastros/Admins'
+import Unidades from './cadastros/Unidades'
 
-const TABS = [
-  { id: 'motoristas',    label: 'Motoristas',    icon: Users         },
-  { id: 'conferentes',   label: 'Conferentes',   icon: ClipboardList },
-  { id: 'portaria',      label: 'Portaria',      icon: DoorOpen      },
-  { id: 'empilhadeiras', label: 'Empilhadeiras', icon: Forklift      },
-  { id: 'carretas',      label: 'Carretas',      icon: Truck         },
-  { id: 'cavalos',       label: 'Cavalos',       icon: Tractor       },
-  { id: 'admins',        label: 'Usuários',      icon: Shield        },
+const TABS_BASE = [
+  { id: 'motoristas',    label: 'Motoristas',    icon: Users,      adminTotal: false },
+  { id: 'conferentes',   label: 'Conferentes',   icon: ClipboardList, adminTotal: false },
+  { id: 'portaria',      label: 'Portaria',      icon: DoorOpen,   adminTotal: false },
+  { id: 'empilhadeiras', label: 'Empilhadeiras', icon: Forklift,   adminTotal: false },
+  { id: 'carretas',      label: 'Carretas',      icon: Truck,      adminTotal: false },
+  { id: 'cavalos',       label: 'Cavalos',       icon: Tractor,    adminTotal: false },
+  { id: 'admins',        label: 'Usuários',      icon: Shield,     adminTotal: false },
+  { id: 'unidades',      label: 'Unidades',      icon: Building2,  adminTotal: true  },
 ]
 
 export default function Cadastros() {
+  const { profile } = useAuth()
+  const isAdminTotal = profile?.acesso_total === true
+  const TABS = TABS_BASE.filter(t => !t.adminTotal || isAdminTotal)
   const [abaAtiva, setAbaAtiva] = useState('motoristas')
 
   return (
@@ -57,6 +63,7 @@ export default function Cadastros() {
         {abaAtiva === 'carretas'      && <Carretas />}
         {abaAtiva === 'cavalos'       && <Cavalos />}
         {abaAtiva === 'admins'        && <Admins />}
+        {abaAtiva === 'unidades'      && <Unidades />}
       </ErrorBoundary>
     </AdminLayout>
   )
