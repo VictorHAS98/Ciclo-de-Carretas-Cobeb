@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// Lê credenciais da keystore (local ou CI via variáveis de ambiente)
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "br.com.cobeb.ciclocarretas"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +23,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            def ksFile = keystoreProperties['storeFile']
+                         ?: System.getenv('KEYSTORE_FILE')
+            storeFile     ksFile ? file(ksFile) : null
+            storePassword keystoreProperties['storePassword'] ?: System.getenv('KEYSTORE_STORE_PASSWORD')
+            keyAlias      keystoreProperties['keyAlias']      ?: System.getenv('KEYSTORE_KEY_ALIAS')
+            keyPassword   keystoreProperties['keyPassword']   ?: System.getenv('KEYSTORE_KEY_PASSWORD')
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
