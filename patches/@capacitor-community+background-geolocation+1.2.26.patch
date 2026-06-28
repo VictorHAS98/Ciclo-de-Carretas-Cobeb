@@ -695,10 +695,19 @@ index a92fcf9..4337db2 100644
      }
  }
 diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
-index fafbb86..d10c66c 100644
+index fafbb86..6802450 100644
 --- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
 +++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
-@@ -17,7 +17,15 @@ import com.google.android.gms.location.LocationRequest;
+@@ -7,6 +7,8 @@ import android.content.pm.ServiceInfo;
+ import android.location.Location;
+ import android.os.Binder;
+ import android.os.Build;
++import android.os.Handler;
++import android.os.HandlerThread;
+ import android.os.IBinder;
+ 
+ import com.getcapacitor.Logger;
+@@ -17,21 +19,27 @@ import com.google.android.gms.location.LocationRequest;
  import com.google.android.gms.location.LocationResult;
  import com.google.android.gms.location.LocationServices;
  
@@ -710,22 +719,44 @@ index fafbb86..d10c66c 100644
 +import java.util.Date;
  import java.util.HashSet;
 +import java.util.Locale;
++import java.util.Timer;
++import java.util.TimerTask;
 +import java.util.TimeZone;
  
  import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  
-@@ -39,6 +47,10 @@ public class BackgroundGeolocationService extends Service {
+-// A bound and started service that is promoted to a foreground service
+-// (showing a persistent notification) when the first background watcher is
+-// added, and demoted when the last background watcher is removed.
+ public class BackgroundGeolocationService extends Service {
+     static final String ACTION_BROADCAST = (
+             BackgroundGeolocationService.class.getPackage().getName() + ".broadcast"
+     );
+     private final IBinder binder = new LocalBinder();
+-
+-    // Must be unique for this application.
+     private static final int NOTIFICATION_ID = 28351;
++    private static final long SYNC_INTERVAL_MS = 30_000L;
+ 
+     private class Watcher {
+         public String id;
+@@ -39,6 +47,15 @@ public class BackgroundGeolocationService extends Service {
          public LocationRequest locationRequest;
          public LocationCallback locationCallback;
          public Notification backgroundNotification;
-+        // Supabase sync — feito nativamente para funcionar com WebView suspenso (tela apagada)
 +        public String supabaseUrl;
 +        public String supabaseKey;
 +        public String viagemId;
++        // Última posição conhecida — usada pelo timer periódico quando o dispositivo está parado
++        public volatile Location lastLocation;
++        // Thread dedicada para callbacks de localização — independente da main thread/WebView
++        public HandlerThread callbackThread;
++        // Timer nativo para sync periódico mesmo sem movimento
++        public Timer syncTimer;
      }
      private HashSet<Watcher> watchers = new HashSet<Watcher>();
  
-@@ -47,18 +59,23 @@ public class BackgroundGeolocationService extends Service {
+@@ -47,18 +64,33 @@ public class BackgroundGeolocationService extends Service {
          return binder;
      }
  
@@ -735,30 +766,42 @@ index fafbb86..d10c66c 100644
 -    // service is terminated immediately.
      @Override
      public boolean onUnbind(Intent intent) {
-+        // Não para o service aqui: o WebView pode se desconectar quando a tela apaga,
-+        // mas o service foi iniciado explicitamente (startForegroundService) e deve
-+        // continuar rodando. Só paramos via onTaskRemoved (app fechado pelo usuário).
++        // Não para o service: o WebView pode desconectar com tela apagada mas o service
++        // continua via startForegroundService(). Limpeza só em onTaskRemoved().
 +        return false;
 +    }
 +
-+    // Para o service quando o usuário fecha o app explicitamente (swipe no recents).
 +    @Override
 +    public void onTaskRemoved(Intent rootIntent) {
++        stopAllWatchers();
++        stopSelf();
++        super.onTaskRemoved(rootIntent);
++    }
++
++    private void stopAllWatchers() {
          for (Watcher watcher : watchers) {
              watcher.client.removeLocationUpdates(watcher.locationCallback);
++            if (watcher.syncTimer != null) {
++                watcher.syncTimer.cancel();
++                watcher.syncTimer = null;
++            }
++            if (watcher.callbackThread != null) {
++                watcher.callbackThread.quitSafely();
++                watcher.callbackThread = null;
++            }
          }
          watchers = new HashSet<Watcher>();
-         stopSelf();
+-        stopSelf();
 -        return false;
-+        super.onTaskRemoved(rootIntent);
      }
  
      Notification getNotification() {
-@@ -70,12 +87,54 @@ public class BackgroundGeolocationService extends Service {
+@@ -70,33 +102,103 @@ public class BackgroundGeolocationService extends Service {
          return null;
      }
  
-+    // Envia PATCH para o Supabase em thread separada, sem depender do WebView/JS.
+-    // Handles requests from the activity.
++    // PATCH direto para o Supabase em thread separada — funciona com WebView suspenso.
 +    private void syncToSupabase(String supabaseUrl, String supabaseKey, String viagemId,
 +                                double lat, double lng) {
 +        new Thread(() -> {
@@ -797,7 +840,6 @@ index fafbb86..d10c66c 100644
 +        }).start();
 +    }
 +
-     // Handles requests from the activity.
      public class LocalBinder extends Binder {
          void addWatcher(
                  final String id,
@@ -810,10 +852,16 @@ index fafbb86..d10c66c 100644
          ) {
              FusedLocationProviderClient client = LocationServices.getFusedLocationProviderClient(
                      BackgroundGeolocationService.this
-@@ -86,16 +145,34 @@ public class BackgroundGeolocationService extends Service {
+             );
+             LocationRequest locationRequest = new LocationRequest();
+-            locationRequest.setMaxWaitTime(1000);
+-            locationRequest.setInterval(1000);
++            locationRequest.setMaxWaitTime(5000);
++            locationRequest.setInterval(5000);
              locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
              locationRequest.setSmallestDisplacement(distanceFilter);
  
+-            LocationCallback callback = new LocationCallback(){
 +            Watcher watcher = new Watcher();
 +            watcher.id = id;
 +            watcher.client = client;
@@ -823,29 +871,44 @@ index fafbb86..d10c66c 100644
 +            watcher.supabaseKey = supabaseKey;
 +            watcher.viagemId = viagemId;
 +
-             LocationCallback callback = new LocationCallback(){
++            // Thread dedicada para callbacks de localização.
++            // Usar null (main thread) faz os callbacks pararem quando o Android
++            // throttle a main thread com a tela apagada.
++            HandlerThread callbackThread = new HandlerThread("CobebGPS-" + id);
++            callbackThread.start();
++            watcher.callbackThread = callbackThread;
++            Handler callbackHandler = new Handler(callbackThread.getLooper());
++
++            LocationCallback callback = new LocationCallback() {
                  @Override
                  public void onLocationResult(LocationResult locationResult) {
                      Location location = locationResult.getLastLocation();
++                    if (location == null) return;
 +
-+                    // Broadcast para o JS (pode não executar com tela apagada, mas tenta)
++                    // Armazena para o timer periódico
++                    watcher.lastLocation = location;
++
++                    // Broadcast para o JS (atualiza mapa quando app está em foreground)
                      Intent intent = new Intent(ACTION_BROADCAST);
                      intent.putExtra("location", location);
                      intent.putExtra("id", id);
-                     LocalBroadcastManager.getInstance(
-                             getApplicationContext()
-                     ).sendBroadcast(intent);
+-                    LocalBroadcastManager.getInstance(
+-                            getApplicationContext()
+-                    ).sendBroadcast(intent);
++                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
 +
-+                    // Sync nativo direto para o Supabase — garante envio mesmo com WebView suspenso
++                    // Sync imediato a cada posição recebida
 +                    if (watcher.supabaseUrl != null && watcher.supabaseKey != null
 +                            && watcher.viagemId != null) {
 +                        syncToSupabase(watcher.supabaseUrl, watcher.supabaseKey, watcher.viagemId,
 +                                location.getLatitude(), location.getLongitude());
 +                    }
                  }
++
                  @Override
                  public void onLocationAvailability(LocationAvailability availability) {
-@@ -105,12 +182,7 @@ public class BackgroundGeolocationService extends Service {
+                     if (!availability.isLocationAvailable()) {
+@@ -105,37 +207,43 @@ public class BackgroundGeolocationService extends Service {
                  }
              };
  
@@ -857,24 +920,97 @@ index fafbb86..d10c66c 100644
 -            watcher.backgroundNotification = backgroundNotification;
              watchers.add(watcher);
  
-             // According to Android Studio, this method can throw a Security Exception if
-@@ -132,10 +204,15 @@ public class BackgroundGeolocationService extends Service {
-             // each time a background watcher is added.
+-            // According to Android Studio, this method can throw a Security Exception if
+-            // permissions are not yet granted. Rather than check the permissions, which is fiddly,
+-            // we simply ignore the exception.
+             try {
++                // callbackHandler garante que os callbacks rodam na thread dedicada,
++                // não na main thread que o Android suspende com a tela apagada.
+                 watcher.client.requestLocationUpdates(
+                         watcher.locationRequest,
+                         watcher.locationCallback,
+-                        null
++                        callbackHandler
+                 );
+             } catch (SecurityException ignore) {}
+ 
+-            // Promote the service to the foreground if necessary.
+-            // Ideally we would only call 'startForeground' if the service is not already
+-            // foregrounded. Unfortunately, 'getForegroundServiceType' was only introduced
+-            // in API level 29 and seems to behave weirdly, as reported in #120. However,
+-            // it appears that 'startForeground' is idempotent, so we just call it repeatedly
+-            // each time a background watcher is added.
++            // Timer nativo de 30s: sincroniza a última posição mesmo quando o dispositivo
++            // está parado (sem deslocamento = sem callbacks do FusedLocationProvider).
++            if (supabaseUrl != null && supabaseKey != null && viagemId != null) {
++                watcher.syncTimer = new Timer("CobebSync-" + id, true);
++                watcher.syncTimer.schedule(new TimerTask() {
++                    @Override
++                    public void run() {
++                        Location loc = watcher.lastLocation;
++                        if (loc != null) {
++                            syncToSupabase(watcher.supabaseUrl, watcher.supabaseKey,
++                                    watcher.viagemId, loc.getLatitude(), loc.getLongitude());
++                        }
++                    }
++                }, SYNC_INTERVAL_MS, SYNC_INTERVAL_MS);
++            }
++
              if (backgroundNotification != null) {
                  try {
 -                    // This method has been known to fail due to weird
 -                    // permission bugs, so we prevent any exceptions from
 -                    // crashing the app. See issue #86.
 -                    startForeground(NOTIFICATION_ID, backgroundNotification);
-+                    // Android 10+ (API 29) requires the service type to be passed to
-+                    // startForeground when the manifest declares foregroundServiceType="location".
-+                    // On Android 14+ (targetSdk 34+) omitting it throws InvalidForegroundServiceTypeException
-+                    // which was previously swallowed silently, preventing background GPS from working.
 +                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-+                        startForeground(NOTIFICATION_ID, backgroundNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
++                        startForeground(NOTIFICATION_ID, backgroundNotification,
++                                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
 +                    } else {
 +                        startForeground(NOTIFICATION_ID, backgroundNotification);
 +                    }
                  } catch (Exception exception) {
                      Logger.error("Failed to foreground service", exception);
                  }
+@@ -146,9 +254,18 @@ public class BackgroundGeolocationService extends Service {
+             for (Watcher watcher : watchers) {
+                 if (watcher.id.equals(id)) {
+                     watcher.client.removeLocationUpdates(watcher.locationCallback);
++                    if (watcher.syncTimer != null) {
++                        watcher.syncTimer.cancel();
++                        watcher.syncTimer = null;
++                    }
++                    if (watcher.callbackThread != null) {
++                        watcher.callbackThread.quitSafely();
++                        watcher.callbackThread = null;
++                    }
+                     watchers.remove(watcher);
+                     if (getNotification() == null) {
+                         stopForeground(true);
++                        if (watchers.isEmpty()) stopSelf();
+                     }
+                     return;
+                 }
+@@ -156,19 +273,20 @@ public class BackgroundGeolocationService extends Service {
+         }
+ 
+         void onPermissionsGranted() {
+-            // If permissions were granted while the app was in the background, for example in
+-            // the Settings app, the watchers need restarting.
+             for (Watcher watcher : watchers) {
+                 watcher.client.removeLocationUpdates(watcher.locationCallback);
++                Handler handler = watcher.callbackThread != null
++                        ? new Handler(watcher.callbackThread.getLooper()) : null;
+                 watcher.client.requestLocationUpdates(
+                         watcher.locationRequest,
+                         watcher.locationCallback,
+-                        null
++                        handler
+                 );
+             }
+         }
+ 
+         void stopService() {
++            stopAllWatchers();
+             BackgroundGeolocationService.this.stopSelf();
+         }
+     }
