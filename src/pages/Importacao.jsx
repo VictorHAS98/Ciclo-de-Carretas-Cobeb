@@ -26,7 +26,7 @@ function arqOrigemToDate(s) {
 
 function mapRevenda(codigoRevenda, unidades) {
   if (!codigoRevenda) return null
-  return unidades.find(u => u.codigo === codigoRevenda.trim())?.id ?? null
+  return unidades.find(u => u.codigo_ambev === codigoRevenda.trim())?.id ?? null
 }
 
 function chunk(arr, size) {
@@ -79,7 +79,7 @@ export default function Importacao() {
     setLoading(true)
     const [{ data: peds }, { data: unis }, { data: prods }] = await Promise.all([
       supabase.from('pedidos').select('arquivo_origem, data_puxada, viagem_id, importado_em'),
-      supabase.from('unidades').select('id, nome, codigo, cidade').order('nome'),
+      supabase.from('unidades').select('id, nome, codigo, codigo_ambev, cidade').order('nome'),
       supabase.from('produtos_catalogo').select('arquivo_origem, importado_em'),
     ])
 
