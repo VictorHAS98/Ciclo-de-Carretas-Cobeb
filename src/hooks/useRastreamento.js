@@ -26,14 +26,15 @@ function distanciaMetros(lat1, lng1, lat2, lng2) {
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, onMudarStatus }) {
-  const ativoRef     = useRef(false)
-  const watcherIdRef = useRef(null)
-  const syncTimerRef = useRef(null)
-  const posRef       = useRef(null)
-  const dentroFabRef = useRef(false)
-  const callbackRef  = useRef(null)
-  const viagemIdRef  = useRef(null)
-  const isOnlineRef  = useRef(isOnline)
+  const ativoRef        = useRef(false)
+  const watcherIdRef    = useRef(null)
+  const syncTimerRef    = useRef(null)
+  const posRef          = useRef(null)
+  const dentroFabRef    = useRef(false)
+  const callbackRef     = useRef(null)
+  const viagemIdRef     = useRef(null)
+  const isOnlineRef     = useRef(isOnline)
+  const authListenerRef = useRef(null)
 
   callbackRef.current = onMudarStatus
   viagemIdRef.current = viagemId
@@ -93,14 +94,24 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
       // 1. Serviço nativo próprio — rastreia e sincroniza com Supabase independente
       //    do WebView, com START_STICKY, WakeLock e timer de 30s próprios.
       try {
+        const { data: { session } } = await supabase.auth.getSession()
         await CobebGps.startTracking({
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-          supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          viagemId:    viagemIdRef.current,
+          supabaseUrl:  import.meta.env.VITE_SUPABASE_URL,
+          supabaseKey:  import.meta.env.VITE_SUPABASE_ANON_KEY,
+          accessToken:  session?.access_token ?? '',
+          viagemId:     viagemIdRef.current,
         })
       } catch (err) {
         console.error('[Rastreamento] Erro ao iniciar CobebGpsService:', err)
       }
+
+      // Atualiza o token no serviço nativo sempre que o Supabase o renovar
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'TOKEN_REFRESHED' && session && ativoRef.current) {
+          try { await CobebGps.updateToken({ accessToken: session.access_token }) } catch {}
+        }
+      })
+      authListenerRef.current = listener
 
       // 2. Watcher do plugin de terceiro — apenas para callbacks JS de geofence
       //    enquanto o app está em foreground (tela ligada).
@@ -158,6 +169,8 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
 
     if (IS_NATIVE_APP) {
       try { await CobebGps.stopTracking() } catch {}
+      authListenerRef.current?.subscription?.unsubscribe()
+      authListenerRef.current = null
       const w = watcherIdRef.current
       if (w?.type === 'capacitor' && w.id) {
         try { await BackgroundGeolocation.removeWatcher({ id: w.id }) } catch {}

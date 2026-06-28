@@ -57,6 +57,7 @@ public class CobebGpsService extends Service {
 
     private String supabaseUrl;
     private String supabaseKey;
+    private String accessToken;
     private String viagemId;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -66,9 +67,10 @@ public class CobebGpsService extends Service {
         if (intent != null
                 && intent.hasExtra("supabaseUrl")
                 && intent.hasExtra("viagemId")) {
-            supabaseUrl = intent.getStringExtra("supabaseUrl");
-            supabaseKey = intent.getStringExtra("supabaseKey");
-            viagemId    = intent.getStringExtra("viagemId");
+            supabaseUrl  = intent.getStringExtra("supabaseUrl");
+            supabaseKey  = intent.getStringExtra("supabaseKey");
+            accessToken  = intent.getStringExtra("accessToken");
+            viagemId     = intent.getStringExtra("viagemId");
             persistPrefs();
         } else {
             // Reiniciado pelo Android (START_STICKY) — restaura das prefs
@@ -227,10 +229,15 @@ public class CobebGpsService extends Service {
     // ── Supabase HTTP sync ────────────────────────────────────────────────────
 
     private void syncToSupabase(double lat, double lng) {
-        final String url_  = supabaseUrl;
-        final String key_  = supabaseKey;
-        final String vid_  = viagemId;
+        final String url_   = supabaseUrl;
+        final String key_   = supabaseKey;
+        final String vid_   = viagemId;
         if (url_ == null || key_ == null || vid_ == null) return;
+
+        // Lê accessToken atualizado das prefs (pode ter sido renovado via updateToken())
+        final String token_ = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getString("accessToken", key_);
+        final String bearer = (token_ != null && !token_.isEmpty()) ? token_ : key_;
 
         new Thread(() -> {
             try {
@@ -243,7 +250,7 @@ public class CobebGpsService extends Service {
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("PATCH");
                 conn.setRequestProperty("apikey", key_);
-                conn.setRequestProperty("Authorization", "Bearer " + key_);
+                conn.setRequestProperty("Authorization", "Bearer " + bearer);
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setRequestProperty("Prefer", "return=minimal");
                 conn.setDoOutput(true);
@@ -284,17 +291,19 @@ public class CobebGpsService extends Service {
 
     private void persistPrefs() {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                .putString("supabaseUrl", supabaseUrl)
-                .putString("supabaseKey", supabaseKey)
-                .putString("viagemId", viagemId)
+                .putString("supabaseUrl",  supabaseUrl)
+                .putString("supabaseKey",  supabaseKey)
+                .putString("accessToken",  accessToken != null ? accessToken : "")
+                .putString("viagemId",     viagemId)
                 .apply();
     }
 
     private void restorePrefs() {
         SharedPreferences p = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        supabaseUrl = p.getString("supabaseUrl", null);
-        supabaseKey = p.getString("supabaseKey", null);
-        viagemId    = p.getString("viagemId", null);
+        supabaseUrl  = p.getString("supabaseUrl", null);
+        supabaseKey  = p.getString("supabaseKey", null);
+        accessToken  = p.getString("accessToken", null);
+        viagemId     = p.getString("viagemId", null);
         Log.i(TAG, "Restaurado de prefs: viagemId=" + viagemId);
     }
 
