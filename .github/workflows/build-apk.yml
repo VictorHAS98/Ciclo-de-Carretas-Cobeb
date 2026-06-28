@@ -53,9 +53,9 @@ jobs:
           ./gradlew assembleRelease
         env:
           KEYSTORE_FILE: ../cobeb-release.jks
-          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
-          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
-          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          KEYSTORE_STORE_PASSWORD: Cobeb2026Ciclo
+          KEYSTORE_KEY_ALIAS: cobebciclo
+          KEYSTORE_KEY_PASSWORD: Cobeb2026Ciclo
 
       - name: Rename APK
         run: |
