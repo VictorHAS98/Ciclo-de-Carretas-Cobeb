@@ -40,18 +40,27 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync android
 
-      - name: Generate release keystore (Java 21 compatible)
+      - name: Prepare keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          keytool -genkeypair \
-            -keystore android/cobeb-release.jks \
-            -storetype PKCS12 \
-            -storepass Cobeb2026Ciclo \
-            -alias cobebciclo \
-            -keypass Cobeb2026Ciclo \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=COBEB Ciclo de Carretas, OU=Transportes, O=COBEB, L=Brasil, ST=Brasil, C=BR"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Usando keystore salvo (KEYSTORE_BASE64)"
+            node -e "require('fs').writeFileSync('android/cobeb-release.jks', Buffer.from(process.env.KEYSTORE_BASE64, 'base64'))"
+          else
+            echo "Gerando novo keystore e imprimindo base64 para salvar como secret..."
+            keytool -genkeypair \
+              -keystore android/cobeb-release.jks \
+              -storetype PKCS12 \
+              -storepass Cobeb2026Ciclo \
+              -alias cobebciclo \
+              -keypass Cobeb2026Ciclo \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=COBEB Ciclo de Carretas, OU=Transportes, O=COBEB, L=Brasil, ST=Brasil, C=BR"
+            echo "::notice title=SALVE COMO SECRET KEYSTORE_BASE64::$(base64 -w 0 android/cobeb-release.jks)"
+          fi
 
       - name: Build signed APK
         working-directory: android
@@ -80,6 +89,6 @@ jobs:
 
             **Como instalar:**
             1. Baixe o arquivo `cobeb-ciclo-${{ github.ref_name }}.apk`
-            2. Permita "Instalar de fontes desconhecidas" se solicitado
-            3. Instale e faça login normalmente
+            2. Se já tem o app instalado, instale por cima (sem desinstalar)
+            3. Permita "Instalar de fontes desconhecidas" se solicitado
           files: cobeb-ciclo-${{ github.ref_name }}.apk
