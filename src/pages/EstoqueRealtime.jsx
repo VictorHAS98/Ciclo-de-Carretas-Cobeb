@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid } from 'lucide-react'
+import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid, Map, ChevronLeft, HardHat } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -55,6 +55,7 @@ export default function EstoqueRealtime({ adminMode = false }) {
   const [loading,    setLoading]    = useState(true)
   const [expanded,   setExpanded]   = useState(new Set())
   const [lastUpdate, setLastUpdate] = useState(null)
+  const [view,       setView]       = useState('lista')
   const channelRef = useRef(null)
 
   useEffect(() => {
@@ -138,7 +139,21 @@ export default function EstoqueRealtime({ adminMode = false }) {
   )
 
   if (adminMode) {
-    return <div className="pb-6">{conteudo}</div>
+    if (view === 'mapa') return <MapaConstrucao onVoltar={() => setView('lista')} />
+    return (
+      <div className="pb-6">
+        <div className="px-4 pt-4 max-w-lg mx-auto">
+          <button
+            onClick={() => setView('mapa')}
+            className="w-full flex items-center justify-center gap-2 bg-cobeb-navy hover:bg-cobeb-blue text-white text-sm font-semibold py-3 rounded-xl transition-colors mb-4"
+          >
+            <Map size={16} />
+            Mapa em Tempo Real
+          </button>
+        </div>
+        {conteudo}
+      </div>
+    )
   }
 
   return (
@@ -350,6 +365,53 @@ function StepIndicator({ step }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ── Mapa em construção ────────────────────────────────────────────────────────
+
+function MapaConstrucao({ onVoltar }) {
+  return (
+    <div className="min-h-[60vh] flex flex-col">
+      <div className="px-4 pt-4 max-w-lg mx-auto w-full">
+        <button
+          onClick={onVoltar}
+          className="flex items-center gap-1.5 text-slate-500 hover:text-cobeb-navy text-sm font-medium transition-colors mb-6"
+        >
+          <ChevronLeft size={16} />
+          Voltar ao painel
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5">
+        <div className="w-24 h-24 rounded-3xl bg-cobeb-navy/10 border-2 border-cobeb-navy/20 flex items-center justify-center">
+          <HardHat size={40} className="text-cobeb-navy/40" />
+        </div>
+
+        <div>
+          <p className="text-cobeb-text font-bold text-xl">Em Construção</p>
+          <p className="text-slate-500 text-sm mt-2 leading-relaxed max-w-xs">
+            O mapa em tempo real está sendo desenvolvido.<br />
+            Em breve você poderá acompanhar a posição das carretas diretamente nesta tela.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 w-full max-w-xs">
+          <div className="flex items-center gap-3 bg-white border border-cobeb-border rounded-xl px-4 py-3">
+            <Map size={15} className="text-cobeb-navy/40 shrink-0" />
+            <p className="text-slate-400 text-xs">Rastreamento via GPS das carretas</p>
+          </div>
+          <div className="flex items-center gap-3 bg-white border border-cobeb-border rounded-xl px-4 py-3">
+            <Map size={15} className="text-cobeb-navy/40 shrink-0" />
+            <p className="text-slate-400 text-xs">Geofence automático de fábricas e revendas</p>
+          </div>
+          <div className="flex items-center gap-3 bg-white border border-cobeb-border rounded-xl px-4 py-3">
+            <Map size={15} className="text-cobeb-navy/40 shrink-0" />
+            <p className="text-slate-400 text-xs">Alertas de chegada e saída em tempo real</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
