@@ -24,6 +24,16 @@
 
         </activity>
 
+        <!-- Override da declaração do plugin para adicionar stopWithTask=false:
+             sem isso o Android encerra o service quando o app é removido dos recentes,
+             antes que onTaskRemoved() possa fazer a limpeza. -->
+        <service
+            android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="location" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

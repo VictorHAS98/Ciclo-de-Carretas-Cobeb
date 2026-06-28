@@ -632,10 +632,23 @@ index 0000000..1fc7135
 +org.eclipse.jdt.core.compiler.problem.potentialNullReference=warning
 +org.eclipse.jdt.core.compiler.problem.syntacticNullAnalysisForFields=enabled
 diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
-index a92fcf9..30cd85a 100644
+index a92fcf9..89b5dbd 100644
 --- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
 +++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocation.java
-@@ -159,7 +159,10 @@ public class BackgroundGeolocation extends Plugin {
+@@ -156,10 +156,23 @@ public class BackgroundGeolocation extends Plugin {
+ 
+             backgroundNotification = builder.build();
+         }
++        // Inicia o service explicitamente para que ele sobreviva ao unbind do WebView.
++        // Sem isso o service é apenas "bound" e o onUnbind() o encerra quando o app vai
++        // para segundo plano por tempo suficiente.
++        Intent serviceIntent = new Intent(getContext(), BackgroundGeolocationService.class);
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
++            getContext().startForegroundService(serviceIntent);
++        } else {
++            getContext().startService(serviceIntent);
++        }
++
          service.addWatcher(
                  call.getCallbackId(),
                  backgroundNotification,
@@ -648,7 +661,7 @@ index a92fcf9..30cd85a 100644
      }
  
 diff --git a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
-index fafbb86..a01adcd 100644
+index fafbb86..d10c66c 100644
 --- a/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
 +++ b/node_modules/@capacitor-community/background-geolocation/android/src/main/java/com/equimaps/capacitor_background_geolocation/BackgroundGeolocationService.java
 @@ -17,7 +17,15 @@ import com.google.android.gms.location.LocationRequest;
@@ -678,7 +691,36 @@ index fafbb86..a01adcd 100644
      }
      private HashSet<Watcher> watchers = new HashSet<Watcher>();
  
-@@ -70,12 +82,54 @@ public class BackgroundGeolocationService extends Service {
+@@ -47,18 +59,23 @@ public class BackgroundGeolocationService extends Service {
+         return binder;
+     }
+ 
+-    // Some devices allow a foreground service to outlive the application's main
+-    // activity, leading to nasty crashes as reported in issue #59. If we learn
+-    // that the application has been killed, all watchers are stopped and the
+-    // service is terminated immediately.
+     @Override
+     public boolean onUnbind(Intent intent) {
++        // Não para o service aqui: o WebView pode se desconectar quando a tela apaga,
++        // mas o service foi iniciado explicitamente (startForegroundService) e deve
++        // continuar rodando. Só paramos via onTaskRemoved (app fechado pelo usuário).
++        return false;
++    }
++
++    // Para o service quando o usuário fecha o app explicitamente (swipe no recents).
++    @Override
++    public void onTaskRemoved(Intent rootIntent) {
+         for (Watcher watcher : watchers) {
+             watcher.client.removeLocationUpdates(watcher.locationCallback);
+         }
+         watchers = new HashSet<Watcher>();
+         stopSelf();
+-        return false;
++        super.onTaskRemoved(rootIntent);
+     }
+ 
+     Notification getNotification() {
+@@ -70,12 +87,54 @@ public class BackgroundGeolocationService extends Service {
          return null;
      }
  
@@ -734,7 +776,7 @@ index fafbb86..a01adcd 100644
          ) {
              FusedLocationProviderClient client = LocationServices.getFusedLocationProviderClient(
                      BackgroundGeolocationService.this
-@@ -86,16 +140,34 @@ public class BackgroundGeolocationService extends Service {
+@@ -86,16 +145,34 @@ public class BackgroundGeolocationService extends Service {
              locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
              locationRequest.setSmallestDisplacement(distanceFilter);
  
@@ -769,7 +811,7 @@ index fafbb86..a01adcd 100644
                  }
                  @Override
                  public void onLocationAvailability(LocationAvailability availability) {
-@@ -105,12 +177,7 @@ public class BackgroundGeolocationService extends Service {
+@@ -105,12 +182,7 @@ public class BackgroundGeolocationService extends Service {
                  }
              };
  
@@ -782,7 +824,7 @@ index fafbb86..a01adcd 100644
              watchers.add(watcher);
  
              // According to Android Studio, this method can throw a Security Exception if
-@@ -132,10 +199,15 @@ public class BackgroundGeolocationService extends Service {
+@@ -132,10 +204,15 @@ public class BackgroundGeolocationService extends Service {
              // each time a background watcher is added.
              if (backgroundNotification != null) {
                  try {
