@@ -211,15 +211,6 @@ export default function EstoqueRealtime({ adminMode = false }) {
           >
             <RefreshCw size={16} />
           </button>
-          {profile?.perfil === 'admin' && (
-            <button
-              onClick={() => setView('mapa')}
-              className="text-blue-300/70 hover:text-cobeb-yellow transition-colors p-1.5 rounded-lg hover:bg-white/10"
-              title="Mapa em Tempo Real"
-            >
-              <Map size={18} />
-            </button>
-          )}
           {profile?.acesso_total && (
             <button
               onClick={() => { setModoVisao(null); navigate('/selecionar-modulo') }}
@@ -240,6 +231,17 @@ export default function EstoqueRealtime({ adminMode = false }) {
       </header>
 
       <main className="flex-1 overflow-y-auto pb-6">
+        {profile?.perfil === 'admin' && (
+          <div className="px-4 pt-4 max-w-lg mx-auto">
+            <button
+              onClick={() => setView('mapa')}
+              className="w-full flex items-center justify-center gap-2 bg-cobeb-navy hover:bg-cobeb-blue text-white text-sm font-semibold py-3 rounded-xl transition-colors mb-1"
+            >
+              <Map size={16} />
+              Mapa em Tempo Real
+            </button>
+          </div>
+        )}
         {conteudo}
       </main>
     </div>
