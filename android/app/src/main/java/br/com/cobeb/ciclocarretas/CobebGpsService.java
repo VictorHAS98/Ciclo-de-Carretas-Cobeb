@@ -22,6 +22,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -129,7 +130,7 @@ public class CobebGpsService extends Service {
         }
         builder.setContentTitle("COBEB Ciclo — Rastreamento ativo")
                .setContentText("COBEB está rastreando sua localização")
-               .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+               .setSmallIcon(R.mipmap.ic_launcher)
                .setOngoing(true)
                .setPriority(Notification.PRIORITY_LOW)
                .setContentIntent(pi);
@@ -182,11 +183,11 @@ public class CobebGpsService extends Service {
 
         fusedClient = LocationServices.getFusedLocationProviderClient(this);
 
-        LocationRequest request = new LocationRequest();
-        request.setInterval(LOCATION_INTERVAL_MS);
-        request.setFastestInterval(5_000L);
-        request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        request.setSmallestDisplacement(0f); // recebe update mesmo sem movimento
+        LocationRequest request = new LocationRequest.Builder(LOCATION_INTERVAL_MS)
+                .setMinUpdateIntervalMillis(5_000L)
+                .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                .setMinUpdateDistanceMeters(0f)
+                .build();
 
         locationCallback = new LocationCallback() {
             @Override

@@ -104,6 +104,10 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
 
       // 2. Watcher do plugin de terceiro — apenas para callbacks JS de geofence
       //    enquanto o app está em foreground (tela ligada).
+      // Sync imediato ao iniciar (garante posição mesmo antes do primeiro callback)
+      sincronizar()
+      syncTimerRef.current = setInterval(sincronizar, 30000)
+
       try {
         const id = await BackgroundGeolocation.addWatcher(
           {
@@ -118,7 +122,11 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
               if (error.code === 'NOT_AUTHORIZED') BackgroundGeolocation.openSettings()
               return
             }
-            if (location) processarPosicao(location.latitude, location.longitude)
+            if (location) {
+              processarPosicao(location.latitude, location.longitude)
+              // Sync JS enquanto tela está ligada (fallback se o serviço nativo falhar)
+              sincronizar()
+            }
           }
         )
         watcherIdRef.current = { type: 'capacitor', id }
