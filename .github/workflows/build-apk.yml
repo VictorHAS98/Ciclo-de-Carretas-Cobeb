@@ -40,11 +40,18 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync android
 
-      - name: Decode keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Generate release keystore (Java 21 compatible)
         run: |
-          node -e "require('fs').writeFileSync('android/cobeb-release.jks', Buffer.from(process.env.KEYSTORE_BASE64, 'base64'))"
+          keytool -genkeypair \
+            -keystore android/cobeb-release.jks \
+            -storetype PKCS12 \
+            -storepass Cobeb2026Ciclo \
+            -alias cobebciclo \
+            -keypass Cobeb2026Ciclo \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=COBEB Ciclo de Carretas, OU=Transportes, O=COBEB, L=Brasil, ST=Brasil, C=BR"
 
       - name: Build signed APK
         working-directory: android
