@@ -24,16 +24,9 @@ function arqOrigemToDate(s) {
   return m ? `${m[3]}-${m[2]}-${m[1]}` : null
 }
 
-function mapRevenda(revenda, unidades) {
-  if (!revenda) return null
-  const r = revenda.toLowerCase()
-  if (r.includes('lagoa') || r.includes('188300'))
-    return unidades.find(u => u.codigo === 'FILIAL_LP')?.id ?? null
-  if (r.includes('abaet') || r.includes('98450'))
-    return unidades.find(u => u.codigo === 'FILIAL_AB')?.id ?? null
-  if (r.includes('para') || r.includes('77200'))
-    return unidades.find(u => u.codigo === 'MATRIZ')?.id ?? null
-  return null
+function mapRevenda(codigoRevenda, unidades) {
+  if (!codigoRevenda) return null
+  return unidades.find(u => u.codigo === codigoRevenda.trim())?.id ?? null
 }
 
 function chunk(arr, size) {
@@ -144,7 +137,7 @@ export default function Importacao() {
         const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false })
         const ws = wb.Sheets[wb.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true })
-        const dataRows = rows.slice(1).filter(r => r[3])
+        const dataRows = rows.slice(1).filter(r => r[5])
         if (!dataRows.length) { setFileError('Arquivo sem dados válidos.'); return }
         const arqOrigem = file.name.replace(/\.xlsx$/i, '')
         setPendingFile({ name: file.name, arqOrigem, data: dataRows, count: dataRows.length })
@@ -162,17 +155,19 @@ export default function Importacao() {
     try {
       const newRecords = pendingFile.data.map(r => ({
         data_puxada:    excelSerial(r[0]),
-        revenda:        String(r[1] || ''),
+        codigo_revenda: String(r[1] || '').trim() || null,
+        revenda:        String(r[2] || ''),
         unidade_id:     mapRevenda(String(r[1] || ''), unidades),
-        fabrica:        String(r[2] || ''),
-        numero_pedido:  Number(r[3]),
-        placa:          r[4] ? String(r[4]).toUpperCase().trim() : null,
-        cod_produto:    String(r[5] || ''),
-        descricao:      String(r[6] || ''),
-        embalagem:      r[7] ? String(r[7]) : null,
-        curva:          r[8] ? String(r[8]).trim() : null,
-        qtde_pallets:   Number(r[9]) || 0,
-        qtde_skus:      Number(r[10]) || 0,
+        codigo_fabrica: String(r[3] || '').trim() || null,
+        fabrica:        String(r[4] || ''),
+        numero_pedido:  Number(r[5]),
+        placa:          r[6] ? String(r[6]).toUpperCase().trim() : null,
+        cod_produto:    String(r[7] || ''),
+        descricao:      String(r[8] || ''),
+        embalagem:      r[9] ? String(r[9]) : null,
+        curva:          r[10] ? String(r[10]).trim() : null,
+        qtde_pallets:   Number(r[11]) || 0,
+        qtde_skus:      Number(r[12]) || 0,
         arquivo_origem: pendingFile.arqOrigem,
         importado_por:  profile?.id,
       }))
