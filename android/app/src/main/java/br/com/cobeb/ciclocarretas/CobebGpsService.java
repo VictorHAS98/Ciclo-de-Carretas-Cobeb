@@ -24,6 +24,10 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
+import android.util.Base64;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -58,6 +62,7 @@ public class CobebGpsService extends Service {
     private String supabaseUrl;
     private String supabaseKey;
     private String accessToken;
+    private String refreshToken;
     private String viagemId;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -70,6 +75,7 @@ public class CobebGpsService extends Service {
             supabaseUrl  = intent.getStringExtra("supabaseUrl");
             supabaseKey  = intent.getStringExtra("supabaseKey");
             accessToken  = intent.getStringExtra("accessToken");
+            refreshToken = intent.getStringExtra("refreshToken");
             viagemId     = intent.getStringExtra("viagemId");
             persistPrefs();
         } else {
@@ -226,6 +232,91 @@ public class CobebGpsService extends Service {
         }, SYNC_INTERVAL_MS, SYNC_INTERVAL_MS);
     }
 
+    // ── Token refresh ─────────────────────────────────────────────────────────
+
+    private long getTokenExpiry(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) return 0;
+            String payload = new String(
+                    Base64.decode(parts[1], Base64.URL_SAFE | Base64.NO_PADDING),
+                    StandardCharsets.UTF_8);
+            int idx = payload.indexOf("\"exp\":");
+            if (idx < 0) return 0;
+            String after = payload.substring(idx + 6).trim();
+            int end = 0;
+            while (end < after.length() && Character.isDigit(after.charAt(end))) end++;
+            return Long.parseLong(after.substring(0, end)) * 1000L;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private String extractJsonString(String json, String key) {
+        String search = "\"" + key + "\":\"";
+        int idx = json.indexOf(search);
+        if (idx < 0) return null;
+        int start = idx + search.length();
+        int end   = json.indexOf("\"", start);
+        return end < 0 ? null : json.substring(start, end);
+    }
+
+    private void refreshTokenIfNeeded() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String curAccess  = prefs.getString("accessToken",  "");
+        String curRefresh = prefs.getString("refreshToken", "");
+        if (curAccess.isEmpty() || curRefresh.isEmpty() || supabaseUrl == null || supabaseKey == null) return;
+
+        long expiry = getTokenExpiry(curAccess);
+        if (expiry == 0) return;
+        // Renova se expira em menos de 5 minutos
+        if (System.currentTimeMillis() < expiry - 5 * 60 * 1000L) return;
+
+        Log.i(TAG, "Token próximo de expirar — renovando");
+        try {
+            URL url = new URL(supabaseUrl + "/auth/v1/token?grant_type=refresh_token");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("apikey", supabaseKey);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(15_000);
+            conn.setReadTimeout(15_000);
+
+            String body  = "{\"refresh_token\":\"" + curRefresh + "\"}";
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            conn.setFixedLengthStreamingMode(bytes.length);
+            try (OutputStream os = conn.getOutputStream()) { os.write(bytes); }
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                StringBuilder sb = new StringBuilder();
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                }
+                String resp        = sb.toString();
+                String newAccess   = extractJsonString(resp, "access_token");
+                String newRefresh  = extractJsonString(resp, "refresh_token");
+                if (newAccess != null && !newAccess.isEmpty()) {
+                    prefs.edit()
+                            .putString("accessToken",  newAccess)
+                            .putString("refreshToken", newRefresh != null ? newRefresh : curRefresh)
+                            .apply();
+                    accessToken  = newAccess;
+                    refreshToken = newRefresh != null ? newRefresh : curRefresh;
+                    Log.i(TAG, "Token renovado com sucesso");
+                }
+            } else {
+                Log.w(TAG, "Falha ao renovar token: HTTP " + code);
+            }
+            conn.disconnect();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao renovar token: " + e.getMessage());
+        }
+    }
+
     // ── Supabase HTTP sync ────────────────────────────────────────────────────
 
     private void syncToSupabase(double lat, double lng) {
@@ -234,7 +325,9 @@ public class CobebGpsService extends Service {
         final String vid_   = viagemId;
         if (url_ == null || key_ == null || vid_ == null) return;
 
-        // Lê accessToken atualizado das prefs (pode ter sido renovado via updateToken())
+        refreshTokenIfNeeded();
+
+        // Lê accessToken atualizado das prefs (pode ter sido renovado)
         final String token_ = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getString("accessToken", key_);
         final String bearer = (token_ != null && !token_.isEmpty()) ? token_ : key_;
@@ -293,17 +386,19 @@ public class CobebGpsService extends Service {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putString("supabaseUrl",  supabaseUrl)
                 .putString("supabaseKey",  supabaseKey)
-                .putString("accessToken",  accessToken != null ? accessToken : "")
+                .putString("accessToken",  accessToken  != null ? accessToken  : "")
+                .putString("refreshToken", refreshToken != null ? refreshToken : "")
                 .putString("viagemId",     viagemId)
                 .apply();
     }
 
     private void restorePrefs() {
         SharedPreferences p = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        supabaseUrl  = p.getString("supabaseUrl", null);
-        supabaseKey  = p.getString("supabaseKey", null);
-        accessToken  = p.getString("accessToken", null);
-        viagemId     = p.getString("viagemId", null);
+        supabaseUrl  = p.getString("supabaseUrl",  null);
+        supabaseKey  = p.getString("supabaseKey",  null);
+        accessToken  = p.getString("accessToken",  null);
+        refreshToken = p.getString("refreshToken", null);
+        viagemId     = p.getString("viagemId",     null);
         Log.i(TAG, "Restaurado de prefs: viagemId=" + viagemId);
     }
 

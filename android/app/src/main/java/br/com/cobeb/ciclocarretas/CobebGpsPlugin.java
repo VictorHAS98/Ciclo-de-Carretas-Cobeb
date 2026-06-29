@@ -16,13 +16,15 @@ public class CobebGpsPlugin extends Plugin {
     public void startTracking(PluginCall call) {
         String supabaseUrl  = call.getString("supabaseUrl");
         String supabaseKey  = call.getString("supabaseKey");
-        String accessToken  = call.getString("accessToken", "");
+        String accessToken  = call.getString("accessToken",  "");
+        String refreshToken = call.getString("refreshToken", "");
         String viagemId     = call.getString("viagemId");
 
         Intent intent = new Intent(getContext(), CobebGpsService.class);
         intent.putExtra("supabaseUrl",  supabaseUrl);
         intent.putExtra("supabaseKey",  supabaseKey);
         intent.putExtra("accessToken",  accessToken);
+        intent.putExtra("refreshToken", refreshToken);
         intent.putExtra("viagemId",     viagemId);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -35,11 +37,13 @@ public class CobebGpsPlugin extends Plugin {
 
     @PluginMethod
     public void updateToken(PluginCall call) {
-        String accessToken = call.getString("accessToken", "");
+        String accessToken  = call.getString("accessToken",  "");
+        String refreshToken = call.getString("refreshToken", "");
         getContext()
                 .getSharedPreferences(CobebGpsService.PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
-                .putString("accessToken", accessToken)
+                .putString("accessToken",  accessToken)
+                .putString("refreshToken", refreshToken)
                 .apply();
         call.resolve();
     }

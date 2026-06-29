@@ -96,10 +96,11 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
       try {
         const { data: { session } } = await supabase.auth.getSession()
         await CobebGps.startTracking({
-          supabaseUrl:  import.meta.env.VITE_SUPABASE_URL,
-          supabaseKey:  import.meta.env.VITE_SUPABASE_ANON_KEY,
-          accessToken:  session?.access_token ?? '',
-          viagemId:     viagemIdRef.current,
+          supabaseUrl:   import.meta.env.VITE_SUPABASE_URL,
+          supabaseKey:   import.meta.env.VITE_SUPABASE_ANON_KEY,
+          accessToken:   session?.access_token  ?? '',
+          refreshToken:  session?.refresh_token ?? '',
+          viagemId:      viagemIdRef.current,
         })
       } catch (err) {
         console.error('[Rastreamento] Erro ao iniciar CobebGpsService:', err)
@@ -108,7 +109,12 @@ export function useRastreamento({ viagemId, statusRef, fabricasAlvo, isOnline, o
       // Atualiza o token no serviço nativo sempre que o Supabase o renovar
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'TOKEN_REFRESHED' && session && ativoRef.current) {
-          try { await CobebGps.updateToken({ accessToken: session.access_token }) } catch {}
+          try {
+            await CobebGps.updateToken({
+              accessToken:  session.access_token,
+              refreshToken: session.refresh_token ?? '',
+            })
+          } catch {}
         }
       })
       authListenerRef.current = listener
