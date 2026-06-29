@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Download, CheckCircle, Smartphone, Wifi, ChevronRight } from 'lucide-react'
 
 const APK_URL = import.meta.env.VITE_APK_URL ?? null
@@ -12,20 +12,8 @@ const PASSOS = [
 ]
 
 export default function InstalarApp({ onContinuar }) {
-  const [countdown, setCountdown] = useState(APK_URL ? 3 : 0)
-  const [baixando,  setBaixando]  = useState(false)
-  const [baixou,    setBaixou]    = useState(false)
-
-  useEffect(() => {
-    if (!APK_URL || countdown <= 0) return
-    const t = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(t); dispararDownload(); return 0 }
-        return c - 1
-      })
-    }, 1000)
-    return () => clearInterval(t)
-  }, [])
+  const [baixando, setBaixando] = useState(false)
+  const [baixou,   setBaixou]   = useState(false)
 
   function dispararDownload() {
     if (!APK_URL) return
@@ -69,20 +57,9 @@ export default function InstalarApp({ onContinuar }) {
               ) : baixou ? (
                 <><CheckCircle size={20} />Download concluído!</>
               ) : (
-                <>
-                  <Download size={20} />
-                  {countdown > 0
-                    ? `Baixando automaticamente em ${countdown}s…`
-                    : 'Baixar App COBEB Ciclo (.apk)'}
-                </>
+                <><Download size={20} />Baixar App COBEB Ciclo (.apk)</>
               )}
             </button>
-
-            {countdown > 0 && !baixando && (
-              <p className="text-center text-slate-500 text-xs">
-                O download vai iniciar automaticamente
-              </p>
-            )}
           </div>
         ) : (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-4 flex items-start gap-3">
