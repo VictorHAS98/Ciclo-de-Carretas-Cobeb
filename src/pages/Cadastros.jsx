@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Truck, Users, ClipboardList, Tractor, Shield, DoorOpen, Forklift, Building2 } from 'lucide-react'
+import { Truck, Users, ClipboardList, Tractor, Shield, DoorOpen, Forklift, Building2, LayoutGrid } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { useAuth } from '../contexts/AuthContext'
@@ -11,16 +11,18 @@ import Carretas from './cadastros/Carretas'
 import Cavalos from './cadastros/Cavalos'
 import Admins from './cadastros/Admins'
 import Unidades from './cadastros/Unidades'
+import Grade from './cadastros/Grade'
 
 const TABS_BASE = [
-  { id: 'motoristas',    label: 'Motoristas',    icon: Users,      adminTotal: false },
+  { id: 'motoristas',    label: 'Motoristas',    icon: Users,        adminTotal: false },
   { id: 'conferentes',   label: 'Conferentes',   icon: ClipboardList, adminTotal: false },
-  { id: 'portaria',      label: 'Portaria',      icon: DoorOpen,   adminTotal: false },
-  { id: 'empilhadeiras', label: 'Empilhadeiras', icon: Forklift,   adminTotal: false },
-  { id: 'carretas',      label: 'Carretas',      icon: Truck,      adminTotal: false },
-  { id: 'cavalos',       label: 'Cavalos',       icon: Tractor,    adminTotal: false },
-  { id: 'admins',        label: 'Usuários',      icon: Shield,     adminTotal: false },
-  { id: 'unidades',      label: 'Unidades',      icon: Building2,  adminTotal: true  },
+  { id: 'portaria',      label: 'Portaria',      icon: DoorOpen,     adminTotal: false },
+  { id: 'empilhadeiras', label: 'Empilhadeiras', icon: Forklift,     adminTotal: false },
+  { id: 'carretas',      label: 'Carretas',      icon: Truck,        adminTotal: false },
+  { id: 'cavalos',       label: 'Cavalos',       icon: Tractor,      adminTotal: false },
+  { id: 'admins',        label: 'Usuários',      icon: Shield,       adminTotal: false },
+  { id: 'unidades',      label: 'Unidades',      icon: Building2,    adminTotal: true  },
+  { id: 'grade',         label: 'Grade',         icon: LayoutGrid,   adminTotal: true  },
 ]
 
 export default function Cadastros() {
@@ -64,6 +66,7 @@ export default function Cadastros() {
         {abaAtiva === 'cavalos'       && <Cavalos />}
         {abaAtiva === 'admins'        && <Admins />}
         {abaAtiva === 'unidades'      && <Unidades />}
+        {abaAtiva === 'grade'         && <Grade />}
       </ErrorBoundary>
     </AdminLayout>
   )
