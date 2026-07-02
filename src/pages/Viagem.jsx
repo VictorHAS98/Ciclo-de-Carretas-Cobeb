@@ -59,7 +59,6 @@ export default function Viagem() {
   const [carreta, setCarreta]                     = useState(null)
   const [cavalo, setCavalo]                       = useState(null)
   const [pedidosAdicionados, setPedidos]          = useState([])
-  const [unidadeDescarga, setUnidadeDescarga]     = useState(null)
   const [horarioAgendado, setHorario]             = useState('')
   const [motoristaSelecionada, setMotoristaSelecionada] = useState(null)
   const [searchNum, setSearchNum]                 = useState('')
@@ -197,18 +196,6 @@ export default function Viagem() {
     }
   }
 
-  // ── auto-set unidade de descarga ──────────────────────────────────────────
-
-  const unidadesNaViagem = useMemo(() => {
-    const ids = [...new Set(pedidosAdicionados.map(p => p.unidade_id).filter(Boolean))]
-    return unidades.filter(u => ids.includes(u.id))
-  }, [pedidosAdicionados, unidades])
-
-  useEffect(() => {
-    if (unidadesNaViagem.length === 1) setUnidadeDescarga(unidadesNaViagem[0])
-    else if (unidadesNaViagem.length > 1) setUnidadeDescarga(null)
-  }, [unidadesNaViagem])
-
   // ── wizard: buscar pedido ─────────────────────────────────────────────────
 
   async function buscarPedido() {
@@ -249,17 +236,16 @@ export default function Viagem() {
   // ── iniciar viagem ────────────────────────────────────────────────────────
 
   async function iniciarViagem() {
-    if (!carreta || !cavalo || !pedidosAdicionados.length || !unidadeDescarga || !motoristaSelecionada) return
+    if (!carreta || !cavalo || !pedidosAdicionados.length || !motoristaSelecionada) return
     setIniciando(true)
 
     const { data: viagem, error } = await supabase
       .from('viagens')
       .insert({
-        motorista_id:        motoristaSelecionada.id,
-        carreta_id:          carreta.id,
-        cavalo_id:           cavalo.id,
-        unidade_descarga_id: unidadeDescarga.id,
-        horario_agendado:    horarioAgendado || null,
+        motorista_id:     motoristaSelecionada.id,
+        carreta_id:       carreta.id,
+        cavalo_id:        cavalo.id,
+        horario_agendado: horarioAgendado || null,
       })
       .select('*, unidade:unidades(*), carreta:carretas(*), cavalo:cavalos(*)')
       .single()
@@ -386,9 +372,15 @@ export default function Viagem() {
 
   function resetWizard() {
     setStep(1); setCarreta(null); setCavalo(null)
-    setPedidos([]); setUnidadeDescarga(null); setHorario('')
+    setPedidos([]); setHorario('')
     setMotoristaSelecionada(null)
     setSearchNum(''); setSearchResult(null)
+  }
+
+  async function definirUnidadeDescarga(unidade) {
+    if (!viagemAtiva?.id) return
+    await supabase.from('viagens').update({ unidade_descarga_id: unidade.id }).eq('id', viagemAtiva.id)
+    setViagemAtiva(v => ({ ...v, unidade_descarga_id: unidade.id, unidade }))
   }
 
   function iniciarNovaViagem() {
@@ -487,12 +479,10 @@ export default function Viagem() {
         {view === 'wizard'
           ? <Wizard
               step={step} setStep={setStep}
-              carretas={carretas} cavalos={cavalos} unidades={unidades}
+              carretas={carretas} cavalos={cavalos}
               carreta={carreta} setCarreta={setCarreta}
               cavalo={cavalo} setCavalo={setCavalo}
               pedidosAdicionados={pedidosAdicionados}
-              unidadesNaViagem={unidadesNaViagem}
-              unidadeDescarga={unidadeDescarga} setUnidadeDescarga={setUnidadeDescarga}
               horarioAgendado={horarioAgendado} setHorario={setHorario}
               motoristas={motoristas}
               motoristaSelecionada={motoristaSelecionada} setMotoristaSelecionada={setMotoristaSelecionada}
@@ -519,6 +509,7 @@ export default function Viagem() {
               showModalAgendamento={showModalAgendamento}
               onFecharModalAgendamento={() => setShowModalAgendamento(false)}
               onCriarAgendamento={criarAgendamento}
+              onDefinirUnidade={definirUnidadeDescarga}
             />
         }
       </main>
@@ -531,13 +522,12 @@ export default function Viagem() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo, setCavalo,
-  pedidosAdicionados, unidadesNaViagem, unidadeDescarga, setUnidadeDescarga,
-  horarioAgendado, setHorario, motoristas, motoristaSelecionada, setMotoristaSelecionada,
+  pedidosAdicionados, horarioAgendado, setHorario, motoristas, motoristaSelecionada, setMotoristaSelecionada,
   searchNum, setSearchNum, searching, searchResult,
   buscarPedido, adicionarPedido, removerPedido, iniciando, iniciarViagem }) {
 
   const labels = ['Carreta', 'Cavalo', 'Pedidos', 'Motorista', 'Confirmar']
-  const canNext = [!!carreta, !!cavalo, pedidosAdicionados.length > 0 && !!unidadeDescarga, !!motoristaSelecionada, false]
+  const canNext = [!!carreta, !!cavalo, pedidosAdicionados.length > 0, !!motoristaSelecionada, false]
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-5">
@@ -566,8 +556,7 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
       {step === 2 && <StepSelecionar titulo="Selecionar Cavalo" itens={cavalos} selecionado={cavalo} onSelecionar={setCavalo}
         onVoltar={() => setStep(1)} onProximo={() => setStep(3)} podeProximo={canNext[1]} />}
       {step === 3 && <StepPedidos
-        pedidosAdicionados={pedidosAdicionados} unidadesNaViagem={unidadesNaViagem}
-        unidadeDescarga={unidadeDescarga} setUnidadeDescarga={setUnidadeDescarga}
+        pedidosAdicionados={pedidosAdicionados}
         horarioAgendado={horarioAgendado} setHorario={setHorario}
         searchNum={searchNum} setSearchNum={setSearchNum} searching={searching} searchResult={searchResult}
         buscarPedido={buscarPedido} adicionarPedido={adicionarPedido} removerPedido={removerPedido}
@@ -577,7 +566,7 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
         onVoltar={() => setStep(3)} onProximo={() => setStep(5)} podeProximo={canNext[3]} />}
       {step === 5 && <StepConfirmar
         carreta={carreta} cavalo={cavalo} pedidosAdicionados={pedidosAdicionados}
-        unidadeDescarga={unidadeDescarga} horarioAgendado={horarioAgendado}
+        horarioAgendado={horarioAgendado}
         motoristaSelecionada={motoristaSelecionada}
         onVoltar={() => setStep(4)} onConfirmar={iniciarViagem} iniciando={iniciando} />}
     </div>
@@ -614,8 +603,8 @@ function StepSelecionar({ titulo, itens, selecionado, onSelecionar, onVoltar, on
   )
 }
 
-function StepPedidos({ pedidosAdicionados, unidadesNaViagem, unidadeDescarga, setUnidadeDescarga,
-  horarioAgendado, setHorario, searchNum, setSearchNum, searching, searchResult,
+function StepPedidos({ pedidosAdicionados, horarioAgendado, setHorario,
+  searchNum, setSearchNum, searching, searchResult,
   buscarPedido, adicionarPedido, removerPedido, onVoltar, onProximo, podeProximo }) {
 
   const totalPallets = pedidosAdicionados.reduce((s, p) => s + p.total_pallets, 0)
@@ -684,33 +673,6 @@ function StepPedidos({ pedidosAdicionados, unidadesNaViagem, unidadeDescarga, se
         </div>
       )}
 
-      {/* Unidade de descarga — múltiplas unidades */}
-      {unidadesNaViagem.length > 1 && (
-        <div className="bg-white rounded-2xl border border-cobeb-blue/40 p-4 space-y-3">
-          <p className="text-cobeb-yellow text-sm font-semibold">Para qual unidade vai descarregar?</p>
-          {unidadesNaViagem.map(u => (
-            <button key={u.id} onClick={() => setUnidadeDescarga(u)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
-                unidadeDescarga?.id === u.id ? 'bg-cobeb-navy/10 border-cobeb-blue text-white' : 'bg-[#EBF5FF] border-cobeb-border text-slate-400'
-              }`}>
-              <div className="flex items-center gap-2">
-                <MapPin size={14} className={unidadeDescarga?.id === u.id ? 'text-cobeb-yellow' : 'text-slate-500'} />
-                <span className="text-sm font-medium">{u.nome} — {u.cidade}</span>
-              </div>
-              {unidadeDescarga?.id === u.id && <CheckCircle size={15} className="text-cobeb-yellow" />}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Unidade auto-selecionada */}
-      {unidadesNaViagem.length === 1 && unidadeDescarga && (
-        <div className="flex items-center gap-2 bg-white rounded-xl border border-cobeb-border px-4 py-2.5">
-          <MapPin size={14} className="text-cobeb-yellow shrink-0" />
-          <p className="text-slate-400 text-xs">Destino: <span className="text-cobeb-text font-semibold">{unidadeDescarga.nome} — {unidadeDescarga.cidade}</span></p>
-        </div>
-      )}
-
       {/* Horário de carregamento */}
       <div>
         <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
@@ -755,7 +717,7 @@ function StepMotorista({ motoristas, motoristaSelecionada, setMotoristaSeleciona
   )
 }
 
-function StepConfirmar({ carreta, cavalo, pedidosAdicionados, unidadeDescarga, horarioAgendado, motoristaSelecionada, onVoltar, onConfirmar, iniciando }) {
+function StepConfirmar({ carreta, cavalo, pedidosAdicionados, horarioAgendado, motoristaSelecionada, onVoltar, onConfirmar, iniciando }) {
   const totalPallets = pedidosAdicionados.reduce((s, p) => s + p.total_pallets, 0)
   const totalSkus    = pedidosAdicionados.reduce((s, p) => s + p.total_skus,    0)
   const allItens     = pedidosAdicionados.flatMap(p => p.itens)
@@ -765,7 +727,6 @@ function StepConfirmar({ carreta, cavalo, pedidosAdicionados, unidadeDescarga, h
       <h2 className="text-cobeb-text font-semibold text-base">Confirmar Viagem</h2>
 
       <div className="bg-white rounded-2xl border border-cobeb-border divide-y divide-cobeb-border">
-        <SRow label="Destino"   value={`${unidadeDescarga?.nome} — ${unidadeDescarga?.cidade}`} highlight />
         <SRow label="Motorista" value={`${motoristaSelecionada?.nome} · ${motoristaSelecionada?.tipo === 'FF' ? 'Frota Fixa' : 'Freteiro'}`} />
         <SRow label="Carreta"   value={`${carreta?.placa} · ${carreta?.tipo}`} />
         <SRow label="Cavalo"    value={`${cavalo?.placa} · ${cavalo?.tipo}`} />
@@ -838,21 +799,32 @@ const STATUS_GPS_LABEL = {
   retornando:  'Rastreando — retornando à revenda',
 }
 
-function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa, agendamento, unidades, onAbrirAgendamento, onCancelarAgendamento, showModalAgendamento, onFecharModalAgendamento, onCriarAgendamento }) {
+function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa, agendamento, unidades, onAbrirAgendamento, onCancelarAgendamento, showModalAgendamento, onFecharModalAgendamento, onCriarAgendamento, onDefinirUnidade }) {
   const numerosUnicos = [...new Set(pedidos.map(p => p.numero_pedido))]
   const totalPallets  = pedidos.reduce((s, p) => s + (Number(p.qtde_pallets) || 0), 0)
   const totalSkus     = pedidos.reduce((s, p) => s + (Number(p.qtde_skus)    || 0), 0)
   const etapaAtualIdx = ETAPAS.findIndex(e => !viagem?.[e.field])
 
+  const [showModalUnidade, setShowModalUnidade] = useState(false)
+
   // Bloqueio chegada_revenda sem agendamento — só aplica quando etapa ainda não está concluída
-  const saidaRevenda  = !!viagem?.dt_saida_revenda
+  const saidaRevenda   = !!viagem?.dt_saida_revenda
   const chegadaRevenda = !!viagem?.dt_chegada_revenda
   const precisaAgendar = saidaRevenda && !chegadaRevenda && !agendamento
 
   async function handleEtapa(etapa) {
+    if (etapa.key === 'saida_revenda') { setShowModalUnidade(true); return }
     if (etapa.requireNF) { setShowNF(true); return }
     setRegistrando(true)
     await registrarEtapa(etapa, null)
+    setRegistrando(false)
+  }
+
+  async function confirmarUnidadeESair(unidade) {
+    setShowModalUnidade(false)
+    await onDefinirUnidade(unidade)
+    setRegistrando(true)
+    await registrarEtapa(ETAPAS[0], null)
     setRegistrando(false)
   }
 
@@ -1035,14 +1007,57 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
       {/* NF Modal */}
       {showNF && <NFModal numeroNF={numeroNF} setNumeroNF={setNumeroNF} onConfirmar={confirmarNF} onCancelar={() => { setShowNF(false); setNumeroNF('') }} />}
 
+      {/* Modal de seleção de unidade (Saída da Revenda) */}
+      {showModalUnidade && (
+        <ModalUnidadeDescarga
+          unidades={unidades}
+          onConfirmar={confirmarUnidadeESair}
+          onCancelar={() => setShowModalUnidade(false)}
+        />
+      )}
+
       {/* Modal de Agendamento */}
       {showModalAgendamento && (
         <ModalAgendamento
           unidades={unidades}
+          unidadePreSelecionada={viagem?.unidade ?? null}
           onConfirmar={onCriarAgendamento}
           onCancelar={onFecharModalAgendamento}
         />
       )}
+    </div>
+  )
+}
+
+// ── Modal Unidade de Descarga ─────────────────────────────────────────────────
+
+function ModalUnidadeDescarga({ unidades, onConfirmar, onCancelar }) {
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+      <div className="w-full max-w-lg mx-auto bg-white rounded-t-3xl p-6 space-y-4">
+        <div className="w-10 h-1 bg-cobeb-border rounded-full mx-auto" />
+        <div>
+          <p className="text-cobeb-text font-semibold text-base">Para onde vai descarregar?</p>
+          <p className="text-slate-500 text-sm mt-1">Selecione a unidade de destino desta carga</p>
+        </div>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {unidades.map(u => (
+            <button key={u.id} onClick={() => onConfirmar(u)}
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-cobeb-border bg-white hover:border-cobeb-blue hover:bg-cobeb-navy/5 transition-all text-left">
+              <div>
+                <p className="text-cobeb-text text-sm font-semibold">{u.nome}</p>
+                <p className="text-slate-500 text-xs mt-0.5">{u.cidade}</p>
+              </div>
+              <ChevronRight size={16} className="text-slate-400" />
+            </button>
+          ))}
+          {!unidades.length && <p className="text-slate-400 text-sm text-center py-4">Nenhuma unidade cadastrada</p>}
+        </div>
+        <button onClick={onCancelar}
+          className="w-full bg-[#EBF5FF] border border-cobeb-border text-slate-400 font-semibold py-3.5 rounded-2xl text-sm">
+          Cancelar
+        </button>
+      </div>
     </div>
   )
 }
@@ -1086,9 +1101,9 @@ function NFModal({ numeroNF, setNumeroNF, onConfirmar, onCancelar }) {
 
 const TIPO_DIA_LABEL = { SEMANA: 'Semana (Seg–Sex)', SÁBADO: 'Sábado', DOMINGO: 'Domingo' }
 
-function ModalAgendamento({ unidades, onConfirmar, onCancelar }) {
-  const [step, setStep]           = useState('revenda') // 'revenda' | 'data' | 'blocos'
-  const [revendaSel, setRevendaSel] = useState(null)
+function ModalAgendamento({ unidades, onConfirmar, onCancelar, unidadePreSelecionada }) {
+  const [step, setStep]           = useState(unidadePreSelecionada ? 'data' : 'revenda')
+  const [revendaSel, setRevendaSel] = useState(unidadePreSelecionada ?? null)
   const [dataSel, setDataSel]     = useState('')        // 'YYYY-MM-DD'
   const [tipoDia, setTipoDia]     = useState('')        // 'SEMANA' | 'SÁBADO' | 'DOMINGO'
   const [blocos, setBlocos]       = useState([])        // grade_horarios rows

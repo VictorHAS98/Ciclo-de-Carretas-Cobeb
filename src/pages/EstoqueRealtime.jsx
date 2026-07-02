@@ -79,11 +79,16 @@ export default function EstoqueRealtime({ adminMode = false }) {
     }
   }, [])
 
+  const isAdminTotal = profile?.acesso_total === true
+
   async function loadData(silent = false) {
     if (!silent) setLoading(true)
     const { data, error } = await supabase.rpc('get_painel_viagens')
     if (!error && data) {
-      setViagens(data)
+      const filtrado = isAdminTotal
+        ? data
+        : data.filter(v => v.unidade_descarga_id === profile?.unidade_id)
+      setViagens(filtrado)
       setLastUpdate(new Date())
     }
     if (!silent) setLoading(false)

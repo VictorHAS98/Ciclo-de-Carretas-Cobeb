@@ -75,7 +75,7 @@ export default function Tarefas() {
 
   async function loadLista(silent = false) {
     if (!silent) setLoading(true)
-    const { data } = await supabase
+    let q = supabase
       .from('tarefas')
       .select(`*,
         viagem:viagens(
@@ -86,6 +86,10 @@ export default function Tarefas() {
         )
       `)
       .order('created_at', { ascending: false })
+    if (!profile?.acesso_total && profile?.unidade_id) {
+      q = q.eq('unidade_id', profile.unidade_id)
+    }
+    const { data } = await q
 
     const lista = data ?? []
 

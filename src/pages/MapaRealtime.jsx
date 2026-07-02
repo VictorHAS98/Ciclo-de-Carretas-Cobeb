@@ -4,6 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ChevronLeft, ChevronDown, ChevronUp, Truck, AlertTriangle, Navigation, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 const ORS_KEY = import.meta.env.VITE_ORS_API_KEY ?? null
 
@@ -105,11 +106,14 @@ function FitBounds({ positions }) {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function MapaRealtime({ onVoltar }) {
+  const { profile } = useAuth()
+  const isAdminTotal = profile?.acesso_total === true
+
   const [unidades,        setUnidades]        = useState([])
   const [viagens,         setViagens]         = useState([])
   const [loading,         setLoading]         = useState(true)
   const [painelAberto,    setPainelAberto]    = useState(false)
-  const [viagemSelecionada, setViagemSelecionada] = useState(null) // { id, rota }
+  const [viagemSelecionada, setViagemSelecionada] = useState(null)
   const [buscandoRota,    setBuscandoRota]    = useState(false)
 
   useEffect(() => {
@@ -117,6 +121,11 @@ export default function MapaRealtime({ onVoltar }) {
     const timer = setInterval(carregarViagens, 30000)
     return () => clearInterval(timer)
   }, [])
+
+  function filtrarPorUnidade(lista) {
+    if (isAdminTotal) return lista ?? []
+    return (lista ?? []).filter(v => v.unidade_descarga_id === profile?.unidade_id)
+  }
 
   async function carregar() {
     const [{ data: u }, { data: v }] = await Promise.all([
@@ -128,13 +137,13 @@ export default function MapaRealtime({ onVoltar }) {
       supabase.rpc('get_painel_viagens'),
     ])
     setUnidades(u ?? [])
-    setViagens(v ?? [])
+    setViagens(filtrarPorUnidade(v))
     setLoading(false)
   }
 
   async function carregarViagens() {
     const { data } = await supabase.rpc('get_painel_viagens')
-    if (data) setViagens(data)
+    if (data) setViagens(filtrarPorUnidade(data))
   }
 
   // Abre/fecha rota ao clicar no marcador de caminhão
