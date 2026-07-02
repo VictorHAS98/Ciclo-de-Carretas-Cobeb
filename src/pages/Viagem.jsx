@@ -822,9 +822,10 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
 
   async function confirmarUnidadeESair(unidade) {
     setShowModalUnidade(false)
-    await onDefinirUnidade(unidade)
     setRegistrando(true)
     await registrarEtapa(ETAPAS[0], null)
+    // Aplica unidade ao estado APÓS registrarEtapa para não ser sobrescrita
+    await onDefinirUnidade(unidade)
     setRegistrando(false)
   }
 
