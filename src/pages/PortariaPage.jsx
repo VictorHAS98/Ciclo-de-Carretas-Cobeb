@@ -58,7 +58,7 @@ export default function PortariaPage() {
     if (!silent) setLoading(true)
     let q = supabase
       .from('portaria_atendimentos')
-      .select('*')
+      .select('*, agendamento:agendamentos(bloco, tipo_dia, data_agendamento)')
       .is('excluido_em', null)
       .order('created_at', { ascending: false })
     if (!profile?.acesso_total) {
@@ -83,10 +83,11 @@ export default function PortariaPage() {
 
   async function registrarEntrada(atend) {
     setRegistrando(atend.id)
-    await supabase
-      .from('portaria_atendimentos')
-      .update({ dt_entrada: new Date().toISOString(), porteiro_id: profile.id, status: 'em_atendimento' })
-      .eq('id', atend.id)
+    const { error } = await supabase.rpc('registrar_entrada_portaria', {
+      p_atendimento_id: atend.id,
+      p_porteiro_id:    profile.id,
+    })
+    if (error) alert('Erro ao registrar entrada: ' + error.message)
     await carregar()
     setRegistrando(null)
   }
@@ -215,6 +216,11 @@ export default function PortariaPage() {
                         </div>
                         <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>
                       </div>
+                      {a.agendamento && (
+                        <p className="text-cobeb-navy text-[11px] font-semibold mb-1">
+                          Agendado: {a.agendamento.bloco} · {a.agendamento.tipo_dia}
+                        </p>
+                      )}
                       <div className="flex items-center gap-3 mb-4">
                         <span className="text-slate-500 text-xs">Entrada: {formatTs(a.dt_entrada)}</span>
                         <div className="flex items-center gap-1 text-cobeb-yellow font-mono font-bold text-lg">
@@ -244,7 +250,7 @@ export default function PortariaPage() {
                 <div className="space-y-3">
                   {aguardando.map(a => (
                     <div key={a.id} className="bg-white rounded-2xl border border-cobeb-border p-4">
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <Truck size={15} className="text-slate-500 shrink-0" />
                           <span className="text-cobeb-text font-semibold text-sm">{a.placa_cavalo ?? '—'}</span>
@@ -252,6 +258,11 @@ export default function PortariaPage() {
                         </div>
                         <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>
                       </div>
+                      {a.agendamento && (
+                        <p className="text-cobeb-navy text-[11px] font-semibold mb-2">
+                          Agendado: {a.agendamento.bloco} · {a.agendamento.tipo_dia}
+                        </p>
+                      )}
                       <button
                         onClick={() => registrarEntrada(a)}
                         disabled={registrando === a.id}

@@ -5,6 +5,7 @@ import {
   CheckCircle, Clock, MapPin, Home, Search,
   AlertCircle, WifiOff, RefreshCw, LogOut, Package,
   AlertTriangle, User, LayoutGrid, Navigation,
+  Calendar, CalendarCheck, X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -81,6 +82,10 @@ export default function Viagem() {
   const [portariaStatus, setPortariaStatus] = useState(null) // null | 'aguardando' | 'em_atendimento' | 'concluido'
   const [portariaSaida,  setPortariaSaida]  = useState(null) // timestamp da saída da portaria
   const [resumoData,     setResumoData]     = useState(null)
+
+  // agendamento
+  const [agendamento,          setAgendamento]          = useState(null)
+  const [showModalAgendamento, setShowModalAgendamento] = useState(false)
 
   // offline
   const [isOnline, setIsOnline]       = useState(navigator.onLine)
@@ -164,6 +169,14 @@ export default function Viagem() {
       setViagemAtiva(v); cacheViagem(v)
       const { data: peds } = await supabase.from('pedidos').select('*').eq('viagem_id', v.id)
       setPedidosDaViagem(peds ?? [])
+
+      const { data: agend } = await supabase
+        .from('agendamentos')
+        .select('*, revenda:unidades(id, nome, cidade)')
+        .eq('viagem_id', v.id)
+        .neq('status', 'cancelado')
+        .maybeSingle()
+      setAgendamento(agend ?? null)
 
       // Carrega fábricas-alvo para geofence automático
       const codigosFab = [...new Set((peds ?? []).map(p => p.codigo_fabrica).filter(Boolean))]
@@ -281,6 +294,34 @@ export default function Viagem() {
     }
   }
 
+  // ── agendamento ───────────────────────────────────────────────────────────
+
+  async function criarAgendamento({ revendaId, gradeId, dataAgendamento, tipoDia, bloco, revenda }) {
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .insert({
+        viagem_id:        viagemAtiva.id,
+        revenda_id:       revendaId,
+        grade_id:         gradeId,
+        data_agendamento: dataAgendamento,
+        tipo_dia:         tipoDia,
+        bloco,
+        motorista_id:     profile.id,
+        status:           'pendente',
+      })
+      .select('*, revenda:unidades(id, nome, cidade)')
+      .single()
+    if (error) { alert('Erro ao agendar: ' + error.message); return }
+    setAgendamento({ ...data, revenda })
+    setShowModalAgendamento(false)
+  }
+
+  async function cancelarAgendamento() {
+    if (!agendamento) return
+    await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', agendamento.id)
+    setAgendamento(null)
+  }
+
   // ── registrar etapa ───────────────────────────────────────────────────────
 
   async function registrarEtapa(etapa, nf) {
@@ -309,23 +350,22 @@ export default function Viagem() {
     }
 
     if (etapa.requireNF) {
-      const tarefa = { viagem_id: viagemAtiva.id, unidade_id: viagemAtiva.unidade_descarga_id, numero_nf: nf }
+      // A tarefa para o Conferente agora é criada pela Portaria ao registrar entrada
+      const unidadeId  = agendamento?.revenda_id ?? viagemAtiva.unidade_descarga_id
       const portariaAtend = {
-        viagem_id:     viagemAtiva.id,
-        unidade_id:    viagemAtiva.unidade_descarga_id,
-        numero_nf:     nf,
-        placa_cavalo:  viagemAtiva.cavalo?.placa  ?? null,
-        placa_carreta: viagemAtiva.carreta?.placa ?? null,
+        viagem_id:      viagemAtiva.id,
+        unidade_id:     unidadeId,
+        numero_nf:      nf,
+        placa_cavalo:   viagemAtiva.cavalo?.placa  ?? null,
+        placa_carreta:  viagemAtiva.carreta?.placa ?? null,
+        agendamento_id: agendamento?.id ?? null,
       }
       if (isOnline) {
-        const { error: tarefaErr } = await supabase.from('tarefas').insert(tarefa)
-        if (tarefaErr) {
-          console.error('Erro ao criar tarefa:', tarefaErr)
-          alert('Aviso: a tarefa de conferência não foi gerada (' + tarefaErr.message + '). Contate o administrador.')
-        }
         await supabase.from('portaria_atendimentos').insert(portariaAtend)
+        if (agendamento?.id) {
+          await supabase.from('agendamentos').update({ status: 'realizado' }).eq('id', agendamento.id)
+        }
       } else {
-        saveOfflineAction({ type: 'INSERT_TAREFA', tarefa })
         saveOfflineAction({ type: 'INSERT_PORTARIA', portariaAtend })
       }
     }
@@ -472,6 +512,13 @@ export default function Viagem() {
               numeroNF={numeroNF} setNumeroNF={setNumeroNF}
               registrando={registrando} setRegistrando={setRegistrando}
               registrarEtapa={registrarEtapa}
+              agendamento={agendamento}
+              unidades={unidades}
+              onAbrirAgendamento={() => setShowModalAgendamento(true)}
+              onCancelarAgendamento={cancelarAgendamento}
+              showModalAgendamento={showModalAgendamento}
+              onFecharModalAgendamento={() => setShowModalAgendamento(false)}
+              onCriarAgendamento={criarAgendamento}
             />
         }
       </main>
@@ -791,11 +838,16 @@ const STATUS_GPS_LABEL = {
   retornando:  'Rastreando — retornando à revenda',
 }
 
-function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa }) {
+function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerificarTarefa, showNF, setShowNF, numeroNF, setNumeroNF, registrando, setRegistrando, registrarEtapa, agendamento, unidades, onAbrirAgendamento, onCancelarAgendamento, showModalAgendamento, onFecharModalAgendamento, onCriarAgendamento }) {
   const numerosUnicos = [...new Set(pedidos.map(p => p.numero_pedido))]
   const totalPallets  = pedidos.reduce((s, p) => s + (Number(p.qtde_pallets) || 0), 0)
   const totalSkus     = pedidos.reduce((s, p) => s + (Number(p.qtde_skus)    || 0), 0)
   const etapaAtualIdx = ETAPAS.findIndex(e => !viagem?.[e.field])
+
+  // Bloqueio chegada_revenda sem agendamento — só aplica quando etapa ainda não está concluída
+  const saidaRevenda  = !!viagem?.dt_saida_revenda
+  const chegadaRevenda = !!viagem?.dt_chegada_revenda
+  const precisaAgendar = saidaRevenda && !chegadaRevenda && !agendamento
 
   async function handleEtapa(etapa) {
     if (etapa.requireNF) { setShowNF(true); return }
@@ -855,6 +907,45 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
         </div>
       )}
 
+      {/* Card de agendamento — visível após saída da revenda e antes da chegada */}
+      {saidaRevenda && !chegadaRevenda && (
+        <div className={`rounded-2xl border-2 p-4 space-y-3 ${agendamento ? 'bg-cobeb-navy/10 border-cobeb-blue' : 'bg-amber-50 border-amber-300'}`}>
+          <div className="flex items-center gap-2">
+            {agendamento
+              ? <CalendarCheck size={16} className="text-cobeb-yellow shrink-0" />
+              : <Calendar size={16} className="text-amber-500 shrink-0" />}
+            <p className={`font-semibold text-sm ${agendamento ? 'text-cobeb-yellow' : 'text-amber-700'}`}>
+              {agendamento ? 'Horário Agendado' : 'Agendar Horário na Revenda'}
+            </p>
+          </div>
+
+          {agendamento ? (
+            <div className="space-y-2">
+              <div className="bg-white/60 rounded-xl px-3 py-2 space-y-1">
+                <p className="text-cobeb-navy text-xs font-semibold">{agendamento.revenda?.nome}</p>
+                <p className="text-slate-500 text-xs">{agendamento.revenda?.cidade}</p>
+                <p className="text-cobeb-navy text-xs font-mono font-bold">{agendamento.bloco} · {agendamento.tipo_dia}</p>
+                <p className="text-slate-500 text-xs">
+                  {new Date(agendamento.data_agendamento + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}
+                </p>
+              </div>
+              <button onClick={onCancelarAgendamento}
+                className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-red-400 transition-colors py-1">
+                <X size={12} />Cancelar e reagendar
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-amber-700 text-xs">A chegada na revenda só poderá ser registrada após agendar um horário.</p>
+              <button onClick={onAbrirAgendamento}
+                className="w-full bg-cobeb-navy hover:bg-cobeb-blue text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                <Calendar size={15} />Agendar Horário
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stages */}
       <div className="space-y-2">
         {ETAPAS.map((etapa, i) => {
@@ -906,7 +997,7 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
 
               <button
                 onClick={() => handleEtapa(etapa)}
-                disabled={registrando || (etapa.closeCycle && portariaStatus !== 'concluido')}
+                disabled={registrando || (etapa.closeCycle && portariaStatus !== 'concluido') || (etapa.key === 'chegada_revenda' && precisaAgendar)}
                 className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-bold py-5 rounded-xl text-base transition-colors flex items-center justify-center gap-3">
                 {registrando
                   ? <><div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Registrando...</>
@@ -943,6 +1034,15 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
 
       {/* NF Modal */}
       {showNF && <NFModal numeroNF={numeroNF} setNumeroNF={setNumeroNF} onConfirmar={confirmarNF} onCancelar={() => { setShowNF(false); setNumeroNF('') }} />}
+
+      {/* Modal de Agendamento */}
+      {showModalAgendamento && (
+        <ModalAgendamento
+          unidades={unidades}
+          onConfirmar={onCriarAgendamento}
+          onCancelar={onFecharModalAgendamento}
+        />
+      )}
     </div>
   )
 }
@@ -976,6 +1076,206 @@ function NFModal({ numeroNF, setNumeroNF, onConfirmar, onCancelar }) {
             className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-semibold py-4 rounded-2xl text-sm transition-colors">
             Confirmar Chegada
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Modal Agendamento ─────────────────────────────────────────────────────────
+
+const TIPO_DIA_LABEL = { SEMANA: 'Semana (Seg–Sex)', SÁBADO: 'Sábado', DOMINGO: 'Domingo' }
+
+function ModalAgendamento({ unidades, onConfirmar, onCancelar }) {
+  const [step, setStep]           = useState('revenda') // 'revenda' | 'data' | 'blocos'
+  const [revendaSel, setRevendaSel] = useState(null)
+  const [dataSel, setDataSel]     = useState('')        // 'YYYY-MM-DD'
+  const [tipoDia, setTipoDia]     = useState('')        // 'SEMANA' | 'SÁBADO' | 'DOMINGO'
+  const [blocos, setBlocos]       = useState([])        // grade_horarios rows
+  const [vagasUsadas, setVagasUsadas] = useState({})   // { grade_id: count }
+  const [carregando, setCarregando] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+
+  function calcTipoDia(dateStr) {
+    const dow = new Date(dateStr + 'T12:00:00').getDay() // 0=Dom, 6=Sáb
+    if (dow === 0) return 'DOMINGO'
+    if (dow === 6) return 'SÁBADO'
+    return 'SEMANA'
+  }
+
+  async function carregarBlocos(revenda, date) {
+    const tipo = calcTipoDia(date)
+    setTipoDia(tipo)
+    setCarregando(true)
+
+    const { data: rows } = await supabase
+      .from('grade_horarios')
+      .select('id, bloco, status, motivo_criticidade, vagas, revenda_id')
+      .eq('revenda_id', revenda.id)
+      .eq('tipo_dia', tipo)
+      .order('bloco')
+
+    const disponiveis = (rows ?? []).filter(r => r.motivo_criticidade !== 'SEM ESCALA')
+
+    // Conta agendamentos já existentes para cada bloco nessa data
+    const gradeIds = disponiveis.map(r => r.id)
+    let usadas = {}
+    if (gradeIds.length) {
+      const { data: ags } = await supabase
+        .from('agendamentos')
+        .select('grade_id')
+        .in('grade_id', gradeIds)
+        .eq('data_agendamento', date)
+        .neq('status', 'cancelado')
+      ;(ags ?? []).forEach(a => { usadas[a.grade_id] = (usadas[a.grade_id] ?? 0) + 1 })
+    }
+
+    setBlocos(disponiveis)
+    setVagasUsadas(usadas)
+    setCarregando(false)
+    setStep('blocos')
+  }
+
+  async function confirmar(bloco) {
+    setConfirmando(true)
+    await onConfirmar({
+      revendaId:        revendaSel.id,
+      gradeId:          bloco.id,
+      dataAgendamento:  dataSel,
+      tipoDia,
+      bloco:            bloco.bloco,
+      revenda:          revendaSel,
+    })
+    setConfirmando(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-end">
+      <div className="w-full max-w-lg mx-auto bg-white rounded-t-3xl flex flex-col" style={{ maxHeight: '90vh' }}>
+        {/* Handle + header */}
+        <div className="px-6 pt-5 pb-4 border-b border-cobeb-border shrink-0">
+          <div className="w-10 h-1 bg-cobeb-border rounded-full mx-auto mb-4" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-cobeb-text font-semibold text-base">Agendar Horário</p>
+              <p className="text-slate-500 text-xs mt-0.5">
+                {step === 'revenda' && 'Selecione a revenda de destino'}
+                {step === 'data'    && revendaSel?.nome}
+                {step === 'blocos'  && `${revendaSel?.nome} · ${new Date(dataSel + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}`}
+              </p>
+            </div>
+            <button onClick={onCancelar} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+          {/* Step: revenda */}
+          {step === 'revenda' && (
+            <>
+              {unidades.map(u => (
+                <button key={u.id} onClick={() => { setRevendaSel(u); setStep('data') }}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border border-cobeb-border bg-white hover:border-cobeb-blue hover:bg-cobeb-navy/5 transition-all text-left">
+                  <div>
+                    <p className="text-cobeb-text text-sm font-semibold">{u.nome}</p>
+                    <p className="text-slate-500 text-xs mt-0.5">{u.cidade}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-400" />
+                </button>
+              ))}
+              {!unidades.length && <p className="text-slate-400 text-sm text-center py-6">Nenhuma revenda cadastrada</p>}
+            </>
+          )}
+
+          {/* Step: data */}
+          {step === 'data' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+                  Data de chegada prevista
+                </label>
+                <input
+                  type="date"
+                  value={dataSel}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={e => setDataSel(e.target.value)}
+                  className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-3 text-cobeb-text text-sm focus:outline-none focus:border-cobeb-blue"
+                />
+                {dataSel && (
+                  <p className="text-slate-500 text-xs mt-2">
+                    Tipo de dia: <span className="font-semibold text-cobeb-navy">{TIPO_DIA_LABEL[calcTipoDia(dataSel)]}</span>
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setStep('revenda')} className="flex-1 bg-[#EBF5FF] border border-cobeb-border text-slate-500 font-semibold py-3.5 rounded-xl text-sm">
+                  Voltar
+                </button>
+                <button
+                  onClick={() => carregarBlocos(revendaSel, dataSel)}
+                  disabled={!dataSel || carregando}
+                  className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                  {carregando
+                    ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Carregando...</>
+                    : 'Ver Horários'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step: blocos */}
+          {step === 'blocos' && (
+            <>
+              <button onClick={() => setStep('data')} className="flex items-center gap-1.5 text-slate-400 text-xs mb-1 hover:text-cobeb-navy transition-colors">
+                <ChevronLeft size={13} />Alterar data
+              </button>
+
+              {blocos.length === 0 && !carregando && (
+                <p className="text-slate-400 text-sm text-center py-6">Nenhum horário disponível para essa data na grade.</p>
+              )}
+
+              {blocos.map(b => {
+                const usadas  = vagasUsadas[b.id] ?? 0
+                const cheio   = usadas >= b.vagas
+                const critico = b.status === 'CRÍTICO'
+                return (
+                  <div key={b.id} className={`rounded-2xl border p-4 space-y-2 ${cheio ? 'opacity-40 bg-slate-50 border-cobeb-border' : critico ? 'border-amber-300 bg-amber-50' : 'border-cobeb-border bg-white'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-cobeb-text font-mono font-bold text-sm">{b.bloco}</p>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          {cheio ? 'Vagas esgotadas' : `${b.vagas - usadas} de ${b.vagas} vaga${b.vagas > 1 ? 's' : ''} disponível`}
+                        </p>
+                      </div>
+                      {critico && !cheio && (
+                        <span className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0">CRÍTICO</span>
+                      )}
+                      {cheio && (
+                        <span className="bg-slate-100 text-slate-400 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0">LOTADO</span>
+                      )}
+                    </div>
+                    {critico && b.motivo_criticidade && !cheio && (
+                      <div className="flex items-start gap-1.5 bg-amber-100/60 rounded-lg px-2 py-1.5">
+                        <AlertTriangle size={11} className="text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-amber-700 text-[11px]">{b.motivo_criticidade}</p>
+                      </div>
+                    )}
+                    {!cheio && (
+                      <button
+                        onClick={() => confirmar(b)}
+                        disabled={confirmando}
+                        className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                        {confirmando
+                          ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          : 'Confirmar este horário'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </>
+          )}
         </div>
       </div>
     </div>
