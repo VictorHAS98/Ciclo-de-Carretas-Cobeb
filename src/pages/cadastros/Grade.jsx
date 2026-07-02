@@ -65,7 +65,7 @@ export default function Grade() {
     setLoadingGrade(true)
     const { data } = await supabase
       .from('grade_horarios')
-      .select('id, tipo_dia, bloco, bloco_ordem, status, motivo_criticidade')
+      .select('id, tipo_dia, bloco, bloco_ordem, status, motivo_criticidade, vagas')
       .eq('revenda_id', id)
       .order('bloco_ordem')
     setGrade(data ?? [])
@@ -73,18 +73,27 @@ export default function Grade() {
   }
 
   function getValor(row) {
-    return draft[row.id] ?? { status: row.status, motivo_criticidade: row.motivo_criticidade }
+    return draft[row.id] ?? {
+      status: row.status,
+      motivo_criticidade: row.motivo_criticidade,
+      vagas: row.vagas,
+    }
   }
 
   function atualizarDraft(rowId, changes) {
     const row = grade.find(r => r.id === rowId)
     if (!row) return
     setDraft(prev => {
-      const base = prev[rowId] ?? { status: row.status, motivo_criticidade: row.motivo_criticidade }
+      const base = prev[rowId] ?? {
+        status: row.status,
+        motivo_criticidade: row.motivo_criticidade,
+        vagas: row.vagas,
+      }
       const novo = { ...base, ...changes }
       const mesmosValores =
         novo.status === row.status &&
-        (novo.motivo_criticidade ?? null) === (row.motivo_criticidade ?? null)
+        (novo.motivo_criticidade ?? null) === (row.motivo_criticidade ?? null) &&
+        (novo.vagas ?? 1) === (row.vagas ?? 1)
       if (mesmosValores) {
         const { [rowId]: _, ...rest } = prev
         return rest
@@ -102,6 +111,11 @@ export default function Grade() {
 
   function alterarMotivo(rowId, motivo) {
     atualizarDraft(rowId, { motivo_criticidade: motivo || null })
+  }
+
+  function alterarVagas(rowId, valor) {
+    const n = Math.max(1, parseInt(valor) || 1)
+    atualizarDraft(rowId, { vagas: n })
   }
 
   const hasDraft   = Object.keys(draft).length > 0
@@ -133,6 +147,8 @@ export default function Grade() {
         motivo_anterior:    row.motivo_criticidade ?? null,
         status_novo:        values.status,
         motivo_novo:        values.motivo_criticidade ?? null,
+        vagas_anterior:     row.vagas ?? 1,
+        vagas_novo:         values.vagas ?? 1,
         publicado_por:      profile.id,
         publicado_por_nome: profile.nome,
       }
@@ -145,6 +161,7 @@ export default function Grade() {
           .update({
             status:             values.status,
             motivo_criticidade: values.motivo_criticidade ?? null,
+            vagas:              values.vagas ?? 1,
             updated_by:         profile.id,
           })
           .eq('id', rowId)
@@ -286,10 +303,10 @@ export default function Grade() {
       ) : (
         <div className="space-y-2">
           {linhas.map(row => {
-            const val          = getValor(row)
-            const changed      = !!draft[row.id]
-            const isCritico    = val.status === 'CRÍTICO'
-            const erroMotivo   = isCritico && !val.motivo_criticidade
+            const val        = getValor(row)
+            const changed    = !!draft[row.id]
+            const isCritico  = val.status === 'CRÍTICO'
+            const erroMotivo = isCritico && !val.motivo_criticidade
 
             return (
               <div key={row.id}
@@ -346,6 +363,21 @@ export default function Grade() {
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Vagas por bloco */}
+                  <div className="shrink-0 flex flex-col items-center gap-0.5">
+                    <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider leading-none">
+                      Vagas
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      value={val.vagas ?? 1}
+                      onChange={e => alterarVagas(row.id, e.target.value)}
+                      className="w-12 text-center text-xs font-semibold text-cobeb-text bg-[#F5F9FF] border border-cobeb-border rounded-lg py-1.5 focus:outline-none focus:border-cobeb-blue transition-colors"
+                    />
                   </div>
                 </div>
 
@@ -423,6 +455,11 @@ export default function Grade() {
                         {l.motivo_novo && (
                           <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
                             {l.motivo_novo}
+                          </span>
+                        )}
+                        {l.vagas_anterior != null && l.vagas_anterior !== l.vagas_novo && (
+                          <span className="text-[10px] text-cobeb-navy bg-cobeb-navy/10 border border-cobeb-navy/20 px-2 py-0.5 rounded-full">
+                            {l.vagas_anterior} → {l.vagas_novo} vagas
                           </span>
                         )}
                       </div>
