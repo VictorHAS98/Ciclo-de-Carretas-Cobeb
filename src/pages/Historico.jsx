@@ -57,7 +57,7 @@ export default function Historico() {
       supabase
         .from('viagens')
         .select(`
-          id, status, numero_nf, dt_saida_revenda, dt_chegada_fabrica,
+          id, status, numero_nf, numero_nf_saida, dt_saida_revenda, dt_chegada_fabrica,
           dt_saida_fabrica, dt_chegada_revenda, dt_saida_entrega,
           unidade:unidades(id, nome, cidade),
           carreta:carretas(placa, tipo),
