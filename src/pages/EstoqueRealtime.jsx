@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid, Map, Wifi } from 'lucide-react'
+import { Forklift, LogOut, ChevronDown, ChevronUp, AlertTriangle, Clock, RefreshCw, Package, LayoutGrid, Map, Wifi, Building2, Home } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import MapaRealtime from './MapaRealtime'
@@ -301,7 +301,7 @@ function ViagemCard({ viagem, expanded, onToggle }) {
           </div>
         </div>
 
-        {/* Linha 2: NF + pedidos + horário */}
+        {/* Linha 2: NF + pedidos */}
         <div className="flex items-center gap-3 mt-2 flex-wrap">
           {viagem.numero_nf && (
             <span className="text-[11px] text-slate-500">
@@ -314,13 +314,30 @@ function ViagemCard({ viagem, expanded, onToggle }) {
               {viagem.total_pedidos} pedido{viagem.total_pedidos !== 1 ? 's' : ''}
             </span>
           )}
-          {viagem.horario_agendado && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-cobeb-navy">
-              <Clock size={10} />
-              Prev. {viagem.horario_agendado}
-            </span>
-          )}
         </div>
+
+        {/* Linha 3: agendamentos fábrica e revenda */}
+        {(viagem.horario_agendado || viagem.agendamento_bloco) && (
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {viagem.horario_agendado && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                <Building2 size={9} />
+                Fáb. {viagem.horario_agendado}
+              </span>
+            )}
+            {viagem.agendamento_bloco && (
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                <Home size={9} />
+                Rev. {viagem.agendamento_bloco}
+                {viagem.agendamento_data && (
+                  <span className="font-normal text-emerald-600">
+                    {' · '}{new Date(viagem.agendamento_data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Indicador de etapas */}
         <StepIndicator step={cfg.step} />
