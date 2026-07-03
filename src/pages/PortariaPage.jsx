@@ -57,6 +57,7 @@ export default function PortariaPage() {
   const [showModalMarket, setShowModalMarket] = useState(false)
   const [placaCavaloM,    setPlacaCavaloM]    = useState('')
   const [placaCarretaM,   setPlacaCarretaM]   = useState('')
+  const [numeroNFM,       setNumeroNFM]       = useState('')
   const [criando,         setCriando]         = useState(false)
 
   const carregar = useCallback(async (silent = false) => {
@@ -99,16 +100,18 @@ export default function PortariaPage() {
   }
 
   async function criarEntradaMarketplace() {
-    if (!placaCavaloM.trim()) return
+    if (!placaCavaloM.trim() || !numeroNFM.trim()) return
     setCriando(true)
     const { error } = await supabase.rpc('criar_entrada_marketplace', {
       p_placa_cavalo:  placaCavaloM.trim().toUpperCase(),
+      p_numero_nf:     numeroNFM.trim(),
       p_placa_carreta: placaCarretaM.trim().toUpperCase() || null,
     })
     if (error) alert('Erro ao registrar entrada: ' + error.message)
     setShowModalMarket(false)
     setPlacaCavaloM('')
     setPlacaCarretaM('')
+    setNumeroNFM('')
     setCriando(false)
     await carregar()
   }
@@ -232,13 +235,23 @@ export default function PortariaPage() {
                 <ShoppingCart size={18} className="text-cobeb-yellow" />
                 <p className="text-cobeb-text font-bold text-base">Entrada Manual</p>
               </div>
-              <button onClick={() => { setShowModalMarket(false); setPlacaCavaloM(''); setPlacaCarretaM('') }}
+              <button onClick={() => { setShowModalMarket(false); setPlacaCavaloM(''); setPlacaCarretaM(''); setNumeroNFM('') }}
                 className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X size={18} />
               </button>
             </div>
             <p className="text-slate-500 text-xs">Veículo terceiro — descarga marketplace sem pedido vinculado.</p>
             <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest block mb-1">Número da NF *</label>
+                <input
+                  value={numeroNFM}
+                  onChange={e => setNumeroNFM(e.target.value)}
+                  placeholder="Ex: 123456"
+                  inputMode="numeric"
+                  className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+                />
+              </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest block mb-1">Placa Cavalo *</label>
                 <input
@@ -260,7 +273,7 @@ export default function PortariaPage() {
             </div>
             <button
               onClick={criarEntradaMarketplace}
-              disabled={criando || !placaCavaloM.trim()}
+              disabled={criando || !placaCavaloM.trim() || !numeroNFM.trim()}
               className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
             >
               {criando
@@ -295,7 +308,10 @@ export default function PortariaPage() {
                           {a.placa_carreta && <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>}
                         </div>
                         {a.tipo === 'marketplace'
-                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Marketplace</span>
+                          ? <div className="text-right">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 block">Marketplace</span>
+                              {a.numero_nf && <span className="text-cobeb-yellow text-xs font-mono font-semibold">NF {a.numero_nf}</span>}
+                            </div>
                           : <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>}
                       </div>
                       {a.agendamento && (
@@ -341,7 +357,10 @@ export default function PortariaPage() {
                           {a.placa_carreta && <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>}
                         </div>
                         {a.tipo === 'marketplace'
-                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Marketplace</span>
+                          ? <div className="text-right">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 block">Marketplace</span>
+                              {a.numero_nf && <span className="text-cobeb-yellow text-xs font-mono font-semibold">NF {a.numero_nf}</span>}
+                            </div>
                           : <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>}
                       </div>
                       {a.agendamento && (
@@ -390,7 +409,7 @@ export default function PortariaPage() {
                             <span className="text-cobeb-text text-sm font-semibold font-mono">{a.placa_cavalo ?? '—'}</span>
                             {a.placa_carreta && <span className="text-slate-500 text-xs font-mono truncate">/ {a.placa_carreta}</span>}
                             {a.tipo === 'marketplace'
-                              ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Mkt</span>
+                              ? <><span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Mkt</span>{a.numero_nf && <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>}</>
                               : <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>}
                           </div>
                           {tma && <span className="text-cobeb-yellow font-mono text-sm font-bold shrink-0 ml-2">{tma}</span>}
