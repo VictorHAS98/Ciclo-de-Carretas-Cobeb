@@ -476,7 +476,8 @@ export default function Historico() {
                           )}
                           {item.numero_nf && (
                             <span className="text-slate-500 text-xs">
-                              {item.numero_nf_saida ? 'NF Entrada ' : 'NF '}{item.numero_nf}
+                              {item.numero_nf_saida ? 'NF Entrada ' : 'NF '}
+                              <span className="text-blue-400 font-semibold">{item.numero_nf}</span>
                             </span>
                           )}
                           {tmvTotal && <span className="text-slate-500 text-xs font-mono">⏱ {tmvTotal}</span>}
