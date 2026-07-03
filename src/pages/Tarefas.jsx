@@ -55,8 +55,9 @@ export default function Tarefas() {
   const [concluindo, setConcluindo]       = useState(false)
 
   // NRI
-  const [abrindoNRI,  setAbrindoNRI]  = useState(null) // tarefa.id enquanto carrega
-  const [gruposNRI,   setGruposNRI]   = useState([])
+  const [abrindoNRI,     setAbrindoNRI]     = useState(null) // tarefa.id enquanto carrega
+  const [gruposNRI,      setGruposNRI]      = useState([])
+  const [finalizando,    setFinalizando]    = useState(null)
 
   // anomalia modal
   const [showModal, setShowModal]         = useState(false)
@@ -300,6 +301,16 @@ export default function Tarefas() {
     setTarefaSel(tarefa)
     setAbrindoNRI(null)
     setView('nri')
+  }
+
+  async function finalizarMarketplace(tarefa) {
+    setFinalizando(tarefa.id)
+    const { error } = await supabase.from('tarefas')
+      .update({ status: 'concluida' })
+      .eq('id', tarefa.id)
+    setFinalizando(null)
+    if (error) { alert('Erro ao finalizar: ' + error.message); return }
+    setTarefas(prev => prev.map(t => t.id === tarefa.id ? { ...t, status: 'concluida' } : t))
   }
 
   async function iniciarConferenciaMarketplace(tarefa) {
@@ -628,7 +639,23 @@ export default function Tarefas() {
                                 : <><FileText size={13} />Gerar NRI Marketplace</>}
                             </button>
                           )}
-                          {(tarefa.status === 'em_andamento' || tarefa.status === 'concluida') && (
+                          {tarefa.status === 'em_andamento' && (
+                            <div className="flex gap-2">
+                              <button onClick={() => abrirNRIMarketplace(tarefa)} disabled={abrindoNRI === tarefa.id}
+                                className="flex-1 bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                                {abrindoNRI === tarefa.id
+                                  ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                  : <><FileText size={13} />Gerar NRI</>}
+                              </button>
+                              <button onClick={() => finalizarMarketplace(tarefa)} disabled={finalizando === tarefa.id}
+                                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                                {finalizando === tarefa.id
+                                  ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                  : <><CheckCircle size={13} />Finalizar Recebimento</>}
+                              </button>
+                            </div>
+                          )}
+                          {tarefa.status === 'concluida' && (
                             <button onClick={() => abrirNRIMarketplace(tarefa)} disabled={abrindoNRI === tarefa.id}
                               className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
                               {abrindoNRI === tarefa.id
