@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X, LayoutGrid } from 'lucide-react'
+import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X, LayoutGrid, PlusCircle, ShoppingCart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -53,6 +53,12 @@ export default function PortariaPage() {
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [filtroData,   setFiltroData]   = useState(isoToday())
 
+  // marketplace
+  const [showModalMarket, setShowModalMarket] = useState(false)
+  const [placaCavaloM,    setPlacaCavaloM]    = useState('')
+  const [placaCarretaM,   setPlacaCarretaM]   = useState('')
+  const [criando,         setCriando]         = useState(false)
+
   const carregar = useCallback(async (silent = false) => {
     if (!profile?.acesso_total && !profile?.unidade_id) return
     if (!silent) setLoading(true)
@@ -90,6 +96,21 @@ export default function PortariaPage() {
     if (error) alert('Erro ao registrar entrada: ' + error.message)
     await carregar()
     setRegistrando(null)
+  }
+
+  async function criarEntradaMarketplace() {
+    if (!placaCavaloM.trim()) return
+    setCriando(true)
+    const { error } = await supabase.rpc('criar_entrada_marketplace', {
+      p_placa_cavalo:  placaCavaloM.trim().toUpperCase(),
+      p_placa_carreta: placaCarretaM.trim().toUpperCase() || null,
+    })
+    if (error) alert('Erro ao registrar entrada: ' + error.message)
+    setShowModalMarket(false)
+    setPlacaCavaloM('')
+    setPlacaCarretaM('')
+    setCriando(false)
+    await carregar()
   }
 
   async function registrarSaida(atend) {
@@ -160,21 +181,30 @@ export default function PortariaPage() {
 
       {/* Filtros */}
       <div className="bg-white border-b border-cobeb-border px-4 py-3 space-y-3 shrink-0">
-        {/* Status pills */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
-          {STATUS_TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFiltroStatus(tab.key)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                filtroStatus === tab.key
-                  ? 'bg-cobeb-navy border-orange-500 text-white'
-                  : 'bg-transparent border-cobeb-border text-slate-500 hover:border-cobeb-blue/50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Status pills + botão entrada manual */}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-0.5 flex-1">
+            {STATUS_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setFiltroStatus(tab.key)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  filtroStatus === tab.key
+                    ? 'bg-cobeb-navy border-orange-500 text-white'
+                    : 'bg-transparent border-cobeb-border text-slate-500 hover:border-cobeb-blue/50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowModalMarket(true)}
+            className="shrink-0 flex items-center gap-1.5 bg-cobeb-yellow hover:bg-yellow-400 text-cobeb-navy text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+          >
+            <PlusCircle size={13} />
+            Entrada Manual
+          </button>
         </div>
 
         {/* Data */}
@@ -193,6 +223,54 @@ export default function PortariaPage() {
         </div>
       </div>
 
+      {/* Modal entrada manual marketplace */}
+      {showModalMarket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingCart size={18} className="text-cobeb-yellow" />
+                <p className="text-cobeb-text font-bold text-base">Entrada Manual</p>
+              </div>
+              <button onClick={() => { setShowModalMarket(false); setPlacaCavaloM(''); setPlacaCarretaM('') }}
+                className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-slate-500 text-xs">Veículo terceiro — descarga marketplace sem pedido vinculado.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest block mb-1">Placa Cavalo *</label>
+                <input
+                  value={placaCavaloM}
+                  onChange={e => setPlacaCavaloM(e.target.value.toUpperCase())}
+                  placeholder="ABC-1234"
+                  className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-2.5 text-cobeb-text text-sm font-mono uppercase placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest block mb-1">Placa Carreta (opcional)</label>
+                <input
+                  value={placaCarretaM}
+                  onChange={e => setPlacaCarretaM(e.target.value.toUpperCase())}
+                  placeholder="DEF-5678"
+                  className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl px-4 py-2.5 text-cobeb-text text-sm font-mono uppercase placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+                />
+              </div>
+            </div>
+            <button
+              onClick={criarEntradaMarketplace}
+              disabled={criando || !placaCavaloM.trim()}
+              className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              {criando
+                ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Registrando...</>
+                : <><PlusCircle size={16} />Liberar Entrada</>}
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-8 max-w-lg mx-auto w-full space-y-5">
 
         {loading ? (
@@ -210,11 +288,15 @@ export default function PortariaPage() {
                     <div key={a.id} className="bg-white rounded-2xl border-2 border-cobeb-blue p-4">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <Truck size={16} className="text-cobeb-yellow shrink-0" />
+                          {a.tipo === 'marketplace'
+                            ? <ShoppingCart size={16} className="text-cobeb-yellow shrink-0" />
+                            : <Truck size={16} className="text-cobeb-yellow shrink-0" />}
                           <span className="text-cobeb-text font-bold text-sm">{a.placa_cavalo ?? '—'}</span>
                           {a.placa_carreta && <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>}
                         </div>
-                        <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>
+                        {a.tipo === 'marketplace'
+                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Marketplace</span>
+                          : <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>}
                       </div>
                       {a.agendamento && (
                         <p className="text-cobeb-navy text-[11px] font-semibold mb-1">
@@ -252,11 +334,15 @@ export default function PortariaPage() {
                     <div key={a.id} className="bg-white rounded-2xl border border-cobeb-border p-4">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <Truck size={15} className="text-slate-500 shrink-0" />
+                          {a.tipo === 'marketplace'
+                            ? <ShoppingCart size={15} className="text-slate-500 shrink-0" />
+                            : <Truck size={15} className="text-slate-500 shrink-0" />}
                           <span className="text-cobeb-text font-semibold text-sm">{a.placa_cavalo ?? '—'}</span>
                           {a.placa_carreta && <span className="text-slate-500 text-xs font-mono">/ {a.placa_carreta}</span>}
                         </div>
-                        <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>
+                        {a.tipo === 'marketplace'
+                          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Marketplace</span>
+                          : <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>}
                       </div>
                       {a.agendamento && (
                         <p className="text-cobeb-navy text-[11px] font-semibold mb-2">
@@ -303,7 +389,9 @@ export default function PortariaPage() {
                             <CheckCircle size={14} className="text-green-400 shrink-0" />
                             <span className="text-cobeb-text text-sm font-semibold font-mono">{a.placa_cavalo ?? '—'}</span>
                             {a.placa_carreta && <span className="text-slate-500 text-xs font-mono truncate">/ {a.placa_carreta}</span>}
-                            <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>
+                            {a.tipo === 'marketplace'
+                              ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Mkt</span>
+                              : <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>}
                           </div>
                           {tma && <span className="text-cobeb-yellow font-mono text-sm font-bold shrink-0 ml-2">{tma}</span>}
                         </div>

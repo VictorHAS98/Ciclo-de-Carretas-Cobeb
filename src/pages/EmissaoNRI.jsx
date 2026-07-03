@@ -36,11 +36,11 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, gruposIniciai
   const [pdfUrl, setPdfUrl]     = useState(null)
   const [pdfFilename, setPdfFn] = useState('')
 
-  const placaCarreta = tarefa.viagem?.carreta?.placa ?? ''
-  const placaCavalo  = tarefa.viagem?.cavalo?.placa  ?? ''
+  const placaCarreta = tarefa.viagem?.carreta?.placa ?? tarefa.placa_carreta ?? ''
+  const placaCavalo  = tarefa.viagem?.cavalo?.placa  ?? tarefa.placa_cavalo  ?? ''
   const placa        = [placaCarreta, placaCavalo].filter(Boolean).join(' / ') || 'Não informada'
   const motorista    = tarefa.viagem?.motorista?.nome ?? ''
-  const origem       = pedidos[0]?.fabrica ?? ''
+  const origem       = pedidos[0]?.fabrica ?? (tarefa.tipo === 'marketplace' ? 'Marketplace' : '')
   const numeroNF     = tarefa.numero_nf ?? ''
 
   // ─── Busca produto ──────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, gruposIniciai
       if (error) throw error
 
       await supabase.from('nri_emissoes').insert({
-        tarefa_id: tarefa.id, numero_nf: tarefa.numero_nf,
+        tarefa_id: tarefa.id, numero_nf: tarefa.numero_nf ?? null,
         operador: cab.operador.trim(), conferente: cab.conferente.trim(), turno: cab.turno,
         total_nris: totalNRIs, primeiro_numero: primeiro, ultimo_numero: primeiro + totalNRIs - 1,
       })

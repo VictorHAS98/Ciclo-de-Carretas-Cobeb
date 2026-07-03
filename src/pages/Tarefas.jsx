@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import {
   LogOut, ClipboardList, MapPin, ChevronLeft, CheckCircle, Clock,
-  AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X, FileText, LayoutGrid,
+  AlertCircle, Package, Truck, RefreshCw, Camera, AlertTriangle, Plus, X, FileText, LayoutGrid, ShoppingCart,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -293,6 +293,27 @@ export default function Tarefas() {
     setView('nri')
   }
 
+  async function abrirNRIMarketplace(tarefa) {
+    setAbrindoNRI(tarefa.id)
+    setGruposNRI([])
+    setPedidos([])
+    setTarefaSel(tarefa)
+    setAbrindoNRI(null)
+    setView('nri')
+  }
+
+  async function iniciarConferenciaMarketplace(tarefa) {
+    setIniciando(tarefa.id)
+    const { error } = await supabase.from('tarefas')
+      .update({ status: 'em_andamento', conferente_id: profile.id })
+      .eq('id', tarefa.id)
+    setIniciando(null)
+    if (error) return
+    const updated = { ...tarefa, status: 'em_andamento', conferente_id: profile.id }
+    setTarefas(prev => prev.map(t => t.id === tarefa.id ? updated : t))
+    await abrirNRIMarketplace(updated)
+  }
+
   // ─── Anomalia Modal ──────────────────────────────────────────────────────────
 
   function abrirModalAnomalia() {
@@ -550,34 +571,46 @@ export default function Tarefas() {
                     <div className="px-4 py-3">
                       <div className="mb-3">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-cobeb-text font-semibold text-sm">NF {tarefa.numero_nf}</span>
+                          {tarefa.tipo === 'marketplace'
+                            ? <><ShoppingCart size={13} className="text-orange-500" /><span className="text-orange-600 font-semibold text-sm">Marketplace</span></>
+                            : <span className="text-cobeb-text font-semibold text-sm">NF {tarefa.numero_nf}</span>}
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.color} ${cfg.border} bg-[#EBF5FF]/60`}>
                             {cfg.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-                          {tarefa.viagem?.motorista?.nome && (
-                            <span className="flex items-center gap-1">
-                              <Truck size={10} className="text-slate-500" />
-                              {tarefa.viagem.motorista.nome}
-                              {tarefa.viagem.motorista.tipo && (
-                                <span className="text-slate-500 text-[10px]">({tarefa.viagem.motorista.tipo})</span>
-                              )}
+                          {tarefa.tipo === 'marketplace' ? (
+                            <span className="flex items-center gap-1 font-mono text-[11px]">
+                              <Truck size={10} />
+                              {[tarefa.placa_cavalo, tarefa.placa_carreta].filter(Boolean).join(' / ')}
                             </span>
-                          )}
-                          {(tarefa.viagem?.carreta?.placa || tarefa.viagem?.cavalo?.placa) && (
+                          ) : (
                             <>
-                              <span className="text-slate-700">·</span>
-                              <span className="font-mono text-[11px]">
-                                {[tarefa.viagem?.carreta?.placa, tarefa.viagem?.cavalo?.placa].filter(Boolean).join(' / ')}
-                              </span>
+                              {tarefa.viagem?.motorista?.nome && (
+                                <span className="flex items-center gap-1">
+                                  <Truck size={10} className="text-slate-500" />
+                                  {tarefa.viagem.motorista.nome}
+                                  {tarefa.viagem.motorista.tipo && (
+                                    <span className="text-slate-500 text-[10px]">({tarefa.viagem.motorista.tipo})</span>
+                                  )}
+                                </span>
+                              )}
+                              {(tarefa.viagem?.carreta?.placa || tarefa.viagem?.cavalo?.placa) && (
+                                <>
+                                  <span className="text-slate-700">·</span>
+                                  <span className="font-mono text-[11px]">
+                                    {[tarefa.viagem?.carreta?.placa, tarefa.viagem?.cavalo?.placa].filter(Boolean).join(' / ')}
+                                  </span>
+                                </>
+                              )}
                             </>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500 flex-wrap">
                           <span className="flex items-center gap-1">
                             <Clock size={10} />
-                            Chegada: {formatTs(tarefa.viagem?.dt_chegada_revenda) ?? formatTs(tarefa.created_at)}
+                            {tarefa.tipo === 'marketplace' ? 'Entrada: ' : 'Chegada: '}
+                            {formatTs(tarefa.viagem?.dt_chegada_revenda) ?? formatTs(tarefa.created_at)}
                           </span>
                           {tarefa.viagem?.horario_agendado && (
                             <span>Agend.: {tarefa.viagem.horario_agendado}</span>
@@ -585,6 +618,27 @@ export default function Tarefas() {
                         </div>
                       </div>
 
+                      {tarefa.tipo === 'marketplace' ? (
+                        <>
+                          {tarefa.status === 'pendente' && (
+                            <button onClick={() => iniciarConferenciaMarketplace(tarefa)} disabled={iniciando === tarefa.id}
+                              className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                              {iniciando === tarefa.id
+                                ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                : <><FileText size={13} />Gerar NRI Marketplace</>}
+                            </button>
+                          )}
+                          {(tarefa.status === 'em_andamento' || tarefa.status === 'concluida') && (
+                            <button onClick={() => abrirNRIMarketplace(tarefa)} disabled={abrindoNRI === tarefa.id}
+                              className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                              {abrindoNRI === tarefa.id
+                                ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                : <><FileText size={13} />Gerar NRI</>}
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <>
                       {tarefa.status === 'pendente' && (
                         portariaMap[tarefa.viagem?.id] === 'aguardando' ? (
                           <div className="space-y-2">
@@ -632,6 +686,8 @@ export default function Tarefas() {
                               : <><FileText size={13} />Gerar NRI</>}
                           </button>
                         </div>
+                      )}
+                        </>
                       )}
                     </div>
                   </div>
