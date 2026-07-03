@@ -10,6 +10,8 @@
 --   2. Retornar motorista_last_seen_at (para sinal GPS no card)
 --   3. Manter filtro acesso_total (admin vê todas as unidades)
 
+DROP FUNCTION IF EXISTS public.get_painel_viagens();
+
 CREATE OR REPLACE FUNCTION public.get_painel_viagens()
 RETURNS TABLE (
   id                      UUID,
@@ -30,7 +32,7 @@ RETURNS TABLE (
     SELECT unidade_id, acesso_total FROM public.profiles WHERE id = auth.uid()
   ),
   viagens_ativas AS (
-    SELECT v.id, v.status, v.horario_agendado, v.carreta_id, v.cavalo_id, v.motorista_id, v.created_at
+    SELECT v.id, v.status, v.horario_agendado, v.carreta_id, v.cavalo_id, v.motorista_id, v.created_at, v.motorista_last_seen_at
     FROM public.viagens v, meu_perfil mp
     WHERE v.status <> 'concluida'
       AND (
@@ -65,12 +67,6 @@ RETURNS TABLE (
     FROM public.agendamentos
     WHERE status <> 'cancelado'
     ORDER BY viagem_id, created_at DESC
-  ),
-  rastr AS (
-    SELECT DISTINCT ON (motorista_id)
-      motorista_id, last_seen_at
-    FROM public.rastreamento
-    ORDER BY motorista_id, last_seen_at DESC
   )
   SELECT
     v.id,
@@ -82,7 +78,7 @@ RETURNS TABLE (
     t.numero_nf,
     COALESCE(pr.total, 0)           AS total_pedidos,
     COALESCE(pr.lista, '[]'::jsonb)  AS produtos,
-    r.last_seen_at                   AS motorista_last_seen_at,
+    v.motorista_last_seen_at,
     ag.bloco                         AS agendamento_bloco,
     ag.data_agendamento              AS agendamento_data,
     ag.tipo_dia                      AS agendamento_tipo_dia
@@ -93,7 +89,6 @@ RETURNS TABLE (
   LEFT JOIN tarefa_unica     t  ON t.viagem_id = v.id
   LEFT JOIN prods            pr ON pr.viagem_id = v.id
   LEFT JOIN agend            ag ON ag.viagem_id = v.id
-  LEFT JOIN rastr            r  ON r.motorista_id = v.motorista_id
   ORDER BY
     CASE v.status
       WHEN 'retornando'             THEN 1
