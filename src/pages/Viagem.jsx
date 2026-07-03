@@ -695,28 +695,61 @@ function StepPedidos({ pedidosAdicionados, horarioAgendado, setHorario,
 }
 
 function StepNFSaida({ nfSaida, setNfSaida, onVoltar, onProximo }) {
+  const [modo, setModo] = useState(nfSaida ? 'com_nf' : null)
+
+  function selecionarModo(m) {
+    setModo(m)
+    if (m === 'sem_nf') setNfSaida('')
+  }
+
+  const podeProximo = modo === 'sem_nf' || (modo === 'com_nf' && nfSaida.trim() !== '')
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-cobeb-text font-semibold text-base">NF de Retorno de Ativos</h2>
         <p className="text-slate-500 text-sm mt-1">
-          Nota fiscal emitida pela revenda contra a fábrica (ativos de giro: paletes, vasilhame).
-          Se o motorista sobe apenas com o pedido, pule esta etapa.
+          O motorista está saindo com nota fiscal de retorno de ativos de giro?
         </p>
       </div>
-      <div>
-        <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
-          Número da NF Saída <span className="text-slate-400 normal-case font-normal">(opcional)</span>
-        </label>
-        <input
-          value={nfSaida}
-          onChange={e => setNfSaida(e.target.value)}
-          placeholder="Ex: 654321 — deixe em branco se não houver NF"
-          inputMode="numeric"
-          className="w-full bg-white border border-cobeb-border rounded-xl px-4 py-3 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
-        />
+
+      <div className="space-y-2">
+        {[
+          { key: 'com_nf',  titulo: 'Com NF de Retorno',  desc: 'Motorista sai com NF de ativos de giro (paletes, vasilhame)' },
+          { key: 'sem_nf',  titulo: 'Somente Pedido',     desc: 'Motorista sai sem NF — apenas com o pedido vinculado' },
+        ].map(({ key, titulo, desc }) => {
+          const sel = modo === key
+          return (
+            <button key={key} onClick={() => selecionarModo(key)}
+              className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl border transition-all text-left ${
+                sel ? 'bg-cobeb-navy/10 border-cobeb-blue' : 'bg-white border-cobeb-border hover:border-cobeb-blue/40'
+              }`}>
+              <div>
+                <p className={`font-semibold text-sm ${sel ? 'text-cobeb-navy' : 'text-cobeb-text'}`}>{titulo}</p>
+                <p className="text-slate-500 text-xs mt-0.5">{desc}</p>
+              </div>
+              {sel && <CheckCircle size={18} className="text-cobeb-yellow shrink-0" />}
+            </button>
+          )
+        })}
       </div>
-      <BotoesPasso onVoltar={onVoltar} onProximo={onProximo} podeProximo={true} />
+
+      {modo === 'com_nf' && (
+        <div>
+          <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+            Número da NF Saída <span className="text-cobeb-yellow">*</span>
+          </label>
+          <input
+            value={nfSaida}
+            onChange={e => setNfSaida(e.target.value)}
+            placeholder="Ex: 654321"
+            inputMode="numeric"
+            className="w-full bg-white border border-cobeb-border rounded-xl px-4 py-3 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+          />
+        </div>
+      )}
+
+      <BotoesPasso onVoltar={onVoltar} onProximo={onProximo} podeProximo={podeProximo} />
     </div>
   )
 }
