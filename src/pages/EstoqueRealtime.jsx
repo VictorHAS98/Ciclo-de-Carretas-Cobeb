@@ -301,11 +301,17 @@ function ViagemCard({ viagem, expanded, onToggle }) {
           </div>
         </div>
 
-        {/* Linha 2: NF + pedidos */}
+        {/* Linha 2: NFs + pedidos */}
         <div className="flex items-center gap-3 mt-2 flex-wrap">
+          {viagem.numero_nf_saida && (
+            <span className="text-[11px] text-slate-500">
+              NF Saída <span className="font-semibold text-cobeb-yellow">{viagem.numero_nf_saida}</span>
+            </span>
+          )}
           {viagem.numero_nf && (
             <span className="text-[11px] text-slate-500">
-              NF <span className="font-semibold text-cobeb-text">{viagem.numero_nf}</span>
+              {viagem.numero_nf_saida ? 'NF Entrada ' : 'NF '}
+              <span className="font-semibold text-cobeb-text">{viagem.numero_nf}</span>
             </span>
           )}
           {Number(viagem.total_pedidos) > 0 && (

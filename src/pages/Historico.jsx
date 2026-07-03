@@ -469,7 +469,16 @@ export default function Historico() {
                               Ped. {item.numeros_pedido.map(n => `#${n}`).join(' · ')}
                             </span>
                           )}
-                          {item.numero_nf && <span className="text-slate-500 text-xs">NF {item.numero_nf}</span>}
+                          {item.numero_nf_saida && (
+                            <span className="text-slate-500 text-xs">
+                              NF Saída <span className="text-cobeb-yellow font-semibold">{item.numero_nf_saida}</span>
+                            </span>
+                          )}
+                          {item.numero_nf && (
+                            <span className="text-slate-500 text-xs">
+                              {item.numero_nf_saida ? 'NF Entrada ' : 'NF '}{item.numero_nf}
+                            </span>
+                          )}
                           {tmvTotal && <span className="text-slate-500 text-xs font-mono">⏱ {tmvTotal}</span>}
                         </div>
 

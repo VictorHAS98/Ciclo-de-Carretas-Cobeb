@@ -64,6 +64,7 @@ export default function Viagem() {
   const [searchNum, setSearchNum]                 = useState('')
   const [searching, setSearching]                 = useState(false)
   const [searchResult, setSearchResult]           = useState(null)
+  const [nfSaida,  setNfSaida]                     = useState('')
   const [iniciando, setIniciando]                 = useState(false)
 
   // stages
@@ -246,6 +247,7 @@ export default function Viagem() {
         carreta_id:       carreta.id,
         cavalo_id:        cavalo.id,
         horario_agendado: horarioAgendado || null,
+        numero_nf_saida:  nfSaida.trim() || null,
       })
       .select('*, unidade:unidades(*), carreta:carretas(*), cavalo:cavalos(*)')
       .single()
@@ -339,12 +341,13 @@ export default function Viagem() {
       // A tarefa para o Conferente agora é criada pela Portaria ao registrar entrada
       const unidadeId  = agendamento?.revenda_id ?? viagemAtiva.unidade_descarga_id
       const portariaAtend = {
-        viagem_id:      viagemAtiva.id,
-        unidade_id:     unidadeId,
-        numero_nf:      nf,
-        placa_cavalo:   viagemAtiva.cavalo?.placa  ?? null,
-        placa_carreta:  viagemAtiva.carreta?.placa ?? null,
-        agendamento_id: agendamento?.id ?? null,
+        viagem_id:       viagemAtiva.id,
+        unidade_id:      unidadeId,
+        numero_nf:       nf,
+        numero_nf_saida: viagemAtiva.numero_nf_saida ?? null,
+        placa_cavalo:    viagemAtiva.cavalo?.placa  ?? null,
+        placa_carreta:   viagemAtiva.carreta?.placa ?? null,
+        agendamento_id:  agendamento?.id ?? null,
       }
       if (isOnline) {
         await supabase.from('portaria_atendimentos').insert(portariaAtend)
@@ -372,7 +375,7 @@ export default function Viagem() {
 
   function resetWizard() {
     setStep(1); setCarreta(null); setCavalo(null)
-    setPedidos([]); setHorario('')
+    setPedidos([]); setHorario(''); setNfSaida('')
     setMotoristaSelecionada(null)
     setSearchNum(''); setSearchResult(null)
   }
@@ -490,6 +493,7 @@ export default function Viagem() {
               searching={searching} searchResult={searchResult}
               buscarPedido={buscarPedido} adicionarPedido={adicionarPedido}
               removerPedido={n => setPedidos(prev => prev.filter(p => p.numero_pedido !== n))}
+              nfSaida={nfSaida} setNfSaida={setNfSaida}
               iniciando={iniciando} iniciarViagem={iniciarViagem}
             />
           : <ViagemAtiva
@@ -524,10 +528,10 @@ export default function Viagem() {
 function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo, setCavalo,
   pedidosAdicionados, horarioAgendado, setHorario, motoristas, motoristaSelecionada, setMotoristaSelecionada,
   searchNum, setSearchNum, searching, searchResult,
-  buscarPedido, adicionarPedido, removerPedido, iniciando, iniciarViagem }) {
+  buscarPedido, adicionarPedido, removerPedido, nfSaida, setNfSaida, iniciando, iniciarViagem }) {
 
-  const labels = ['Carreta', 'Cavalo', 'Pedidos', 'Motorista', 'Confirmar']
-  const canNext = [!!carreta, !!cavalo, pedidosAdicionados.length > 0, !!motoristaSelecionada, false]
+  const labels = ['Carreta', 'Cavalo', 'Pedidos', 'Motorista', 'NF Saída', 'Confirmar']
+  const canNext = [!!carreta, !!cavalo, pedidosAdicionados.length > 0, !!motoristaSelecionada, true, false]
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-5">
@@ -545,7 +549,7 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
                 </div>
                 <span className={`text-[9px] font-medium ${active ? 'text-cobeb-yellow' : done ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
               </div>
-              {i < 4 && <div className={`w-5 h-px mb-5 mx-0.5 ${n < step ? 'bg-cobeb-navy' : 'bg-cobeb-border'}`} />}
+              {i < 5 && <div className={`w-4 h-px mb-5 mx-0.5 ${n < step ? 'bg-cobeb-navy' : 'bg-cobeb-border'}`} />}
             </div>
           )
         })}
@@ -564,11 +568,14 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
       {step === 4 && <StepMotorista
         motoristas={motoristas} motoristaSelecionada={motoristaSelecionada} setMotoristaSelecionada={setMotoristaSelecionada}
         onVoltar={() => setStep(3)} onProximo={() => setStep(5)} podeProximo={canNext[3]} />}
-      {step === 5 && <StepConfirmar
+      {step === 5 && <StepNFSaida
+        nfSaida={nfSaida} setNfSaida={setNfSaida}
+        onVoltar={() => setStep(4)} onProximo={() => setStep(6)} />}
+      {step === 6 && <StepConfirmar
         carreta={carreta} cavalo={cavalo} pedidosAdicionados={pedidosAdicionados}
-        horarioAgendado={horarioAgendado}
+        horarioAgendado={horarioAgendado} nfSaida={nfSaida}
         motoristaSelecionada={motoristaSelecionada}
-        onVoltar={() => setStep(4)} onConfirmar={iniciarViagem} iniciando={iniciando} />}
+        onVoltar={() => setStep(5)} onConfirmar={iniciarViagem} iniciando={iniciando} />}
     </div>
   )
 }
@@ -687,6 +694,33 @@ function StepPedidos({ pedidosAdicionados, horarioAgendado, setHorario,
   )
 }
 
+function StepNFSaida({ nfSaida, setNfSaida, onVoltar, onProximo }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-cobeb-text font-semibold text-base">NF de Retorno de Ativos</h2>
+        <p className="text-slate-500 text-sm mt-1">
+          Nota fiscal emitida pela revenda contra a fábrica (ativos de giro: paletes, vasilhame).
+          Se o motorista sobe apenas com o pedido, pule esta etapa.
+        </p>
+      </div>
+      <div>
+        <label className="block text-slate-500 text-[11px] font-semibold uppercase tracking-widest mb-1.5">
+          Número da NF Saída <span className="text-slate-400 normal-case font-normal">(opcional)</span>
+        </label>
+        <input
+          value={nfSaida}
+          onChange={e => setNfSaida(e.target.value)}
+          placeholder="Ex: 654321 — deixe em branco se não houver NF"
+          inputMode="numeric"
+          className="w-full bg-white border border-cobeb-border rounded-xl px-4 py-3 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+        />
+      </div>
+      <BotoesPasso onVoltar={onVoltar} onProximo={onProximo} podeProximo={true} />
+    </div>
+  )
+}
+
 function StepMotorista({ motoristas, motoristaSelecionada, setMotoristaSelecionada, onVoltar, onProximo, podeProximo }) {
   return (
     <div className="space-y-4">
@@ -717,7 +751,7 @@ function StepMotorista({ motoristas, motoristaSelecionada, setMotoristaSeleciona
   )
 }
 
-function StepConfirmar({ carreta, cavalo, pedidosAdicionados, horarioAgendado, motoristaSelecionada, onVoltar, onConfirmar, iniciando }) {
+function StepConfirmar({ carreta, cavalo, pedidosAdicionados, horarioAgendado, nfSaida, motoristaSelecionada, onVoltar, onConfirmar, iniciando }) {
   const totalPallets = pedidosAdicionados.reduce((s, p) => s + p.total_pallets, 0)
   const totalSkus    = pedidosAdicionados.reduce((s, p) => s + p.total_skus,    0)
   const allItens     = pedidosAdicionados.flatMap(p => p.itens)
@@ -733,6 +767,7 @@ function StepConfirmar({ carreta, cavalo, pedidosAdicionados, horarioAgendado, m
         <SRow label="Pedidos"   value={pedidosAdicionados.map(p => `#${p.numero_pedido}`).join(' · ')} />
         <SRow label="Total"     value={`${totalPallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pallets · ${totalSkus.toLocaleString('pt-BR')} caixas`} />
         {horarioAgendado && <SRow label="Hor. Carregamento" value={horarioAgendado} />}
+        {nfSaida && <SRow label="NF Saída (Ativos)" value={nfSaida} />}
       </div>
 
       <div className="bg-white rounded-2xl border border-cobeb-border overflow-hidden">
@@ -866,6 +901,12 @@ function ViagemAtiva({ viagem, pedidos, tarefaStatus, portariaStatus, onVerifica
             {totalPallets.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pallets · {totalSkus.toLocaleString('pt-BR')} caixas
             {viagem?.horario_agendado && <> · Hor: {viagem.horario_agendado}</>}
           </p>
+          {viagem?.numero_nf_saida && (
+            <p className="text-[10px] mt-1">
+              <span className="text-slate-400">NF Saída: </span>
+              <span className="text-cobeb-yellow font-semibold font-mono">{viagem.numero_nf_saida}</span>
+            </p>
+          )}
         </div>
       </div>
 
@@ -1359,7 +1400,8 @@ function ResumoViagem({ resumoData, profile, onNovaViagem, signOut }) {
             <SRow label="Motorista" value={`${profile?.nome}${profile?.tipo ? ' · ' + profile.tipo : ''}`} />
             <SRow label="Carreta"   value={`${viagem.carreta?.placa ?? '—'} · ${viagem.carreta?.tipo ?? ''}`} />
             <SRow label="Cavalo"    value={`${viagem.cavalo?.placa ?? '—'} · ${viagem.cavalo?.tipo ?? ''}`} />
-            {viagem.numero_nf && <SRow label="NF" value={viagem.numero_nf} />}
+            {viagem.numero_nf_saida && <SRow label="NF Saída (Rev→Fab)" value={viagem.numero_nf_saida} />}
+            {viagem.numero_nf && <SRow label="NF Entrada (Fab→Rev)" value={viagem.numero_nf} />}
           </div>
 
           {/* Horários */}

@@ -312,7 +312,10 @@ export default function PortariaPage() {
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 block">Marketplace</span>
                               {a.numero_nf && <span className="text-cobeb-yellow text-xs font-mono font-semibold">NF {a.numero_nf}</span>}
                             </div>
-                          : <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>}
+                          : <div className="text-right space-y-0.5">
+                              {a.numero_nf_saida && <p className="text-[10px] text-slate-400 font-mono">Saída: <span className="text-cobeb-yellow font-semibold">{a.numero_nf_saida}</span></p>}
+                              {a.numero_nf && <p className="text-cobeb-yellow text-sm font-mono font-semibold">{a.numero_nf_saida ? 'Ent.: ' : 'NF '}{a.numero_nf}</p>}
+                            </div>}
                       </div>
                       {a.agendamento && (
                         <p className="text-cobeb-navy text-[11px] font-semibold mb-1">
@@ -361,7 +364,10 @@ export default function PortariaPage() {
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 block">Marketplace</span>
                               {a.numero_nf && <span className="text-cobeb-yellow text-xs font-mono font-semibold">NF {a.numero_nf}</span>}
                             </div>
-                          : <span className="text-cobeb-yellow text-sm font-mono font-semibold">NF {a.numero_nf}</span>}
+                          : <div className="text-right space-y-0.5">
+                              {a.numero_nf_saida && <p className="text-[10px] text-slate-400 font-mono">Saída: <span className="text-cobeb-yellow font-semibold">{a.numero_nf_saida}</span></p>}
+                              {a.numero_nf && <p className="text-cobeb-yellow text-sm font-mono font-semibold">{a.numero_nf_saida ? 'Ent.: ' : 'NF '}{a.numero_nf}</p>}
+                            </div>}
                       </div>
                       {a.agendamento && (
                         <p className="text-cobeb-navy text-[11px] font-semibold mb-2">
@@ -410,7 +416,10 @@ export default function PortariaPage() {
                             {a.placa_carreta && <span className="text-slate-500 text-xs font-mono truncate">/ {a.placa_carreta}</span>}
                             {a.tipo === 'marketplace'
                               ? <><span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600">Mkt</span>{a.numero_nf && <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>}</>
-                              : <span className="text-slate-400 text-xs">NF {a.numero_nf}</span>}
+                              : <>
+                                  {a.numero_nf_saida && <span className="text-[10px] text-slate-400 font-mono">Saída:{a.numero_nf_saida}</span>}
+                                  {a.numero_nf && <span className="text-slate-400 text-xs">{a.numero_nf_saida ? ' Ent.:' : 'NF '}{a.numero_nf}</span>}
+                                </>}
                           </div>
                           {tma && <span className="text-cobeb-yellow font-mono text-sm font-bold shrink-0 ml-2">{tma}</span>}
                         </div>
