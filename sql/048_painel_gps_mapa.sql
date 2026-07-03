@@ -85,7 +85,7 @@ RETURNS TABLE (
       ON u.codigo_ambev = p.codigo_fabrica AND u.tipo = 'fabrica'
     WHERE p.viagem_id IN (SELECT id FROM viagens_ativas)
       AND p.codigo_fabrica IS NOT NULL
-    ORDER BY p.viagem_id, p.created_at ASC
+    ORDER BY p.viagem_id, p.numero_pedido ASC
   )
   SELECT
     v.id,
