@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, X, Factory } from 'lucide-react'
+import { Trash2, CheckSquare, Square, AlertTriangle, Clock, Truck, Unlock, X, Factory, ShoppingCart } from 'lucide-react'
 import AdminLayout from '../components/AdminLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -26,20 +26,21 @@ export default function Historico() {
   const { profile } = useAuth()
   const isAdminTotal = profile?.acesso_total === true
 
-  const [viagens,      setViagens]      = useState([])
-  const [unidades,     setUnidades]     = useState([])
-  const [todasPlacas,  setTodasPlacas]  = useState([])
+  const [viagens,       setViagens]       = useState([])
+  const [marketplaces,  setMarketplaces]  = useState([])
+  const [unidades,      setUnidades]      = useState([])
+  const [todasPlacas,   setTodasPlacas]   = useState([])
   const [filtroUnid,    setFiltroUnid]    = useState('')
   const [filtroPlaca,   setFiltroPlaca]   = useState('')
   const [filtroDataDe,  setFiltroDataDe]  = useState('')
   const [filtroDataAte, setFiltroDataAte] = useState('')
-  const [selecionadas, setSelecionadas] = useState(new Set())
-  const [loading,      setLoading]      = useState(true)
-  const [excluindo,    setExcluindo]    = useState(false)
-  const [modalExcluir, setModalExcluir] = useState(false)
-  const [modalLiberar, setModalLiberar] = useState(null)
-  const [liberando,    setLiberando]    = useState(null)
-  const [feedback,     setFeedback]     = useState(null)
+  const [selecionadas,  setSelecionadas]  = useState(new Set())
+  const [loading,       setLoading]       = useState(true)
+  const [excluindo,     setExcluindo]     = useState(false)
+  const [modalExcluir,  setModalExcluir]  = useState(false)
+  const [modalLiberar,  setModalLiberar]  = useState(null)
+  const [liberando,     setLiberando]     = useState(null)
+  const [feedback,      setFeedback]      = useState(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -52,7 +53,7 @@ export default function Historico() {
     if (!silent) setLoading(true)
     if (!silent) setSelecionadas(new Set())
 
-    const [{ data: v }, { data: u }, { data: cavalos }] = await Promise.all([
+    const [{ data: v }, { data: u }, { data: cavalos }, { data: mkt }] = await Promise.all([
       supabase
         .from('viagens')
         .select(`
@@ -67,17 +68,24 @@ export default function Historico() {
         .order('dt_chegada_revenda', { ascending: false }),
       supabase.from('unidades').select('id, nome, cidade').order('nome'),
       supabase.from('cavalos').select('placa').order('placa'),
+      supabase
+        .from('portaria_atendimentos')
+        .select('id, unidade_id, placa_cavalo, placa_carreta, numero_nf, dt_entrada, dt_saida, created_at, unidade:unidades(id, nome, cidade)')
+        .eq('tipo', 'marketplace')
+        .eq('status', 'concluido')
+        .is('excluido_em', null)
+        .order('dt_saida', { ascending: false }),
     ])
 
-    const viagens = v ?? []
+    const viagensRaw = v ?? []
 
     // Busca pedidos separadamente para evitar conflito de RLS no join aninhado
-    let viagensComPedidos = viagens
-    if (viagens.length) {
+    let viagensComPedidos = viagensRaw
+    if (viagensRaw.length) {
       const { data: peds } = await supabase
         .from('pedidos')
         .select('viagem_id, numero_pedido, fabrica')
-        .in('viagem_id', viagens.map(x => x.id))
+        .in('viagem_id', viagensRaw.map(x => x.id))
       if (peds?.length) {
         const porViagem = {}
         const fabricasPorViagem = {}
@@ -89,7 +97,7 @@ export default function Historico() {
             fabricasPorViagem[p.viagem_id].add(p.fabrica)
           }
         })
-        viagensComPedidos = viagens.map(vi => ({
+        viagensComPedidos = viagensRaw.map(vi => ({
           ...vi,
           numeros_pedido: [...new Set(porViagem[vi.id] ?? [])],
           fabricas: [...(fabricasPorViagem[vi.id] ?? [])],
@@ -97,24 +105,43 @@ export default function Historico() {
       }
     }
 
-    const placas = (cavalos ?? []).map(c => c.placa).filter(Boolean)
-
     setViagens(viagensComPedidos)
+    setMarketplaces(mkt ?? [])
     setUnidades(u ?? [])
-    setTodasPlacas(placas)
+    setTodasPlacas((cavalos ?? []).map(c => c.placa).filter(Boolean))
     if (!silent) setLoading(false)
   }
 
-  const viagensFiltradas = useMemo(() => {
-    return viagens.filter(v => {
-      if (filtroUnid && v.unidade?.id !== filtroUnid) return false
-      if (filtroPlaca && v.cavalo?.placa !== filtroPlaca) return false
-      const ref = (v.dt_chegada_revenda || v.dt_saida_entrega || '').slice(0, 10)
+  // Lista unificada ordenada por data desc
+  const itens = useMemo(() => {
+    const v = viagens.map(x => ({
+      ...x,
+      _type: 'viagem',
+      _sortDate: x.dt_saida_entrega || x.dt_chegada_revenda || x.dt_saida_revenda || '',
+    }))
+    const m = marketplaces.map(x => ({
+      ...x,
+      _type: 'marketplace',
+      _sortDate: x.dt_saida || x.created_at || '',
+    }))
+    return [...v, ...m].sort((a, b) => (b._sortDate > a._sortDate ? 1 : -1))
+  }, [viagens, marketplaces])
+
+  const itensFiltrados = useMemo(() => {
+    return itens.filter(item => {
+      if (filtroUnid && item.unidade?.id !== filtroUnid) return false
+      if (filtroPlaca) {
+        const placa = item._type === 'viagem' ? item.cavalo?.placa : item.placa_cavalo
+        if (placa !== filtroPlaca) return false
+      }
+      const ref = item._type === 'viagem'
+        ? (item.dt_chegada_revenda || item.dt_saida_entrega || '').slice(0, 10)
+        : (item.dt_saida || item.created_at || '').slice(0, 10)
       if (filtroDataDe  && ref < filtroDataDe)  return false
       if (filtroDataAte && ref > filtroDataAte) return false
       return true
     })
-  }, [viagens, filtroUnid, filtroPlaca, filtroDataDe, filtroDataAte])
+  }, [itens, filtroUnid, filtroPlaca, filtroDataDe, filtroDataAte])
 
   function resetFiltros() {
     setFiltroUnid('')
@@ -133,10 +160,10 @@ export default function Historico() {
   }
 
   function toggleTodas() {
-    if (selecionadas.size === viagensFiltradas.length) {
+    if (selecionadas.size === itensFiltrados.length) {
       setSelecionadas(new Set())
     } else {
-      setSelecionadas(new Set(viagensFiltradas.map(v => v.id)))
+      setSelecionadas(new Set(itensFiltrados.map(i => i.id)))
     }
   }
 
@@ -149,13 +176,26 @@ export default function Historico() {
     setExcluindo(true)
     setFeedback(null)
 
-    const ids = [...selecionadas]
-    const { data, error } = await supabase.rpc('excluir_viagens', { p_ids: ids })
+    const selectedItems = itens.filter(i => selecionadas.has(i.id))
+    const viagemIds = selectedItems.filter(i => i._type === 'viagem').map(i => i.id)
+    const mktIds    = selectedItems.filter(i => i._type === 'marketplace').map(i => i.id)
+    const erros = []
 
-    if (error) {
-      setFeedback({ tipo: 'erro', msg: 'Erro ao excluir: ' + error.message })
+    if (viagemIds.length) {
+      const { data, error } = await supabase.rpc('excluir_viagens', { p_ids: viagemIds })
+      if (error) erros.push(error.message)
+    }
+
+    for (const id of mktIds) {
+      const { error } = await supabase.rpc('excluir_entrada_marketplace', { p_atendimento_id: id })
+      if (error) erros.push(error.message)
+    }
+
+    if (erros.length) {
+      setFeedback({ tipo: 'erro', msg: 'Erro ao excluir: ' + erros.join('; ') })
     } else {
-      setFeedback({ tipo: 'ok', msg: `${data} viagem(ns) excluída(s) com sucesso.` })
+      const total = viagemIds.length + mktIds.length
+      setFeedback({ tipo: 'ok', msg: `${total} item(s) excluído(s) com sucesso.` })
       await carregar()
     }
 
@@ -180,9 +220,18 @@ export default function Historico() {
     setLiberando(null)
   }
 
-  const temFiltroAtivo = filtroUnid || filtroPlaca || filtroDataDe || filtroDataAte
-  const todasSelecionadas = viagensFiltradas.length > 0 && selecionadas.size === viagensFiltradas.length
+  const temFiltroAtivo    = filtroUnid || filtroPlaca || filtroDataDe || filtroDataAte
+  const todasSelecionadas = itensFiltrados.length > 0 && selecionadas.size === itensFiltrados.length
   const algumaSelecionada = selecionadas.size > 0
+
+  // Texto do modal de exclusão
+  const selectedItems   = itens.filter(i => selecionadas.has(i.id))
+  const nViagens        = selectedItems.filter(i => i._type === 'viagem').length
+  const nMkt            = selectedItems.filter(i => i._type === 'marketplace').length
+  const textoExclusao   = [
+    nViagens > 0 ? `${nViagens} viagem(ns)` : '',
+    nMkt > 0     ? `${nMkt} recebimento(s) marketplace` : '',
+  ].filter(Boolean).join(' e ')
 
   return (
     <AdminLayout title="Histórico de Viagens">
@@ -260,15 +309,15 @@ export default function Historico() {
         )}
 
         {/* Barra de seleção — somente admin_total */}
-        {isAdminTotal && !loading && viagensFiltradas.length > 0 && (
+        {isAdminTotal && !loading && itensFiltrados.length > 0 && (
           <div className="flex items-center justify-between bg-white rounded-2xl border border-cobeb-border px-4 py-3">
             <button onClick={toggleTodas} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
               {todasSelecionadas
                 ? <CheckSquare size={18} className="text-cobeb-yellow" />
                 : <Square size={18} className="text-slate-500" />}
-              {todasSelecionadas ? 'Desmarcar todas' : 'Selecionar todas'}
+              {todasSelecionadas ? 'Desmarcar todos' : 'Selecionar todos'}
             </button>
-            <span className="text-slate-500 text-xs">{viagensFiltradas.length} viagem(ns)</span>
+            <span className="text-slate-500 text-xs">{itensFiltrados.length} item(s)</span>
           </div>
         )}
 
@@ -277,25 +326,88 @@ export default function Historico() {
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : viagensFiltradas.length === 0 ? (
+        ) : itensFiltrados.length === 0 ? (
           <div className="text-center py-16">
             <Clock size={32} className="text-slate-700 mx-auto mb-3" />
             <p className="text-slate-500 text-sm">
               {temFiltroAtivo
-                ? 'Nenhuma viagem encontrada com esses filtros'
-                : 'Nenhuma viagem concluída ou em conferência'}
+                ? 'Nenhum item encontrado com esses filtros'
+                : 'Nenhuma viagem concluída ou recebimento marketplace'}
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {viagensFiltradas.map(v => {
-              const sel       = selecionadas.has(v.id)
-              const tmvTotal  = diffHHMM(v.dt_saida_revenda, v.dt_saida_entrega)
-              const travada   = v.status === 'aguardando_conferencia'
-              const emLiberar = liberando === v.id
+            {itensFiltrados.map(item => {
+              const sel     = selecionadas.has(item.id)
+              const emLib   = liberando === item.id
+
+              if (item._type === 'marketplace') {
+                const tma = diffHHMM(item.dt_entrada, item.dt_saida)
+                return (
+                  <div key={item.id}
+                    className={`rounded-2xl border transition-all ${
+                      sel ? 'bg-cobeb-navy/10 border-orange-500' : 'bg-white border-cobeb-border'
+                    }`}>
+                    <button onClick={() => isAdminTotal && toggleSelecionada(item.id)} className="w-full text-left p-4">
+                      <div className="flex items-start gap-3">
+                        {isAdminTotal && (
+                          <div className="mt-0.5 shrink-0">
+                            {sel
+                              ? <CheckSquare size={18} className="text-cobeb-yellow" />
+                              : <Square size={18} className="text-slate-500" />}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          {/* Unidade + badges + data */}
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className={`font-semibold text-sm truncate ${sel ? 'text-cobeb-yellow' : 'text-cobeb-text'}`}>
+                                {item.unidade?.nome ?? '—'}
+                              </p>
+                              <span className="shrink-0 flex items-center gap-1 text-[10px] font-semibold bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-full">
+                                <ShoppingCart size={9} />Marketplace
+                              </span>
+                              <span className="shrink-0 text-[10px] font-semibold bg-green-500/15 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">
+                                Concluído
+                              </span>
+                            </div>
+                            <span className="text-slate-500 text-xs shrink-0">{formatTs(item.dt_saida)}</span>
+                          </div>
+
+                          {/* Placas + NF */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Truck size={12} className="text-slate-500 shrink-0" />
+                            <span className="text-slate-500 text-xs font-mono">{item.placa_cavalo ?? '—'}</span>
+                            {item.placa_carreta && (
+                              <>
+                                <span className="text-slate-700 text-xs">/</span>
+                                <span className="text-slate-500 text-xs font-mono">{item.placa_carreta}</span>
+                              </>
+                            )}
+                            {item.numero_nf && (
+                              <span className="text-slate-500 text-xs">· NF {item.numero_nf}</span>
+                            )}
+                          </div>
+
+                          {/* Horários + TMA */}
+                          <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500">
+                            <span>Entrada: {formatTs(item.dt_entrada)}</span>
+                            <span>Saída: {formatTs(item.dt_saida)}</span>
+                            {tma && <span className="font-mono">⏱ {tma}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )
+              }
+
+              // ── Viagem normal ──────────────────────────────────────────────
+              const tmvTotal = diffHHMM(item.dt_saida_revenda, item.dt_saida_entrega)
+              const travada  = item.status === 'aguardando_conferencia'
 
               return (
-                <div key={v.id}
+                <div key={item.id}
                   className={`rounded-2xl border transition-all ${
                     sel
                       ? 'bg-cobeb-navy/10 border-orange-500'
@@ -304,8 +416,7 @@ export default function Historico() {
                         : 'bg-white border-cobeb-border'
                   }`}>
 
-                  {/* Área clicável para seleção — checkbox só para admin_total */}
-                  <button onClick={() => isAdminTotal && toggleSelecionada(v.id)} className="w-full text-left p-4">
+                  <button onClick={() => isAdminTotal && toggleSelecionada(item.id)} className="w-full text-left p-4">
                     <div className="flex items-start gap-3">
                       {isAdminTotal && (
                         <div className="mt-0.5 shrink-0">
@@ -319,7 +430,7 @@ export default function Historico() {
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2 min-w-0">
                             <p className={`font-semibold text-sm truncate ${sel ? 'text-cobeb-yellow' : 'text-cobeb-text'}`}>
-                              {v.unidade?.nome ?? '—'}
+                              {item.unidade?.nome ?? '—'}
                             </p>
                             {travada ? (
                               <span className="shrink-0 text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full">
@@ -332,41 +443,41 @@ export default function Historico() {
                             )}
                           </div>
                           <span className="text-slate-500 text-xs shrink-0">
-                            {travada ? formatTs(v.dt_chegada_revenda) : formatTs(v.dt_saida_entrega)}
+                            {travada ? formatTs(item.dt_chegada_revenda) : formatTs(item.dt_saida_entrega)}
                           </span>
                         </div>
 
                         {/* Motorista + veículos */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-slate-400 text-xs">{v.motorista?.nome ?? '—'}</span>
-                          {v.motorista?.tipo && (
+                          <span className="text-slate-400 text-xs">{item.motorista?.nome ?? '—'}</span>
+                          {item.motorista?.tipo && (
                             <span className="text-[10px] bg-[#EBF5FF] border border-cobeb-border text-slate-500 px-2 py-0.5 rounded-full">
-                              {v.motorista.tipo}
+                              {item.motorista.tipo}
                             </span>
                           )}
                           <span className="text-slate-700 text-xs">·</span>
                           <Truck size={12} className="text-slate-500 shrink-0" />
-                          <span className="text-slate-500 text-xs font-mono">{v.carreta?.placa ?? '—'}</span>
+                          <span className="text-slate-500 text-xs font-mono">{item.carreta?.placa ?? '—'}</span>
                           <span className="text-slate-700 text-xs">/</span>
-                          <span className="text-slate-500 text-xs font-mono">{v.cavalo?.placa ?? '—'}</span>
+                          <span className="text-slate-500 text-xs font-mono">{item.cavalo?.placa ?? '—'}</span>
                         </div>
 
                         {/* Pedidos + NF + TMV */}
                         <div className="flex items-center gap-3 flex-wrap">
-                          {v.numeros_pedido?.length > 0 && (
+                          {item.numeros_pedido?.length > 0 && (
                             <span className="text-slate-500 text-xs">
-                              Ped. {v.numeros_pedido.map(n => `#${n}`).join(' · ')}
+                              Ped. {item.numeros_pedido.map(n => `#${n}`).join(' · ')}
                             </span>
                           )}
-                          {v.numero_nf && <span className="text-slate-500 text-xs">NF {v.numero_nf}</span>}
+                          {item.numero_nf && <span className="text-slate-500 text-xs">NF {item.numero_nf}</span>}
                           {tmvTotal && <span className="text-slate-500 text-xs font-mono">⏱ {tmvTotal}</span>}
                         </div>
 
                         {/* Fábrica */}
-                        {v.fabricas?.length > 0 && (
+                        {item.fabricas?.length > 0 && (
                           <div className="flex items-center gap-1.5">
                             <Factory size={12} className="text-slate-400 shrink-0" />
-                            <span className="text-slate-500 text-xs">{v.fabricas.join(' · ')}</span>
+                            <span className="text-slate-500 text-xs">{item.fabricas.join(' · ')}</span>
                           </div>
                         )}
                       </div>
@@ -377,13 +488,13 @@ export default function Historico() {
                   {travada && (
                     <div className="px-4 pb-3 pt-0">
                       <button
-                        onClick={e => { e.stopPropagation(); setModalLiberar(v) }}
-                        disabled={emLiberar}
+                        onClick={e => { e.stopPropagation(); setModalLiberar(item) }}
+                        disabled={emLib}
                         className="w-full flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-semibold text-xs py-2.5 rounded-xl transition-colors disabled:opacity-50">
-                        {emLiberar
+                        {emLib
                           ? <div className="w-4 h-4 border-2 border-blue-400/40 border-t-blue-400 rounded-full animate-spin" />
                           : <Unlock size={14} />}
-                        {emLiberar ? 'Liberando...' : 'Liberar Motorista'}
+                        {emLib ? 'Liberando...' : 'Liberar Motorista'}
                       </button>
                     </div>
                   )}
@@ -394,12 +505,12 @@ export default function Historico() {
         )}
       </div>
 
-      {/* Barra de ação — excluir selecionadas (somente admin_total) */}
+      {/* Barra de ação — excluir selecionados (somente admin_total) */}
       {isAdminTotal && algumaSelecionada && (
         <div className="fixed bottom-20 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
           <div className="w-full max-w-2xl bg-[#1E3A5F] border border-cobeb-blue/40 rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl pointer-events-auto">
             <span className="text-cobeb-text text-sm font-semibold">
-              {selecionadas.size} selecionada{selecionadas.size > 1 ? 's' : ''}
+              {selecionadas.size} selecionado{selecionadas.size > 1 ? 's' : ''}
             </span>
             <button
               onClick={() => setModalExcluir(true)}
@@ -426,7 +537,7 @@ export default function Historico() {
               <div>
                 <p className="text-cobeb-text font-semibold text-base">Confirmar exclusão</p>
                 <p className="text-slate-500 text-sm mt-1">
-                  {selecionadas.size} viagem(ns) serão excluídas permanentemente, incluindo tarefas, conferências e anomalias.
+                  {textoExclusao} serão excluídos permanentemente, incluindo tarefas, NRIs e anomalias.
                 </p>
                 <p className="text-red-400 text-xs mt-2 font-medium">Esta ação não pode ser desfeita.</p>
               </div>
