@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X, LayoutGrid, PlusCircle, ShoppingCart } from 'lucide-react'
+import { LogOut, Clock, CheckCircle, Truck, RefreshCw, X, LayoutGrid, PlusCircle, ShoppingCart, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -59,6 +59,8 @@ export default function PortariaPage() {
   const [placaCarretaM,   setPlacaCarretaM]   = useState('')
   const [numeroNFM,       setNumeroNFM]       = useState('')
   const [criando,         setCriando]         = useState(false)
+  const [excluindo,       setExcluindo]       = useState(null)
+  const [confirmExcluir,  setConfirmExcluir]  = useState(null)
 
   const carregar = useCallback(async (silent = false) => {
     if (!profile?.acesso_total && !profile?.unidade_id) return
@@ -113,6 +115,17 @@ export default function PortariaPage() {
     setPlacaCarretaM('')
     setNumeroNFM('')
     setCriando(false)
+    await carregar()
+  }
+
+  async function excluirMarketplace(atend) {
+    setExcluindo(atend.id)
+    const { error } = await supabase.rpc('excluir_entrada_marketplace', {
+      p_atendimento_id: atend.id,
+    })
+    if (error) alert('Erro ao excluir: ' + error.message)
+    setConfirmExcluir(null)
+    setExcluindo(null)
     await carregar()
   }
 
@@ -401,6 +414,7 @@ export default function PortariaPage() {
                 <div className="space-y-2">
                   {concluidos.map(a => {
                     const tma = diffHHMM(a.dt_entrada, a.dt_saida)
+                    const confirmando = confirmExcluir === a.id
                     return (
                       <div key={a.id} className="bg-white rounded-2xl border border-cobeb-border px-4 py-3">
                         <div className="flex items-center justify-between">
@@ -419,6 +433,34 @@ export default function PortariaPage() {
                           <span>Saída: {formatTs(a.dt_saida)}</span>
                           {tma && <span className="text-cobeb-yellow font-semibold">TMA {tma}</span>}
                         </div>
+                        {a.tipo === 'marketplace' && (
+                          <div className="mt-3 pt-3 border-t border-cobeb-border/50">
+                            {confirmando ? (
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-slate-500 flex-1">Excluir portaria, tarefa e NRIs?</p>
+                                <button
+                                  onClick={() => setConfirmExcluir(null)}
+                                  className="text-xs text-slate-400 hover:text-slate-600 font-semibold px-2 py-1 transition-colors">
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={() => excluirMarketplace(a)}
+                                  disabled={excluindo === a.id}
+                                  className="flex items-center gap-1 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 px-3 py-1 rounded-lg transition-colors">
+                                  {excluindo === a.id
+                                    ? <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                                    : <><Trash2 size={11} />Excluir</>}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmExcluir(a.id)}
+                                className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-red-500 font-semibold transition-colors">
+                                <Trash2 size={12} />Excluir recebimento
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
