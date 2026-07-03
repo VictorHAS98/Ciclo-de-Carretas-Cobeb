@@ -581,11 +581,23 @@ function Wizard({ step, setStep, carretas, cavalos, carreta, setCarreta, cavalo,
 }
 
 function StepSelecionar({ titulo, itens, selecionado, onSelecionar, onVoltar, onProximo, podeProximo }) {
+  const [busca, setBusca] = useState('')
+  const filtrados = itens.filter(i => i.placa?.toLowerCase().includes(busca.toLowerCase()))
+
   return (
     <div className="space-y-4">
       <h2 className="text-cobeb-text font-semibold text-base">{titulo}</h2>
+      <div className="relative">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar por placa..."
+          className="w-full bg-white border border-cobeb-border rounded-xl pl-9 pr-4 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+        />
+      </div>
       <div className="space-y-2">
-        {itens.map(item => {
+        {filtrados.map(item => {
           const selected = selecionado?.id === item.id
           return (
             <button key={item.id} onClick={() => onSelecionar(item)}
@@ -603,7 +615,11 @@ function StepSelecionar({ titulo, itens, selecionado, onSelecionar, onVoltar, on
             </button>
           )
         })}
-        {!itens.length && <p className="text-slate-500 text-sm text-center py-8">Nenhum cadastrado no sistema</p>}
+        {!filtrados.length && (
+          <p className="text-slate-500 text-sm text-center py-8">
+            {busca ? `Nenhum resultado para "${busca}"` : 'Nenhum cadastrado no sistema'}
+          </p>
+        )}
       </div>
       <BotoesPasso onVoltar={onVoltar} onProximo={onProximo} podeProximo={podeProximo} />
     </div>
@@ -755,11 +771,23 @@ function StepNFSaida({ nfSaida, setNfSaida, onVoltar, onProximo }) {
 }
 
 function StepMotorista({ motoristas, motoristaSelecionada, setMotoristaSelecionada, onVoltar, onProximo, podeProximo }) {
+  const [busca, setBusca] = useState('')
+  const filtrados = motoristas.filter(m => m.nome?.toLowerCase().includes(busca.toLowerCase()))
+
   return (
     <div className="space-y-4">
       <h2 className="text-cobeb-text font-semibold text-base">Selecionar Motorista</h2>
+      <div className="relative">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar por nome..."
+          className="w-full bg-white border border-cobeb-border rounded-xl pl-9 pr-4 py-2.5 text-cobeb-text text-sm placeholder-slate-400 focus:outline-none focus:border-cobeb-blue"
+        />
+      </div>
       <div className="space-y-2">
-        {motoristas.map(m => {
+        {filtrados.map(m => {
           const selected = motoristaSelecionada?.id === m.id
           return (
             <button key={m.id} onClick={() => setMotoristaSelecionada(m)}
@@ -777,7 +805,11 @@ function StepMotorista({ motoristas, motoristaSelecionada, setMotoristaSeleciona
             </button>
           )
         })}
-        {!motoristas.length && <p className="text-slate-500 text-sm text-center py-8">Nenhum motorista cadastrado no sistema</p>}
+        {!filtrados.length && (
+          <p className="text-slate-500 text-sm text-center py-8">
+            {busca ? `Nenhum resultado para "${busca}"` : 'Nenhum motorista cadastrado no sistema'}
+          </p>
+        )}
       </div>
       <BotoesPasso onVoltar={onVoltar} onProximo={onProximo} podeProximo={podeProximo} />
     </div>
