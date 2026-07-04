@@ -204,11 +204,25 @@ export default function Carretas() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const filtrados = lista.filter(c =>
-    c.placa.toLowerCase().includes(busca.toLowerCase())
-  )
+  const [filtroTipo, setFiltroTipo] = useState('')
+  const [filtroMan,  setFiltroMan]  = useState('')
+
+  const filtrados = lista.filter(c => {
+    if (!c.placa.toLowerCase().includes(busca.toLowerCase())) return false
+    if (filtroTipo && c.tipo !== filtroTipo) return false
+    if (filtroMan === 'sim' && !c.em_manutencao) return false
+    if (filtroMan === 'nao' &&  c.em_manutencao) return false
+    return true
+  })
 
   const emManutencaoCount = lista.filter(c => c.em_manutencao).length
+
+  const chipCls = (ativo) =>
+    `px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+      ativo
+        ? 'bg-cobeb-navy text-white border-cobeb-navy'
+        : 'bg-white text-slate-500 border-cobeb-border hover:border-cobeb-blue/40'
+    }`
 
   return (
     <div className="px-5 py-4">
@@ -232,11 +246,22 @@ export default function Carretas() {
       </div>
 
       {/* Busca */}
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <input type="text" placeholder="Buscar por placa..."
           value={busca} onChange={e => setBusca(e.target.value)}
           className="w-full bg-[#EBF5FF] border border-cobeb-border rounded-xl pl-9 pr-4 py-3 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue transition-all" />
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button onClick={() => setFiltroTipo('')}       className={chipCls(filtroTipo === '')}>Todos</button>
+        <button onClick={() => setFiltroTipo('FF')}     className={chipCls(filtroTipo === 'FF')}>Frota Fixa</button>
+        <button onClick={() => setFiltroTipo('SPOT')}   className={chipCls(filtroTipo === 'SPOT')}>SPOT</button>
+        <span className="text-cobeb-border">|</span>
+        <button onClick={() => setFiltroMan('')}        className={chipCls(filtroMan === '')}>Todos</button>
+        <button onClick={() => setFiltroMan('sim')}     className={chipCls(filtroMan === 'sim')}>Em Manutenção</button>
+        <button onClick={() => setFiltroMan('nao')}     className={chipCls(filtroMan === 'nao')}>Disponíveis</button>
       </div>
 
       {/* Lista */}
