@@ -204,14 +204,17 @@ export default function Carretas() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const [filtroTipo, setFiltroTipo] = useState('')
-  const [filtroMan,  setFiltroMan]  = useState('')
+  const [filtroTipo,  setFiltroTipo]  = useState('')
+  const [filtroMan,   setFiltroMan]   = useState('')
+  const [filtroAtivo, setFiltroAtivo] = useState('')
 
   const filtrados = lista.filter(c => {
     if (!c.placa.toLowerCase().includes(busca.toLowerCase())) return false
     if (filtroTipo && c.tipo !== filtroTipo) return false
     if (filtroMan === 'sim' && !c.em_manutencao) return false
     if (filtroMan === 'nao' &&  c.em_manutencao) return false
+    if (filtroAtivo === 'ativo'   && !c.ativo) return false
+    if (filtroAtivo === 'inativo' &&  c.ativo) return false
     return true
   })
 
@@ -262,6 +265,10 @@ export default function Carretas() {
         <button onClick={() => setFiltroMan('')}        className={chipCls(filtroMan === '')}>Todos</button>
         <button onClick={() => setFiltroMan('sim')}     className={chipCls(filtroMan === 'sim')}>Em Manutenção</button>
         <button onClick={() => setFiltroMan('nao')}     className={chipCls(filtroMan === 'nao')}>Disponíveis</button>
+        <span className="text-cobeb-border">|</span>
+        <button onClick={() => setFiltroAtivo('')}       className={chipCls(filtroAtivo === '')}>Todos</button>
+        <button onClick={() => setFiltroAtivo('ativo')}  className={chipCls(filtroAtivo === 'ativo')}>Ativo</button>
+        <button onClick={() => setFiltroAtivo('inativo')} className={chipCls(filtroAtivo === 'inativo')}>Inativo</button>
       </div>
 
       {/* Lista */}
