@@ -81,6 +81,7 @@ export default function Admins() {
         id: userId, nome, email, perfil: 'admin',
         acesso_total: acessoTotal,
         unidade_id: acessoTotal ? null : unidadeId,
+        primeiro_acesso: true,
       })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
 

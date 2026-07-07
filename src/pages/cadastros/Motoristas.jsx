@@ -101,7 +101,7 @@ export default function Motoristas() {
 
       const { error: profileErr } = await supabase
         .from('profiles')
-        .insert({ id: userId, nome, email: emailGerado, cpf, telefone, perfil: 'motorista', tipo })
+        .insert({ id: userId, nome, email: emailGerado, cpf, telefone, perfil: 'motorista', tipo, primeiro_acesso: true })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
 
       setSenhaCriada(senha)

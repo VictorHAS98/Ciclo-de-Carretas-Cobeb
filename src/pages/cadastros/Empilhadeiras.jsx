@@ -80,7 +80,7 @@ export default function Empilhadeiras() {
 
       const { error: profileErr } = await supabase.from('profiles').insert({
         id: userId, nome, email: emailCompleto, telefone,
-        perfil: 'empilheira', unidade_id: unidadeId,
+        perfil: 'empilheira', unidade_id: unidadeId, primeiro_acesso: true,
       })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
 

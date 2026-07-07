@@ -201,63 +201,37 @@ export default function Login() {
   const [loading, setLoading]   = useState(false)
   const [erro, setErro]         = useState('')
 
-  // Redefinição de senha
-  const [view, setView]               = useState('login') // 'login' | 'esqueci' | 'nova_senha'
-  const [resetEmail, setResetEmail]   = useState('')
-  const [resetEnviado, setResetEnviado] = useState(false)
-  const [novaSenha, setNovaSenha]     = useState('')
-  const [confirmar, setConfirmar]     = useState('')
-  const [showNova, setShowNova]       = useState(false)
-  const [showConf, setShowConf]       = useState(false)
+  // view: 'login' | 'esqueci' | 'primeiro_acesso'
+  const [view, setView]           = useState('login')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmar, setConfirmar] = useState('')
+  const [showNova, setShowNova]   = useState(false)
+  const [showConf, setShowConf]   = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
-  const [resetErro, setResetErro]     = useState('')
+  const [resetErro, setResetErro] = useState('')
 
   const { signIn, profile } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (profile) {
+    if (!profile) return
+    if (profile.primeiro_acesso) {
+      setView('primeiro_acesso')
+    } else {
       navigate(PERFIL_ROTA[profile.perfil] ?? '/login', { replace: true })
     }
   }, [profile, navigate])
 
-  // Detecta retorno do link de redefinição no e-mail
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setView('nova_senha')
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!email.trim() || !password) {
-      setErro('Preencha o acesso e a senha.')
-      return
-    }
-    setLoading(true)
-    setErro('')
+    if (!email.trim() || !password) { setErro('Preencha o acesso e a senha.'); return }
+    setLoading(true); setErro('')
     const digits = email.trim().replace(/\D/g, '')
     const emailLogin = (!email.trim().includes('@') && digits.length === 11)
       ? `${digits}@motorista.cobeb.com.br`
       : email.trim()
     const { error } = await signIn(emailLogin, password)
-    if (error) {
-      setErro('Acesso ou senha inválidos. Verifique e tente novamente.')
-      setLoading(false)
-    }
-  }
-
-  const handleEsqueci = async (e) => {
-    e.preventDefault()
-    if (!resetEmail.trim()) { setResetErro('Informe seu e-mail.'); return }
-    setResetLoading(true); setResetErro('')
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-      redirectTo: 'https://victorhas98.github.io/Ciclo-de-Carretas-Cobeb/',
-    })
-    setResetLoading(false)
-    if (error) setResetErro('Erro ao enviar: ' + error.message)
-    else setResetEnviado(true)
+    if (error) { setErro('Acesso ou senha inválidos. Verifique e tente novamente.'); setLoading(false) }
   }
 
   const handleNovaSenha = async (e) => {
@@ -266,11 +240,10 @@ export default function Login() {
     if (novaSenha !== confirmar) { setResetErro('As senhas não coincidem.'); return }
     setResetLoading(true); setResetErro('')
     const { error } = await supabase.auth.updateUser({ password: novaSenha })
+    if (error) { setResetErro('Erro: ' + error.message); setResetLoading(false); return }
+    await supabase.from('profiles').update({ primeiro_acesso: false }).eq('id', profile.id)
     setResetLoading(false)
-    if (error) { setResetErro('Erro: ' + error.message); return }
-    setView('login')
-    setNovaSenha(''); setConfirmar('')
-    setErro('')
+    navigate(PERFIL_ROTA[profile.perfil] ?? '/login', { replace: true })
   }
 
   const base = import.meta.env.BASE_URL
@@ -336,7 +309,7 @@ export default function Login() {
                   className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-cobeb-navy/25 mt-1">
                   {loading ? <><Loader2 size={16} className="animate-spin" />Entrando…</> : 'Entrar'}
                 </button>
-                <button type="button" onClick={() => { setView('esqueci'); setResetErro(''); setResetEnviado(false) }}
+                <button type="button" onClick={() => setView('esqueci')}
                   className="w-full text-cobeb-navy/60 hover:text-cobeb-navy text-xs font-medium transition-colors pt-1">
                   Esqueceu sua senha?
                 </button>
@@ -350,59 +323,37 @@ export default function Login() {
               <button onClick={() => setView('login')} className="flex items-center gap-1.5 text-cobeb-navy/60 hover:text-cobeb-navy text-xs font-medium mb-4 transition-colors">
                 <ArrowLeft size={14} /> Voltar
               </button>
-              <h3 className="text-cobeb-text font-semibold text-base mb-1">Redefinir senha</h3>
-
-              {resetEnviado ? (
-                <div className="flex flex-col items-center gap-3 py-4">
-                  <CheckCircle2 size={40} className="text-green-500" />
-                  <p className="text-cobeb-text text-sm text-center font-medium">Link enviado!</p>
-                  <p className="text-slate-500 text-xs text-center leading-relaxed">
-                    Verifique sua caixa de entrada e clique no link para redefinir sua senha.
-                  </p>
-                  <button onClick={() => setView('login')} className="mt-2 text-cobeb-navy text-xs font-semibold hover:underline">
-                    Voltar ao login
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleEsqueci} noValidate className="space-y-4 mt-4">
-                  <p className="text-slate-500 text-sm leading-relaxed">
-                    Informe seu e-mail cadastrado e enviaremos um link para redefinir sua senha.
-                  </p>
-                  <div className="space-y-1.5">
-                    <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">E-mail</label>
-                    <input type="email" value={resetEmail} onChange={e => { setResetEmail(e.target.value); setResetErro('') }}
-                      placeholder="seu@email.com.br" autoComplete="email"
-                      className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
-                  </div>
-                  {resetErro && (
-                    <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                      <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
-                      <p className="text-red-600 text-sm">{resetErro}</p>
-                    </div>
-                  )}
-                  <button type="submit" disabled={resetLoading}
-                    className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm">
-                    {resetLoading ? <><Loader2 size={16} className="animate-spin" />Enviando…</> : 'Enviar link'}
-                  </button>
-                </form>
-              )}
+              <h3 className="text-cobeb-text font-semibold text-base mb-1">Esqueceu sua senha?</h3>
+              <p className="text-slate-500 text-sm mt-3 leading-relaxed">
+                Entre em contato com o administrador do sistema para redefinir sua senha de acesso.
+              </p>
+              <a href="mailto:victor.soares@cobeb.com.br"
+                className="mt-4 flex items-center justify-center gap-2 w-full bg-cobeb-navy hover:bg-cobeb-blue text-white font-semibold py-3.5 rounded-xl transition-all text-sm">
+                victor.soares@cobeb.com.br
+              </a>
+              <button onClick={() => setView('login')} className="w-full text-cobeb-navy/60 hover:text-cobeb-navy text-xs font-medium transition-colors pt-3">
+                Voltar ao login
+              </button>
             </>
           )}
 
-          {/* ── VIEW: NOVA SENHA ── */}
-          {view === 'nova_senha' && (
+          {/* ── VIEW: PRIMEIRO ACESSO ── */}
+          {view === 'primeiro_acesso' && (
             <>
-              <h3 className="text-cobeb-text font-semibold text-base mb-1">Nova senha</h3>
-              <form onSubmit={handleNovaSenha} noValidate className="space-y-4 mt-4">
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  Escolha uma nova senha para sua conta.
-                </p>
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 size={18} className="text-cobeb-navy shrink-0" />
+                <h3 className="text-cobeb-text font-semibold text-base">Bem-vindo!</h3>
+              </div>
+              <p className="text-slate-500 text-sm mt-1 mb-4 leading-relaxed">
+                Este é seu primeiro acesso. Por segurança, defina uma senha pessoal antes de continuar.
+              </p>
+              <form onSubmit={handleNovaSenha} noValidate className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">Nova senha</label>
                   <div className="relative">
                     <input type={showNova ? 'text' : 'password'} value={novaSenha}
                       onChange={e => { setNovaSenha(e.target.value); setResetErro('') }}
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Mínimo 6 caracteres" autoFocus
                       className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 pr-12 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
                     <button type="button" onClick={() => setShowNova(!showNova)} tabIndex={-1}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cobeb-navy transition-colors">
@@ -431,7 +382,7 @@ export default function Login() {
                 )}
                 <button type="submit" disabled={resetLoading}
                   className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm">
-                  {resetLoading ? <><Loader2 size={16} className="animate-spin" />Salvando…</> : 'Salvar nova senha'}
+                  {resetLoading ? <><Loader2 size={16} className="animate-spin" />Salvando…</> : 'Definir senha e entrar'}
                 </button>
               </form>
             </>

@@ -80,7 +80,7 @@ export default function Portaria() {
 
       const { error: profileErr } = await supabase.from('profiles').insert({
         id: userId, nome, email: emailCompleto, telefone,
-        perfil: 'portaria', unidade_id: unidadeId,
+        perfil: 'portaria', unidade_id: unidadeId, primeiro_acesso: true,
       })
       if (profileErr) { setErro(profileErr.message); setSalvando(false); return }
 
