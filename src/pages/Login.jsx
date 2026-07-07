@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const PERFIL_ROTA = {
   admin:      '/dashboard',
@@ -200,6 +201,17 @@ export default function Login() {
   const [loading, setLoading]   = useState(false)
   const [erro, setErro]         = useState('')
 
+  // Redefinição de senha
+  const [view, setView]               = useState('login') // 'login' | 'esqueci' | 'nova_senha'
+  const [resetEmail, setResetEmail]   = useState('')
+  const [resetEnviado, setResetEnviado] = useState(false)
+  const [novaSenha, setNovaSenha]     = useState('')
+  const [confirmar, setConfirmar]     = useState('')
+  const [showNova, setShowNova]       = useState(false)
+  const [showConf, setShowConf]       = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetErro, setResetErro]     = useState('')
+
   const { signIn, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -209,6 +221,14 @@ export default function Login() {
     }
   }, [profile, navigate])
 
+  // Detecta retorno do link de redefinição no e-mail
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setView('nova_senha')
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!email.trim() || !password) {
@@ -217,7 +237,6 @@ export default function Login() {
     }
     setLoading(true)
     setErro('')
-    // Se o campo não tem @ e tem 11 dígitos numéricos → é CPF de motorista
     const digits = email.trim().replace(/\D/g, '')
     const emailLogin = (!email.trim().includes('@') && digits.length === 11)
       ? `${digits}@motorista.cobeb.com.br`
@@ -227,6 +246,31 @@ export default function Login() {
       setErro('Acesso ou senha inválidos. Verifique e tente novamente.')
       setLoading(false)
     }
+  }
+
+  const handleEsqueci = async (e) => {
+    e.preventDefault()
+    if (!resetEmail.trim()) { setResetErro('Informe seu e-mail.'); return }
+    setResetLoading(true); setResetErro('')
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: 'https://victorhas98.github.io/Ciclo-de-Carretas-Cobeb/',
+    })
+    setResetLoading(false)
+    if (error) setResetErro('Erro ao enviar: ' + error.message)
+    else setResetEnviado(true)
+  }
+
+  const handleNovaSenha = async (e) => {
+    e.preventDefault()
+    if (novaSenha.length < 6) { setResetErro('Mínimo 6 caracteres.'); return }
+    if (novaSenha !== confirmar) { setResetErro('As senhas não coincidem.'); return }
+    setResetLoading(true); setResetErro('')
+    const { error } = await supabase.auth.updateUser({ password: novaSenha })
+    setResetLoading(false)
+    if (error) { setResetErro('Erro: ' + error.message); return }
+    setView('login')
+    setNovaSenha(''); setConfirmar('')
+    setErro('')
   }
 
   const base = import.meta.env.BASE_URL
@@ -253,80 +297,146 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Card de login */}
+        {/* Card */}
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/20 shadow-2xl shadow-black/30">
-          <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-            Entre com suas credenciais para acessar o sistema.
-          </p>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
-
-            {/* Email ou CPF */}
-            <div className="space-y-1.5">
-              <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">
-                Email / CPF
-              </label>
-              <input
-                type="text"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setErro('') }}
-                placeholder="Email ou CPF do motorista"
-                autoComplete="username"
-                autoCapitalize="none"
-                inputMode="email"
-                className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all"
-              />
-            </div>
-
-            {/* Senha */}
-            <div className="space-y-1.5">
-              <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">
-                Senha
-              </label>
-              <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setErro('') }}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 pr-12 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  tabIndex={-1}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cobeb-navy transition-colors"
-                >
-                  {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
+          {/* ── VIEW: LOGIN ── */}
+          {view === 'login' && (
+            <>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                Entre com suas credenciais para acessar o sistema.
+              </p>
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">Email / CPF</label>
+                  <input type="text" value={email} onChange={e => { setEmail(e.target.value); setErro('') }}
+                    placeholder="Email ou CPF do motorista" autoComplete="username" autoCapitalize="none" inputMode="email"
+                    className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">Senha</label>
+                  <div className="relative">
+                    <input type={showPass ? 'text' : 'password'} value={password}
+                      onChange={e => { setPassword(e.target.value); setErro('') }}
+                      placeholder="••••••••" autoComplete="current-password"
+                      className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 pr-12 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
+                    <button type="button" onClick={() => setShowPass(!showPass)} tabIndex={-1}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cobeb-navy transition-colors">
+                      {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+                {erro && (
+                  <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-red-600 text-sm">{erro}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={loading}
+                  className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-cobeb-navy/25 mt-1">
+                  {loading ? <><Loader2 size={16} className="animate-spin" />Entrando…</> : 'Entrar'}
                 </button>
-              </div>
-            </div>
+                <button type="button" onClick={() => { setView('esqueci'); setResetErro(''); setResetEnviado(false) }}
+                  className="w-full text-cobeb-navy/60 hover:text-cobeb-navy text-xs font-medium transition-colors pt-1">
+                  Esqueceu sua senha?
+                </button>
+              </form>
+            </>
+          )}
 
-            {/* Erro */}
-            {erro && (
-              <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
-                <p className="text-red-600 text-sm">{erro}</p>
-              </div>
-            )}
+          {/* ── VIEW: ESQUECI A SENHA ── */}
+          {view === 'esqueci' && (
+            <>
+              <button onClick={() => setView('login')} className="flex items-center gap-1.5 text-cobeb-navy/60 hover:text-cobeb-navy text-xs font-medium mb-4 transition-colors">
+                <ArrowLeft size={14} /> Voltar
+              </button>
+              <h3 className="text-cobeb-text font-semibold text-base mb-1">Redefinir senha</h3>
 
-            {/* Botão */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-cobeb-navy hover:bg-cobeb-blue active:bg-cobeb-blue/90 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg shadow-cobeb-navy/25 mt-1"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Entrando…
-                </>
+              {resetEnviado ? (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <CheckCircle2 size={40} className="text-green-500" />
+                  <p className="text-cobeb-text text-sm text-center font-medium">Link enviado!</p>
+                  <p className="text-slate-500 text-xs text-center leading-relaxed">
+                    Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+                  </p>
+                  <button onClick={() => setView('login')} className="mt-2 text-cobeb-navy text-xs font-semibold hover:underline">
+                    Voltar ao login
+                  </button>
+                </div>
               ) : (
-                'Entrar'
+                <form onSubmit={handleEsqueci} noValidate className="space-y-4 mt-4">
+                  <p className="text-slate-500 text-sm leading-relaxed">
+                    Informe seu e-mail cadastrado e enviaremos um link para redefinir sua senha.
+                  </p>
+                  <div className="space-y-1.5">
+                    <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">E-mail</label>
+                    <input type="email" value={resetEmail} onChange={e => { setResetEmail(e.target.value); setResetErro('') }}
+                      placeholder="seu@email.com.br" autoComplete="email"
+                      className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
+                  </div>
+                  {resetErro && (
+                    <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                      <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
+                      <p className="text-red-600 text-sm">{resetErro}</p>
+                    </div>
+                  )}
+                  <button type="submit" disabled={resetLoading}
+                    className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm">
+                    {resetLoading ? <><Loader2 size={16} className="animate-spin" />Enviando…</> : 'Enviar link'}
+                  </button>
+                </form>
               )}
-            </button>
-          </form>
+            </>
+          )}
+
+          {/* ── VIEW: NOVA SENHA ── */}
+          {view === 'nova_senha' && (
+            <>
+              <h3 className="text-cobeb-text font-semibold text-base mb-1">Nova senha</h3>
+              <form onSubmit={handleNovaSenha} noValidate className="space-y-4 mt-4">
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Escolha uma nova senha para sua conta.
+                </p>
+                <div className="space-y-1.5">
+                  <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">Nova senha</label>
+                  <div className="relative">
+                    <input type={showNova ? 'text' : 'password'} value={novaSenha}
+                      onChange={e => { setNovaSenha(e.target.value); setResetErro('') }}
+                      placeholder="Mínimo 6 caracteres"
+                      className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 pr-12 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
+                    <button type="button" onClick={() => setShowNova(!showNova)} tabIndex={-1}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cobeb-navy transition-colors">
+                      {showNova ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-cobeb-navy/60 text-[11px] font-semibold uppercase tracking-widest">Confirmar senha</label>
+                  <div className="relative">
+                    <input type={showConf ? 'text' : 'password'} value={confirmar}
+                      onChange={e => { setConfirmar(e.target.value); setResetErro('') }}
+                      placeholder="Repita a nova senha"
+                      className="w-full bg-[#F5F9FF] border border-cobeb-border rounded-xl px-4 py-3.5 pr-12 text-cobeb-text text-sm placeholder-blue-200 focus:outline-none focus:border-cobeb-blue focus:ring-2 focus:ring-cobeb-blue/20 transition-all" />
+                    <button type="button" onClick={() => setShowConf(!showConf)} tabIndex={-1}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cobeb-navy transition-colors">
+                      {showConf ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+                {resetErro && (
+                  <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <AlertCircle size={15} className="text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-red-600 text-sm">{resetErro}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={resetLoading}
+                  className="w-full bg-cobeb-navy hover:bg-cobeb-blue disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm">
+                  {resetLoading ? <><Loader2 size={16} className="animate-spin" />Salvando…</> : 'Salvar nova senha'}
+                </button>
+              </form>
+            </>
+          )}
+
         </div>
 
         {/* Rodapé com logo Ambev */}
