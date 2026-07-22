@@ -153,8 +153,8 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, gruposIniciai
 
       const doc = gerarNRIPdf({ allNRIs, cabecalho: cab, placaCarreta, placaCavalo, numeroNF, motorista, origem, dataRecebimento, horaEmissao, filename })
 
-      const blob = doc.output('blob')
-      setPdfUrl(URL.createObjectURL(blob))
+      const blobUrl = doc.output('bloburl')
+      setPdfUrl(blobUrl)
     } catch (err) {
       console.error('Erro ao gerar NRI:', err)
       alert('Erro ao gerar o PDF. Tente novamente.')
@@ -165,9 +165,7 @@ export default function EmissaoNRI({ tarefa, pedidos, profileNome, gruposIniciai
 
   function baixarPdf() {
     if (!pdfUrl) return
-    const a = document.createElement('a')
-    a.href = pdfUrl; a.download = pdfFilename
-    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    window.open(pdfUrl, '_blank')
   }
 
   function imprimirPdf() {

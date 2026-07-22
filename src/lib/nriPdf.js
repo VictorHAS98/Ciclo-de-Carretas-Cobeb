@@ -184,6 +184,5 @@ export function gerarNRIPdf({ allNRIs, cabecalho, placaCarreta, placaCavalo, num
     }
   }
 
-  doc.save(filename)
   return doc
 }

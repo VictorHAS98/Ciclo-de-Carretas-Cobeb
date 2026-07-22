@@ -279,7 +279,7 @@ export default function CheckRecebimento() {
       const filename        = `NRI_${g.numero_nf}_${dateStr}.pdf`
       const origem          = itens?.[0]?.pedido?.fabrica ?? ''
 
-      gerarNRIPdf({
+      const doc = gerarNRIPdf({
         allNRIs,
         cabecalho:    { operador: emissao.operador, conferente: emissao.conferente, turno: emissao.turno },
         placaCarreta: g.placa_carreta ?? '',
@@ -291,6 +291,7 @@ export default function CheckRecebimento() {
         horaEmissao,
         filename,
       })
+      window.open(doc.output('bloburl'), '_blank')
     } finally {
       setBaixandoNRI(null)
     }
